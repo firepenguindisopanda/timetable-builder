@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="fade-up">
+    <div class="page-header">
+        <h1 class="page-title">
+            <span class="text-accent">CELCAT</span> Timetable Extractor
+        </h1>
+        <p class="page-subtitle">
+            Extract structured class data from CELCAT timetable PDFs. 
+            Choose a tool to get started.
+        </p>
+    </div>
+
+    <div class="tools-grid">
+        <a href="/extract" class="tool-card">
+            <div class="tool-icon" style="color: var(--accent-cyan);">
+                <i class="bi bi-upload"></i>
+            </div>
+            <h3 class="tool-title">Upload & Extract</h3>
+            <p class="tool-desc">Upload PDF files directly and extract timetable data.</p>
+        </a>
+        
+        <a href="/batch" class="tool-card">
+            <div class="tool-icon" style="color: var(--accent-amber);">
+                <i class="bi bi-folder2-open"></i>
+            </div>
+            <h3 class="tool-title">Batch Extract</h3>
+            <p class="tool-desc">Process multiple PDFs from a directory on the server.</p>
+        </a>
+        
+        <a href="/download" class="tool-card">
+            <div class="tool-icon" style="color: var(--accent-green);">
+                <i class="bi bi-cloud-download"></i>
+            </div>
+            <h3 class="tool-title">Download</h3>
+            <p class="tool-desc">Fetch timetables from UWI's CELCAT server.</p>
+        </a>
+        
+        <a href="/evaluate" class="tool-card">
+            <div class="tool-icon" style="color: var(--accent-red);">
+                <i class="bi bi-clipboard-data"></i>
+            </div>
+            <h3 class="tool-title">Evaluate</h3>
+            <p class="tool-desc">Check header consistency across PDFs.</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

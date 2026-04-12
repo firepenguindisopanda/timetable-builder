@@ -1,0 +1,6 @@
+{% macro alert(message, type='danger') %}
+<div class="alert alert-{{ type }} result-alert fade-up" role="alert">
+    <i class="bi bi-{% if type == 'danger' %}exclamation-triangle{% elif type == 'success' %}check-circle{% else %}exclamation-circle{% endif %} me-2"></i>
+    {{ message }}
+</div>
+{% endmacro %}

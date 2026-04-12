@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar - CELCAT Timetable Extractor{% endblock %}
+
+{% block extra_head %}
+<style>
+.events-panel {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-surface);
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+.events-panel-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-elevated);
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.event-list-item {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.event-list-item:hover {
+    background: var(--bg-interactive);
+}
+
+.event-list-item.selected {
+    background: var(--accent-cyan-dim);
+}
+
+.event-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.event-dot.lecture { background: var(--accent-cyan); }
+.event-dot.lab { background: var(--accent-amber); }
+.event-dot.tutorial { background: var(--accent-green); }
+.event-dot.other { background: var(--text-tertiary); }
+
+.event-list-time {
+    color: var(--text-tertiary);
+    min-width: 70px;
+}
+
+.event-list-course {
+    font-weight: 600;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-list-type {
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+}
+
+/* Conflicts section */
+.conflicts-panel {
+    background: rgba(255, 61, 113, 0.1);
+    border: 1px solid rgba(255, 61, 113, 0.3);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.conflicts-header {
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--accent-danger);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.conflicts-content {
+    padding: 0 12px 12px;
+    display: none;
+}
+
+.conflicts-content.open {
+    display: block;
+}
+
+.conflict-item {
+    padding: 6px 8px;
+    background: rgba(255, 61, 113, 0.15);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.calendar-wrapper {
+    display: flex;
+    gap: 3px;
+    min-height: 700px;
+}
+
+.day-column {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg-surface);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.day-header {
+    background: var(--bg-elevated);
+    padding: 8px 4px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.time-slots {
+    position: relative;
+    height: 690px; /* 26 x 30 = 780px, use less */
+}
+
+/* Hour lines */
+.time-slot {
+    height: 30px;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+    padding: 2px 4px;
+}
+
+.time-slot:nth-child(even) {
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+}
+
+.time-label {
+    font-size: 0.55rem;
+    color: var(--text-tertiary);
+}
+
+/* Events positioned absolutely in time column */
+.calendar-event {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    cursor: grab;
+    z-index: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.calendar-event:active {
+    cursor: grabbing;
+    z-index: 10;
+}
+
+.calendar-event.lecture {
+    background: rgba(0, 229, 255, 0.2);
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+.calendar-event.lab {
+    background: rgba(255, 184, 0, 0.2);
+    border: 1px solid var(--accent-amber);
+    color: var(--accent-amber);
+}
+
+.calendar-event.tutorial {
+    background: rgba(0, 214, 143, 0.2);
+    border: 1px solid var(--accent-green);
+    color: var(--accent-green);
+}
+
+.calendar-event.other {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--text-tertiary);
+    color: var(--text-secondary);
+}
+
+.calendar-event .event-course {
+    font-weight: 600;
+    font-size: 0.65rem;
+}
+
+.calendar-event .event-type {
+    font-size: 0.55rem;
+    opacity: 0.85;
+}
+
+.calendar-event .event-time {
+    font-size: 0.55rem;
+    opacity: 0.7;
+}
+
+.calendar-event .event-room {
+    font-size: 0.55rem;
+    opacity: 0.7;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 2px;
+    margin-right: 3px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-up">
+    <div class="page-header">
+        <h1 class="page-title">
+            <span class="text-accent">My</span> Timetable
+        </h1>
+        <p class="page-subtitle">
+            Drag events to reschedule. Click events in the list to highlight them.
+        </p>
+    </div>
+
+    <!-- Conflicts Warning -->
+    <div id="conflictsPanel" class="conflicts-panel" style="display: none;">
+        <div class="conflicts-header" onclick="toggleConflicts()">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span id="conflictsCount">0</span> Time Clash(es) Detected
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div id="conflictsContent" class="conflicts-content">
+            <!-- Conflict items will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Events List -->
+    <div class="surface-card mb-3" style="max-width: 1000px; margin: 0 auto;">
+        <div class="events-panel-header">
+            <span><i class="bi bi-list me-1"></i> All Events (<span id="eventCount">0</span>)</span>
+            <input type="text" id="searchBox" placeholder="Search..." style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem;">
+        </div>
+        <div id="eventsList" class="events-panel" style="max-height: 150px;">
+            <!-- Event list items -->
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="d-flex justify-content-between mb-3" style="max-width: 1000px; margin: 0 auto;">
+        <button id="clearBtn" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px;">
+            <i class="bi bi-trash me-1"></i> Clear
+        </button>
+        <span style="font-size: 0.75rem; color: var(--text-tertiary);">
+            <i class="bi bi-info-circle me-1"></i> Events load automatically after extraction
+        </span>
+    </div>
+
+    <!-- Calendar -->
+    <div class="surface-card" style="max-width: 1000px; margin: 0 auto; padding: 8px;">
+        <div id="calendarWrapper" class="calendar-wrapper">
+            <!-- 7 day columns -->
+        </div>
+    </div>
+
+    <!-- Empty -->
+    <div id="emptyState" class="text-center py-5" style="display: none; max-width: 400px; margin: 0 auto;">
+        <i class="bi bi-calendar-x" style="font-size: 2.5rem; color: var(--text-tertiary);"></i>
+        <p class="mt-3" style="color: var(--text-secondary); font-size: 0.95rem;">No timetable data yet.</p>
+        <p style="color: var(--text-tertiary); font-size: 0.8rem; margin-bottom: 1.5rem;">Upload and extract your PDF timetables to build your calendar.</p>
+        <a href="/extract" class="btn btn-accent" style="border-radius: 8px;">
+            <i class="bi bi-upload me-1"></i> Go to Extract
+        </a>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-3 text-center">
+        <span style="font-size: 0.7rem; color: var(--text-secondary);">
+            <span class="legend-dot" style="background: var(--accent-cyan);"></span>Lecture
+            <span class="legend-dot" style="background: var(--accent-amber); margin-left: 8px;"></span>Lab
+            <span class="legend-dot" style="background: var(--accent-green); margin-left: 8px;"></span>Tutorial
+            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    'use strict';
+
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const START_HOUR = 8;
+    const SLOTS_PER_HOUR = 2;
+    const TOTAL_HOURS = 14; // 8am to 10pm = 14 hours
+    const STORAGE_KEY = 'celcat_timetable_data';
+
+    const calendarWrapper = document.getElementById('calendarWrapper');
+    const emptyState = document.getElementById('emptyState');
+    const clearBtn = document.getElementById('clearBtn');
+    const searchBox = document.getElementById('searchBox');
+    let currentEvents = [];
+
+    // Time functions - handle both 24hr and 12hr formats
+    function timeToMins(time) {
+        if (!time) return 480; // default 8:00 AM
+        
+        let hours, mins;
+        
+        if (time.includes('AM') || time.includes('PM')) {
+            // 12-hour format: "12:00 PM"
+            const isPM = time.includes('PM');
+            const parts = time.replace(/(AM|PM)/, '').trim().split(':');
+            hours = parseInt(parts[0]);
+            mins = parseInt(parts[1] || 0);
+            if (isPM && hours !== 12) hours += 12;
+            if (!isPM && hours === 12) hours = 0;
+        } else {
+            // 24-hour format: "14:00"
+            const parts = time.split(':');
+            hours = parseInt(parts[0]);
+            mins = parseInt(parts[1] || 0);
+        }
+        
+        return hours * 60 + mins;
+    }
+
+    function minsToTime(mins) {
+        return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`;
+    }
+
+    function timeLabel(mins) {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+    }
+
+    // Build calendar grid
+    function buildGrid() {
+        let html = '';
+        DAYS.forEach((day, idx) => {
+            html += `<div class="day-column" data-day="${idx}">`;
+            html += `<div class="day-header">${day}</div>`;
+            html += `<div class="time-slots" data-day="${idx}">`;
+            
+            // 28 slots (14 hours x 2 half-hours)
+            for (let h = 0; h < TOTAL_HOURS * SLOTS_PER_HOUR; h++) {
+                const mins = START_HOUR * 60 + h * 30;
+                const showLabel = h % 2 === 0;
+                html += `<div class="time-slot" data-mins="${mins}" data-day="${idx}">`;
+                if (showLabel) html += `<span class="time-label">${timeLabel(mins)}</span>`;
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+        });
+        calendarWrapper.innerHTML = html;
+        setupDragDrop();
+    }
+
+    // Convert time to slot index
+    function timeToSlot(time) {
+        if (!time) return 0;
+        const mins = timeToMins(time);
+        return Math.floor((mins - START_HOUR * 60) / 30);
+    }
+
+    // Get slot Y position
+    function slotToTop(slot) {
+        return slot * 30;
+    }
+
+    // Find conflicts
+    function findConflicts(events) {
+        const conflicts = [];
+        
+        for (let i = 0; i < events.length; i++) {
+            for (let j = i + 1; j < events.length; j++) {
+                const e1 = events[i];
+                const e2 = events[j];
+                
+                if (e1.day !== e2.day) continue;
+                
+                const s1 = timeToMins(e1.start_time);
+                const e1End = timeToMins(e1.end_time);
+                const s2 = timeToMins(e2.start_time);
+                const e2End = timeToMins(e2.end_time);
+                
+                if (s1 < e2End && s2 < e1End) {
+                    conflicts.push({
+                        indices: [i, j],
+                        events: [e1, e2],
+                        day: e1.day,
+                        time: `${e1.start_time} - ${e1.end_time}`
+                    });
+                }
+            }
+        }
+        
+        return conflicts;
+    }
+
+    // Render events list
+    function renderEventsList(events, filter = '') {
+        const listEl = document.getElementById('eventsList');
+        const countEl = document.getElementById('eventCount');
+        
+        if (!events || events.length === 0) {
+            listEl.innerHTML = '<div style="padding: 20px; color: var(--text-tertiary); text-align: center;">No events</div>';
+            countEl.textContent = '0';
+            return;
+        }
+        
+        // Filter by search term
+        let filtered = events;
+        if (filter.trim()) {
+            const term = filter.toLowerCase();
+            filtered = events.filter(e => 
+                (e.course || '').toLowerCase().includes(term) ||
+                (e.day || '').toLowerCase().includes(term) ||
+                (e.type || '').toLowerCase().includes(term) ||
+                (e.room || '').toLowerCase().includes(term)
+            );
+        }
+        
+        countEl.textContent = filtered.length + (filter.trim() ? ` / ${events.length}` : '');
+        
+        // Sort by day then time
+        const sorted = [...filtered].sort((a, b) => {
+            const dayA = DAYS.indexOf(a.day);
+            const dayB = DAYS.indexOf(b.day);
+            if (dayA !== dayB) return dayA - dayB;
+            return timeToMins(a.start_time) - timeToMins(b.start_time);
+        });
+        
+        let html = '';
+        sorted.forEach(event => {
+            // Find original index in FULL events array
+            const origIdx = events.indexOf(event);
+            const typeClass = (event.type || 'other').toLowerCase();
+            
+            html += `<div class="event-list-item" data-idx="${origIdx}" onclick="highlightEvent(${origIdx})">
+                <span class="event-dot ${typeClass}"></span>
+                <span class="event-list-time">${event.day.substring(0,3)} ${event.start_time}</span>
+                <span class="event-list-course">${escapeHtml(event.course || '?')}</span>
+                <span class="event-list-type">${escapeHtml(event.type || 'Event')}</span>
+            </div>`;
+        });
+        
+        listEl.innerHTML = html;
+    }
+
+    // Render conflicts
+    function renderConflicts(events) {
+        const conflictsPanel = document.getElementById('conflictsPanel');
+        const conflictsContent = document.getElementById('conflictsContent');
+        const conflictsCount = document.getElementById('conflictsCount');
+        
+        const conflicts = findConflicts(events);
+        
+        if (conflicts.length === 0) {
+            conflictsPanel.style.display = 'none';
+            return;
+        }
+        
+        conflictsPanel.style.display = 'block';
+        conflictsCount.textContent = conflicts.length;
+        
+        let html = '';
+        conflicts.forEach(c => {
+            const e1 = c.events[0];
+            const e2 = c.events[1];
+            html += `<div class="conflict-item">
+                <strong>${escapeHtml(e1.course || '?')}</strong> clashes with <strong>${escapeHtml(e2.course || '?')}</strong>
+                <br>${c.day} ${c.time}
+            </div>`;
+        });
+        
+        conflictsContent.innerHTML = html;
+    }
+
+    // Highlight event from list
+    window.highlightEvent = function(idx) {
+        // Remove previous selection
+        document.querySelectorAll('.event-list-item.selected').forEach(el => el.classList.remove('selected'));
+        
+        // Highlight in list
+        document.querySelector(`.event-list-item[data-idx="${idx}"]`)?.classList.add('selected');
+        
+        // Scroll calendar to event (optional)
+    };
+
+    // Toggle conflicts panel
+    window.toggleConflicts = function() {
+        const content = document.getElementById('conflictsContent');
+        content.classList.toggle('open');
+    };
+
+    // Render events
+    function renderEvents(events) {
+        // Store for search filtering
+        currentEvents = events || [];
+        const filter = searchBox ? searchBox.value : '';
+        
+        // Remove old events
+        document.querySelectorAll('.calendar-event').forEach(e => e.remove());
+        
+        if (!events || events.length === 0) {
+            emptyState.style.display = 'block';
+            document.getElementById('eventCount').textContent = '0';
+            document.getElementById('conflictsPanel').style.display = 'none';
+            document.getElementById('eventsList').innerHTML = '';
+            return;
+        }
+        
+        events.forEach((event, idx) => {
+            const dayIdx = DAYS.indexOf(event.day);
+            
+            if (dayIdx === -1) return;
+            
+            const col = calendarWrapper.querySelector(`.time-slots[data-day="${dayIdx}"]`);
+            if (!col) {
+                console.log(`  No column found for dayIdx ${dayIdx}`);
+                return;
+            }
+            
+            const startSlot = timeToSlot(event.start_time);
+            const endSlot = timeToSlot(event.end_time);
+            const top = slotToTop(startSlot);
+            const height = Math.max(25, (endSlot - startSlot) * 30);
+            
+            const typeClass = (event.type || 'other').toLowerCase();
+            
+            const el = document.createElement('div');
+            el.className = `calendar-event ${typeClass}`;
+            el.style.top = `${top}px`;
+            el.style.height = `${height}px`;
+            el.draggable = true;
+            el.dataset.index = idx;
+            
+            el.innerHTML = `
+                <div class="event-course">${escapeHtml(event.course || '?')}</div>
+                <div class="event-type">${escapeHtml(event.type || 'Event')}</div>
+                <div class="event-time">${escapeHtml(event.start_time)}-${escapeHtml(event.end_time)}</div>
+            `;
+            
+            // Drag handlers
+            el.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', idx);
+                el.style.opacity = '0.5';
+            });
+            el.addEventListener('dragend', () => el.style.opacity = '1');
+            
+            col.appendChild(el);
+        });
+        
+        // Also render the event list and detect conflicts
+        renderEventsList(events, filter);
+        renderConflicts(events);
+        
+        emptyState.style.display = 'none';
+    }
+
+    // Setup drag and drop
+    function setupDragDrop() {
+        const slots = document.querySelectorAll('.time-slot');
+        
+        slots.forEach(slot => {
+            slot.addEventListener('dragover', e => {
+                e.preventDefault();
+                slot.style.background = 'rgba(0,229,255,0.1)';
+            });
+            
+            slot.addEventListener('dragleave', () => {
+                slot.style.background = '';
+            });
+            
+            slot.addEventListener('drop', e => {
+                e.preventDefault();
+                slot.style.background = '';
+                
+                const eventIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                if (isNaN(eventIdx)) return;
+                
+                const dayIdx = parseInt(slot.dataset.day);
+                const newMins = parseInt(slot.dataset.mins);
+                
+                // Get event and calculate duration
+                const events = loadEvents();
+                const event = events[eventIdx];
+                if (!event) return;
+                
+                const duration = timeToMins(event.end_time) - timeToMins(event.start_time);
+                
+                // Update
+                event.day = DAYS[dayIdx];
+                event.start_time = minsToTime(newMins);
+                event.end_time = minsToTime(newMins + duration);
+                
+                // Save and re-render
+                saveEvents(events);
+                renderEvents(events);
+            });
+        });
+    }
+
+    // Storage helpers
+    function loadFullData() {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : null;
+    }
+
+    function loadEvents() {
+        const data = loadFullData();
+        return data ? data.calendar_events : null;
+    }
+
+    function saveEvents(events) {
+        const existing = loadFullData() || {};
+        existing.calendar_events = events;
+        existing.updatedAt = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    }
+
+    // Load ALL events from extraction (no filtering!)
+    function loadExtracted() {
+        const data = loadFullData();
+        console.log('Full data:', data);
+        
+        if (!data || !data.results || data.results.length === 0) {
+            alert('No extracted data found. Extract PDFs first.');
+            return;
+        }
+        
+        console.log('Results:', data.results);
+        
+        // Load ALL entries, keep their original day/time
+        const allEvents = [];
+        
+        data.results.forEach(result => {
+            const course = result.course_title || result.source_file.replace('.pdf', '');
+            
+            result.entries.forEach(entry => {
+                allEvents.push({
+                    course: course,
+                    day: entry.day,
+                    start_time: entry.start_time,
+                    end_time: entry.end_time,
+                    type: entry.type || 'Other',
+                    room: entry.room || '',
+                    staff: entry.staff || '',
+                    source_file: result.source_file
+                });
+            });
+        });
+        
+        saveEvents(allEvents);
+        renderEvents(allEvents);
+    }
+
+    function showCalendar() {
+        const events = loadEvents();
+        const data = loadFullData();
+        const hasExtracted = data && data.results && data.results.length > 0;
+        const hasEvents = events && events.length > 0;
+        const hasData = hasExtracted || hasEvents;
+        
+        calendarWrapper.style.display = hasData ? 'flex' : 'none';
+        emptyState.style.display = hasData ? 'none' : 'block';
+        
+        if (hasEvents) {
+            renderEvents(events);
+        }
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text || '';
+        return d.innerHTML;
+    }
+
+    // Search filter listener
+    searchBox.addEventListener('input', e => {
+        const filter = e.target.value;
+        renderEventsList(currentEvents, filter);
+    });
+
+    // Listeners
+    clearBtn.addEventListener('click', () => {
+        if (confirm('Clear all events?')) {
+            saveEvents([]);
+            renderEvents([]);
+            if (searchBox) searchBox.value = '';
+            showCalendar();
+        }
+    });
+
+    // Auto-load saved events on page load
+    buildGrid();
+    
+    (function autoLoadOnInit() {
+        const savedData = loadFullData();
+        const hasEvents = savedData && savedData.calendar_events && savedData.calendar_events.length > 0;
+        const hasExtraction = savedData && savedData.results && savedData.results.length > 0;
+        
+        console.log('Initial check - hasEvents:', hasEvents, 'hasExtraction:', hasExtraction);
+        
+        if (hasEvents) {
+            console.log('Rendering saved events:', savedData.calendar_events.length);
+            renderEvents(savedData.calendar_events);
+        } else if (hasExtraction) {
+            console.log('Auto-loading from extraction - calling loadExtracted()');
+            try {
+                loadExtracted();
+                console.log('loadExtracted completed');
+            } catch(e) {
+                console.error('loadExtracted error:', e);
+            }
+        } else {
+            console.log('No data - showing empty state');
+            showCalendar();
+        }
+    })();
+
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Extract - CELCAT Timetable Extractor{% endblock %}
+
+{% block content %}
+<div class="fade-up">
+    <div class="page-header">
+        <h1 class="page-title">
+            <span class="text-accent">Batch</span> Extract
+        </h1>
+        <p class="page-subtitle">
+            Extract timetables from PDF files already present on the server.
+        </p>
+    </div>
+
+    <div class="surface-card" style="max-width: 1000px; margin: 0 auto; position: relative;">
+        <div class="loading-overlay" id="batchLoading">
+            <div class="text-center">
+                <div class="spinner-border" role="status"></div>
+                <div class="mt-2" style="font-size: 0.8rem; color: var(--text-tertiary);">Processing batch…</div>
+            </div>
+        </div>
+
+        <form id="batchForm" class="p-4">
+            <div class="mb-3">
+                <label for="batchDir" class="form-label">PDF Directory</label>
+                <input type="text" class="form-control" id="batchDir" value="./downloaded_pdfs" required>
+                <div class="form-text">Absolute or relative path to the folder containing PDFs.</div>
+            </div>
+            <button type="submit" class="btn btn-accent w-100">
+                <i class="bi bi-collection me-1"></i> Run Batch Extraction
+            </button>
+        </form>
+
+        <div id="batchResults" class="px-4 pb-4"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    'use strict';
+
+    // Elements
+    const batchForm = document.getElementById('batchForm');
+    const batchDir = document.getElementById('batchDir');
+    const batchLoading = document.getElementById('batchLoading');
+    const batchResults = document.getElementById('batchResults');
+
+    // Show/hide loading
+    function showLoading() {
+        batchLoading.classList.add('active');
+    }
+
+    function hideLoading() {
+        batchLoading.classList.remove('active');
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Render alert with custom HTML content (for 404)
+    function renderAlert(type, message) {
+        const alertClass = type === 'error' ? 'alert-danger' : 
+                          type === 'success' ? 'alert-success' : 'alert-warning';
+        return `<div class="result-alert alert ${alertClass} mb-3">${message}</div>`;
+    }
+
+    // Generate stat cards HTML
+    function statCardsHtml(stats) {
+        if (!stats) return '';
+        
+        let html = '<div class="row g-2 mb-3">';
+        
+        if (stats.total !== undefined) {
+            html += `<div class="col-3"><div class="stat-card"><div class="stat-value">${stats.total}</div><div class="stat-label">Total</div></div></div>`;
+        }
+        if (stats.filesProcessed !== undefined) {
+            html += `<div class="col-3"><div class="stat-card"><div class="stat-value cyan">${stats.filesProcessed}</div><div class="stat-label">Files</div></div></div>`;
+        }
+        if (stats.modules !== undefined) {
+            html += `<div class="col-3"><div class="stat-card"><div class="stat-value amber">${stats.modules}</div><div class="stat-label">Modules</div></div></div>`;
+        }
+        if (stats.sessions !== undefined) {
+            html += `<div class="col-3"><div class="stat-card"><div class="stat-value green">${stats.sessions}</div><div class="stat-label">Sessions</div></div></div>`;
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    // Render data table
+    function renderTable(records) {
+        if (!records || records.length === 0) return '';
+        
+        const headers = Object.keys(records[0]);
+        let html = '<div class="table-responsive"><table class="table table-dark"><thead><tr>';
+        
+        headers.forEach(h => {
+            html += `<th>${escapeHtml(h)}</th>`;
+        });
+        
+        html += '</tr></thead><tbody>';
+        
+        records.slice(0, 100).forEach(row => {
+            html += '<tr>';
+            headers.forEach(h => {
+                html += `<td>${escapeHtml(String(row[h] ?? ''))}</td>`;
+            });
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        
+        if (records.length > 100) {
+            html += `<p class="text-tertiary" style="font-size: 0.75rem;">Showing first 100 of ${records.length} records</p>`;
+        }
+        
+        return html;
+    }
+
+    // Render batch extraction results
+    function renderBatchResults(data) {
+        let html = '';
+        
+        // Handle error response
+        if (data.error) {
+            batchResults.innerHTML = renderAlert('error', data.error);
+            return;
+        }
+
+        // Handle summary stats
+        if (data.summary) {
+            html += statCardsHtml(data.summary);
+        }
+
+        // Handle per-file results
+        if (Array.isArray(data.results)) {
+            if (data.results.length === 0) {
+                html += renderAlert('warning', 'No PDF files found in the specified directory.');
+                batchResults.innerHTML = html;
+                return;
+            }
+
+            data.results.forEach(result => {
+                html += `<h6 class="section-title">${escapeHtml(result.filename)}</h6>`;
+                
+                if (result.stats) {
+                    html += statCardsHtml(result.stats);
+                }
+                
+                if (result.warning) {
+                    html += renderAlert('warning', result.warning);
+                }
+                
+                if (result.error) {
+                    html += renderAlert('error', result.error);
+                }
+                
+                if (result.data && result.data.length > 0) {
+                    html += renderTable(result.data);
+                } else if (!result.warning && !result.error) {
+                    html += renderAlert('warning', 'No timetable data found in this file.');
+                }
+                
+                html += '<hr style="border-color: var(--border-subtle); margin: 1.5rem 0;">';
+            });
+            
+            // Final summary
+            if (data.summary) {
+                const successfulFiles = data.results.filter(r => !r.error && r.data && r.data.length > 0).length;
+                const totalFiles = data.results.length;
+                if (successfulFiles > 0) {
+                    html = `<h5 class="section-title mb-3">Summary</h5>` + 
+                           statCardsHtml(data.summary) + 
+                           `<p class="text-secondary" style="font-size: 0.8rem;">Successfully processed ${successfulFiles} of ${totalFiles} files.</p>` +
+                           '<hr style="border-color: var(--border-subtle); margin: 1.5rem 0;">' + 
+                           html;
+                }
+            }
+        }
+        
+        batchResults.innerHTML = html;
+    }
+
+    // Form submission
+    batchForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const pdfDir = batchDir.value.trim();
+        if (!pdfDir) return;
+        
+        showLoading();
+        batchResults.innerHTML = '';
+        
+        try {
+            const response = await fetch('/extract/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ pdf_dir: pdfDir })
+            });
+            
+            // Handle 404 specially with user-friendly message
+            if (response.status === 404) {
+                batchResults.innerHTML = renderAlert('warning', 
+                    '<i class="bi bi-folder-x me-2"></i>' +
+                    'Directory not found. Please check the path and try again. ' +
+                    '<button class="btn btn-sm btn-link p-0 ms-1" onclick="document.getElementById(\'batchDir\').focus()">Edit path</button>'
+                );
+                hideLoading();
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                batchResults.innerHTML = renderAlert('error', data.error || 'Batch extraction failed');
+            } else {
+                renderBatchResults(data);
+            }
+        } catch (err) {
+            batchResults.innerHTML = renderAlert('error', 'Network error: ' + err.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    // Health check on page load
+    (function healthCheck() {
+        fetch('/health')
+            .then(res => {
+                if (!res.ok) {
+                    console.warn('Health check failed');
+                }
+            })
+            .catch(() => {
+                console.warn('Health check unavailable');
+            });
+    })();
+
+})();
+</script>
+{% endblock %}

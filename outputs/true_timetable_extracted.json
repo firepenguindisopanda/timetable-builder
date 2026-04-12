@@ -1,0 +1,1640 @@
+[
+  {
+    "source_file": "m1614.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 1011, Intro. to Information Technology I (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "06:00 PM",
+        "end_time": "07:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1011",
+        "staff": "PAUL, Travis",
+        "room": "FST CSL2 Type I",
+        "group_label": null,
+        "raw_text": "Lab, Wks\nS2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1011\nStaff: PAUL,\nTravis\nRoom: FST\nCSL2\nType I"
+      },
+      {
+        "day": "Monday",
+        "start_time": "07:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1011",
+        "staff": "PAUL, Travis",
+        "room": "FST CSL2 Type II",
+        "group_label": null,
+        "raw_text": "Lab, Wks\nS2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1011\nStaff: PAUL,\nTravis\nRoom: FST\nCSL2\nType II"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1011",
+        "staff": "PAUL,Travis",
+        "room": "FST 413",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: COMP 1011\nStaff: PAUL,Travis\nRoom: FST 413"
+      }
+    ]
+  },
+  {
+    "source_file": "m1649.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 6300, Advanced Internet Technology (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Wednesday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 6300",
+        "staff": "Charles, David",
+        "room": "FST CSL3",
+        "group_label": null,
+        "raw_text": "Postgraduate, Wks S2W8-S2W12 [=5]\nCourse: COMP 6300\nStaff: Charles, David\nRoom: FST CSL3"
+      }
+    ]
+  },
+  {
+    "source_file": "m45216.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 6802, Distributed & Parallel Database Systems (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 6802",
+        "staff": "BACHU,Eshwar",
+        "room": "Remote Teaching",
+        "group_label": null,
+        "raw_text": "Postgraduate, Wks S2W8-S2W12 [=5]\nCourse: COMP 6802\nStaff: BACHU,Eshwar\nRoom: Remote Teaching"
+      }
+    ]
+  },
+  {
+    "source_file": "m55716.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 1601, Computer Programming I (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "04:00 PM",
+        "end_time": "05:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1601",
+        "staff": "MATHURIN ,Sergio",
+        "room": "FST C3 1601",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1601\nStaff:\nMATHURIN\n,Sergio\nRoom: FST\nC3\n1601"
+      },
+      {
+        "day": "Monday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1601",
+        "staff": "HANIF,Zainab",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1601\nStaff: HANIF,Zainab\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "03:00 PM",
+        "end_time": "05:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1601",
+        "staff": "HANIF,Zainab",
+        "room": "FST CSL2",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1601\nStaff: HANIF,Zainab\nRoom: FST CSL2\n(L2)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1601",
+        "staff": "HANIF,Zainab",
+        "room": "FST CSL2",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1601\nStaff: HANIF,Zainab\nRoom: FST CSL2\n(L3)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "05:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1601",
+        "staff": "MATHURIN ,Sergio",
+        "room": "TCB 32",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1601\nStaff:\nMATHURIN\n,Sergio\nRoom: TCB\n32"
+      },
+      {
+        "day": "Friday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1601",
+        "staff": "HANIF,Zainab",
+        "room": "FST CSL2",
+        "group_label": "L4",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1601\nStaff: HANIF,Zainab\nRoom: FST CSL2\n(L4)"
+      }
+    ]
+  },
+  {
+    "source_file": "m55717.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 1603, Computer Programming III (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "11:00 AM",
+        "end_time": "01:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1603",
+        "staff": "HOSEIN,Michael Rooms: LRC A; LRC B; LRC C",
+        "room": null,
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: COMP 1603\nStaff: HOSEIN,Michael\nRooms: LRC A; LRC B;\nLRC C"
+      },
+      {
+        "day": "Monday",
+        "start_time": "11:00 AM",
+        "end_time": "01:00 PM",
+        "type": null,
+        "weeks": null,
+        "week_count": null,
+        "course": "COMP 1603",
+        "staff": null,
+        "room": "ENG MD3 1603",
+        "group_label": null,
+        "raw_text": "Examination, Wk S2W10\nCourse: COMP 1603\nRoom: ENG MD3\n1603"
+      },
+      {
+        "day": "Monday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1603",
+        "staff": "HOSEIN,Michael",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1603\nStaff: HOSEIN,Michael\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1603",
+        "staff": "HOSEIN,Michael",
+        "room": "FST CSL2",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1603\nStaff: HOSEIN,Michael\nRoom: FST CSL2\n(L2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1603",
+        "staff": "HOSEIN,Michael",
+        "room": "Remote Teaching",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1603\nStaff: HOSEIN,Michael\nRoom: Remote Teaching\n(L3)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1603",
+        "staff": "HOSEIN,Michael",
+        "room": "FST CSL2",
+        "group_label": "L4",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1603\nStaff: HOSEIN,Michael\nRoom: FST CSL2\n(L4)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "COMP 1603",
+        "staff": "HOSEIN,Michael",
+        "room": "FST CSL2",
+        "group_label": "L5",
+        "raw_text": "Lab, Wks S2W8-S2W11\n[=4]\nCourse: COMP 1603\nStaff: HOSEIN,Michael\nRoom: FST CSL2\n(L5)"
+      }
+    ]
+  },
+  {
+    "source_file": "m57896.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 1602, Computer Programming II (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "09:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": "RAGBIR, Diana",
+        "room": "TLC LT E (G1)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1602\nStaff:\nRAGBIR,\nDiana\nRoom: TLC\nLT E\n(G1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "02:00 PM",
+        "end_time": "03:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": "MOHAN, Permanand",
+        "room": "TLC LT A2 (G2)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1602\nStaff:\nMOHAN,\nPermanand\nRoom: TLC\nLT A2\n(G2)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL1 (G1 L1)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL1\n(G1 L1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL1 (G2 L1)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL1\n(G2 L1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL1 (G1 L2)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL1\n(G1 L2)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "09:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": "RAGBIR, Diana",
+        "room": "TLC LT E (G1)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1602\nStaff:\nRAGBIR,\nDiana\nRoom: TLC\nLT E\n(G1)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "12:00 PM",
+        "end_time": "01:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": "MOHAN, Permanand",
+        "room": "TLC LT A2 (G2)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1602\nStaff:\nMOHAN,\nPermanand\nRoom: TLC\nLT A2\n(G2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL2 (G2 L2)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL2\n(G2 L2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL2 (G1 L3)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL2\n(G1 L3)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "11:00 AM",
+        "end_time": "01:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL1 (G2 L3)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL1\n(G2 L3)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL2 (G1 L4)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL2\n(G1 L4)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "FST CSL2 (G2 L4)",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 1602\nRoom: FST CSL2\n(G2 L4)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "COMP 1602",
+        "staff": null,
+        "room": "Remote Teaching G1 and G2 overflow",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W11\n[=4]\nCourse: COMP 1602\nRoom: Remote Teaching\nG1 and G2 overflow"
+      }
+    ]
+  },
+  {
+    "source_file": "m57898.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 1604, Mathematics for Computing (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "08:00 AM",
+        "end_time": "09:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "TLC LT E (G1)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: TLC\nLT E\n(G1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "03:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST C1 (G2)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\nC1\n(G2)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "02:00 PM",
+        "end_time": "03:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST C1 (G1 T1)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\nC1\n(G1 T1)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "08:00 AM",
+        "end_time": "09:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "TLC LT E (G2)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: TLC\nLT E\n(G2)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "03:00 PM",
+        "end_time": "04:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST 113 (G2 T1)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\n113\n(G2 T1)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "06:00 PM",
+        "end_time": "07:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST C1 (G1)",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\nC1\n(G1)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "11:00 AM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "TCB 32 (G1 T2)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: TCB\n32\n(G1 T2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "11:00 AM",
+        "end_time": "12:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST 113 (G2 T2)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\n113\n(G2 T2)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "10:00 AM",
+        "end_time": "11:00 AM",
+        "type": null,
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST 412 (G1 T3)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W11 [=4]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\n412\n(G1 T3)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "11:00 AM",
+        "end_time": "12:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "COMP 1604",
+        "staff": "KAMALUDI N,Saleem; LATCHMA N,Gyshan",
+        "room": "FST 412 (G2 T3)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W11 [=4]\nCourse:\nCOMP\n1604\nStaff:\nKAMALUDI\nN,Saleem;\nLATCHMA\nN,Gyshan\nRoom: FST\n412\n(G2 T3)"
+      }
+    ]
+  },
+  {
+    "source_file": "m57903.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 1601, Introduction to WWW Programming (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "06:00 PM",
+        "end_time": "07:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 1601",
+        "staff": "MENDEZ, Nicholas",
+        "room": "FST C1",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nINFO 1601\nStaff:\nMENDEZ,\nNicholas\nRoom: FST\nC1"
+      },
+      {
+        "day": "Monday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 1601",
+        "staff": "MURRAY,Devon",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 1601\nStaff: MURRAY,Devon\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 1601",
+        "staff": "MURRAY,Devon",
+        "room": "FST CSL2",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 1601\nStaff: MURRAY,Devon\nRoom: FST CSL2\n(L2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 1601",
+        "staff": "MURRAY,Devon",
+        "room": "Remote Teaching",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 1601\nStaff: MURRAY,Devon\nRoom: Remote Teaching\n(L3)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 1601",
+        "staff": "MURRAY,Devon",
+        "room": "FST CSL2",
+        "group_label": "L4",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 1601\nStaff: MURRAY,Devon\nRoom: FST CSL2\n(L4)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "04:00 PM",
+        "end_time": "05:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 1601",
+        "staff": "MENDEZ, Nicholas",
+        "room": "FST C1",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nINFO 1601\nStaff:\nMENDEZ,\nNicholas\nRoom: FST\nC1"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "INFO 1601",
+        "staff": "MURRAY,Devon",
+        "room": "FST CSL1",
+        "group_label": "L5",
+        "raw_text": "Lab, Wks S2W8-S2W11\n[=4]\nCourse: INFO 1601\nStaff: MURRAY,Devon\nRoom: FST CSL1\n(L5)"
+      }
+    ]
+  },
+  {
+    "source_file": "m62600.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 2600, Information Systems Development (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Tuesday",
+        "start_time": "04:00 PM",
+        "end_time": "05:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2600",
+        "staff": "HOSEIN, Michael",
+        "room": "FST 413",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nINFO 2600\nStaff:\nHOSEIN,\nMichael\nRoom: FST\n413"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2600",
+        "staff": "HOSEIN,Michael",
+        "room": "FST C3",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 2600\nStaff: HOSEIN,Michael\nRoom: FST C3"
+      }
+    ]
+  },
+  {
+    "source_file": "m62602.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 2603, Object Oriented Programming I (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "09:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2603",
+        "staff": "MATHURIN ,Sergio",
+        "room": "Daaga Auditorium",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2603\nStaff:\nMATHURIN\n,Sergio\nRoom:\nDaaga\nAuditorium"
+      },
+      {
+        "day": "Monday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2603",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2603\nStaff: RASHEED,Daniel\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "11:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2603",
+        "staff": "MATHURIN ,Sergio",
+        "room": "ENG 6",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2603\nStaff:\nMATHURIN\n,Sergio\nRoom:\nENG 6"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2603",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL1",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2603\nStaff: RASHEED,Daniel\nRoom: FST CSL1\n(L2)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2603",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL1",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2603\nStaff: RASHEED,Daniel\nRoom: FST CSL1\n(L3)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2603",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL2",
+        "group_label": "L4",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2603\nStaff: RASHEED,Daniel\nRoom: FST CSL2\n(L4)"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "COMP 2603",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL1",
+        "group_label": "L5",
+        "raw_text": "Lab, Wks S2W8-S2W11\n[=4]\nCourse: COMP 2603\nStaff: RASHEED,Daniel\nRoom: FST CSL1\n(L5)"
+      }
+    ]
+  },
+  {
+    "source_file": "m64688.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 2604, Operating Systems (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2604",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2604\nStaff: RASHEED,Daniel\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "12:00 PM",
+        "end_time": "01:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2604",
+        "staff": "RAJAMANI CKAM, Vijayanand h",
+        "room": "ENG Lecture Theatre 1",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2604\nStaff:\nRAJAMANI\nCKAM,\nVijayanand\nh\nRoom:\nENG\nLecture\nTheatre 1"
+      },
+      {
+        "day": "Monday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2604",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL2",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2604\nStaff: RASHEED,Daniel\nRoom: FST CSL2\n(L2)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "08:00 AM",
+        "end_time": "09:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2604",
+        "staff": "RAJAMANI CKAM, Vijayanand h",
+        "room": "ENG Lecture",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2604\nStaff:\nRAJAMANI\nCKAM,\nVijayanand\nh\nRoom:\nENG\nLecture"
+      },
+      {
+        "day": "Monday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2604",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL1",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2604\nStaff: RASHEED,Daniel\nRoom: FST CSL1\n(L3)"
+      },
+      {
+        "day": "Monday",
+        "start_time": "04:00 PM",
+        "end_time": "05:00 PM",
+        "type": "Lecture",
+        "weeks": null,
+        "week_count": null,
+        "course": "COMP 2604 Rooms: ENG Lecture Room 3; ENG MD3",
+        "staff": null,
+        "room": null,
+        "group_label": null,
+        "raw_text": "Examination, 04:\n00PM-05:30PM,\nWk S2W8\nCourse: COMP\n2604\nRooms: ENG\nLecture Room 3;\nENG MD3"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "11:00 AM",
+        "end_time": "01:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2604",
+        "staff": "RASHEED,Daniel",
+        "room": "FST CSL1",
+        "group_label": "L4",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 2604\nStaff: RASHEED,Daniel\nRoom: FST CSL1\n(L4)"
+      }
+    ]
+  },
+  {
+    "source_file": "m64689.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 2606, Software Engineering (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Monday",
+        "start_time": "01:00 PM",
+        "end_time": "02:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2606",
+        "staff": "MOHAMME D,Shareeda",
+        "room": "FST 413 (T1)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2606\nStaff:\nMOHAMME\nD,Shareeda\nRoom: FST\n413\n(T1)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "10:00 AM",
+        "end_time": "11:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2606",
+        "staff": "MOHAMME D,Shareeda",
+        "room": "FST C1",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2606\nStaff:\nMOHAMME\nD,Shareeda\nRoom: FST\nC1"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "10:00 AM",
+        "end_time": "11:00 AM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2606",
+        "staff": "MOHAMME D,Shareeda",
+        "room": "FST 412 (T2)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2606\nStaff:\nMOHAMME\nD,Shareeda\nRoom: FST\n412\n(T2)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "01:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2606",
+        "staff": "MOHAMME D,Shareeda",
+        "room": "JFK AUD Lecture,",
+        "group_label": null,
+        "raw_text": "Examination, 01:30PM-04:30PM, Wk\nS2W10\nCourse: COMP 2606\nRoom: JFK AUD\nLecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2606\nStaff:\nMOHAMME\nD,Shareeda"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "04:00 PM",
+        "end_time": "05:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 2606",
+        "staff": "MOHAMME D,Shareeda",
+        "room": "TCB 23 (T3)",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n2606\nStaff:\nMOHAMME\nD,Shareeda\nRoom: TCB\n23\n(T3)"
+      }
+    ]
+  },
+  {
+    "source_file": "m64691.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 2602, Web Programming & Technologies (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Wednesday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2602",
+        "staff": null,
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 2602\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Wednesday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2602",
+        "staff": "EDWARDS,Kwasi",
+        "room": "FST CSL1",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 2602\nStaff: EDWARDS,Kwasi\nRoom: FST CSL1\n(L2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "11:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2602",
+        "staff": "EDWARDS ,Kwasi",
+        "room": "FFA A",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nINFO 2602\nStaff:\nEDWARDS\n,Kwasi\nRoom: FFA\nA"
+      },
+      {
+        "day": "Friday",
+        "start_time": "01:00 PM",
+        "end_time": "03:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2602",
+        "staff": "EDWARDS,Kwasi",
+        "room": "FST CSL1",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 2602\nStaff: EDWARDS,Kwasi\nRoom: FST CSL1\n(L3)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "05:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2602",
+        "staff": "EDWARDS ,Kwasi",
+        "room": "FFA A",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nINFO 2602\nStaff:\nEDWARDS\n,Kwasi\nRoom: FFA\nA"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "INFO 2602",
+        "staff": "EDWARDS,Kwasi",
+        "room": "FST CSL1",
+        "group_label": "L4",
+        "raw_text": "Lab, Wks S2W8-S2W11\n[=4]\nCourse: INFO 2602\nStaff: EDWARDS,Kwasi\nRoom: FST CSL1\n(L4)"
+      }
+    ]
+  },
+  {
+    "source_file": "m64692.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 2604, Information Systems Security (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2604",
+        "staff": "ROBERTSON, Devon",
+        "room": "JFK AUD",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 2604\nStaff: ROBERTSON,\nDevon\nRoom: JFK AUD"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2604",
+        "staff": "ROBERTSON, Devon",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 2604\nStaff: ROBERTSON,\nDevon\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2604",
+        "staff": "ROBERTSON, Devon",
+        "room": "Remote Teaching",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 2604\nStaff: ROBERTSON,\nDevon\nRoom: Remote Teaching\n(L2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 2604",
+        "staff": "ROBERTSON, Devon",
+        "room": "FST CSL1",
+        "group_label": "L3",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 2604\nStaff: ROBERTSON,\nDevon\nRoom: FST CSL1\n(L3)"
+      }
+    ]
+  },
+  {
+    "source_file": "m64694.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 6930, Machine Learning & Data Mining (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Wednesday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 6930",
+        "staff": "KIEU,Duc",
+        "room": "FST 412",
+        "group_label": null,
+        "raw_text": "Postgraduate, Wks S2W8-S2W12 [=5]\nCourse: COMP 6930\nStaff: KIEU,Duc\nRoom: FST 412"
+      }
+    ]
+  },
+  {
+    "source_file": "m64695.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 6940, Big Data & Visual Analytics (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Wednesday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 6940",
+        "staff": "RAHAMAN,Inzamam",
+        "room": "FST 412",
+        "group_label": null,
+        "raw_text": "Postgraduate, Wks S2W8-S2W12 [=5]\nCourse: COMP 6940\nStaff: RAHAMAN,Inzamam\nRoom: FST 412"
+      }
+    ]
+  },
+  {
+    "source_file": "m71195.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 3601, Design & Analysis of Algorithms (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "12:00 PM",
+        "end_time": "01:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3601",
+        "staff": "KIEU, Duc",
+        "room": "TCB 31",
+        "group_label": null,
+        "raw_text": "Tutorial,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n3601\nStaff: KIEU,\nDuc\nRoom: TCB\n31"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "01:00 PM",
+        "end_time": "03:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3601",
+        "staff": "KIEU,Duc",
+        "room": "FST 413",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: COMP 3601\nStaff: KIEU,Duc\nRoom: FST 413"
+      }
+    ]
+  },
+  {
+    "source_file": "m71196.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 3608, Intelligent Systems (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Wednesday",
+        "start_time": "03:00 PM",
+        "end_time": "05:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3608",
+        "staff": "MANOHAR,Kris",
+        "room": "FST CSL1",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 3608\nStaff: MANOHAR,Kris\nRoom: FST CSL1\n(L1)\n3608"
+      },
+      {
+        "day": "Wednesday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3608",
+        "staff": "MANOHAR,Kris",
+        "room": "FST CSL1",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 3608\nStaff: MANOHAR,Kris\nRoom: FST CSL1\n(L2)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3608",
+        "staff": "MANOHAR,Kris",
+        "room": "FST 412",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: COMP 3608\nStaff: MANOHAR,Kris\nRoom: FST 412"
+      }
+    ]
+  },
+  {
+    "source_file": "m71197.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 3609, Game Programming (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Tuesday",
+        "start_time": "08:00 AM",
+        "end_time": "09:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3609",
+        "staff": "MOHAN, Permanand",
+        "room": "FST C2",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n3609\nStaff:\nMOHAN,\nPermanand\nRoom: FST\nC2"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3609",
+        "staff": "MOHAN, Permanand",
+        "room": "FST CSL1",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 3609\nStaff: MOHAN,\nPermanand\nRoom: FST CSL1"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "02:00 PM",
+        "end_time": "04:00 PM",
+        "type": null,
+        "weeks": null,
+        "week_count": null,
+        "course": "COMP 3609",
+        "staff": null,
+        "room": "JFK AUD",
+        "group_label": null,
+        "raw_text": "Examination, Wk S2W8\nCourse: COMP 3609\nRoom: JFK AUD"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "06:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3609",
+        "staff": "MOHAN, Permanand",
+        "room": "FST C2",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n3609\nStaff:\nMOHAN,\nPermanand\nRoom: FST\nC2"
+      }
+    ]
+  },
+  {
+    "source_file": "m71198.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - COMP 3610, Big Data Analytics (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Tuesday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3610",
+        "staff": "MATHURIN,Sergio",
+        "room": "FST CSL1",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 3610\nStaff: MATHURIN,Sergio\nRoom: FST CSL1\n(L1)"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "10:00 AM",
+        "end_time": "11:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3610",
+        "staff": "MATHURIN ,Sergio",
+        "room": "TCB 33",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n3610\nStaff:\nMATHURIN\n,Sergio\nRoom: TCB\n33"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3610",
+        "staff": "MATHURIN,Sergio",
+        "room": "FST CSL2",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: COMP 3610\nStaff: MATHURIN,Sergio\nRoom: FST CSL2\n(L2)"
+      },
+      {
+        "day": "Friday",
+        "start_time": "12:00 PM",
+        "end_time": "01:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "COMP 3610",
+        "staff": "MATHURIN ,Sergio",
+        "room": "FST C3",
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nCOMP\n3610\nStaff:\nMATHURIN\n,Sergio\nRoom: FST\nC3"
+      }
+    ]
+  },
+  {
+    "source_file": "m71200.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 3604, Project (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Tuesday",
+        "start_time": "09:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3604",
+        "staff": "MENDEZ, Nicholas; MOHAMME D,Shareeda; MURRAY, Devon; RAGBIR- SHRIPAT,",
+        "room": null,
+        "group_label": null,
+        "raw_text": "Lecture,\nWks S2W8-\nS2W12 [=5]\nCourse:\nINFO 3604\nStaff:\nMENDEZ,\nNicholas;\nMOHAMME\nD,Shareeda;\nMURRAY,\nDevon;\nRAGBIR-\nSHRIPAT,"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3604 (T1) Students required to attend 1 tutorial per week Consult Dept for Venue",
+        "staff": null,
+        "room": null,
+        "group_label": null,
+        "raw_text": "Tutorial, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3604\n(T1) Students required\nto attend 1 tutorial per\nweek Consult Dept for\nVenue"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3604 (T2) Students required to attend 1 tutorial per week Consult Dept for Venue",
+        "staff": null,
+        "room": null,
+        "group_label": null,
+        "raw_text": "Tutorial, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3604\n(T2) Students required\nto attend 1 tutorial per\nweek Consult Dept for\nVenue"
+      },
+      {
+        "day": "Tuesday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3604 (T3) Students required to attend 1 tutorial per week Consult Dept for Venue",
+        "staff": null,
+        "room": null,
+        "group_label": null,
+        "raw_text": "Tutorial, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3604\n(T3) Students required\nto attend 1 tutorial per\nweek Consult Dept for\nVenue"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3604 (T4) Students required to attend 1 tutorial per week Consult Dept for Venue",
+        "staff": null,
+        "room": null,
+        "group_label": null,
+        "raw_text": "Tutorial, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3604\n(T4) Students required\nto attend 1 tutorial per\nweek Consult Dept for\nVenue"
+      },
+      {
+        "day": "Friday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": null,
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3604 (T5) Students required to attend 1 tutorial per week Consult Dept for Venue",
+        "staff": null,
+        "room": null,
+        "group_label": null,
+        "raw_text": "Tutorial, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3604\n(T5) Students required\nto attend 1 tutorial per\nweek Consult Dept for\nVenue"
+      }
+    ]
+  },
+  {
+    "source_file": "m71201.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 3606, Cloud Computing (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3606",
+        "staff": "KHAN,Koffka",
+        "room": "FST CSL2",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 3606\nStaff: KHAN,Koffka\nRoom: FST CSL2\n(L1)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3606",
+        "staff": "KHAN,Koffka",
+        "room": "TCB 21",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3606\nStaff: KHAN,Koffka\nRoom: TCB 21"
+      },
+      {
+        "day": "Friday",
+        "start_time": "03:00 PM",
+        "end_time": "05:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3606",
+        "staff": "KHAN,Koffka",
+        "room": "FST CSL1",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 3606\nStaff: KHAN,Koffka\nRoom: FST CSL1\n(L2)"
+      }
+    ]
+  },
+  {
+    "source_file": "m71202.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 3607, Fundamentals of WAN Technologies (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3607",
+        "staff": "SEEGOBIN,Naresh",
+        "room": "FST CSL1 S2W8-",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 3607\nStaff: SEEGOBIN,Naresh\nRoom: FST CSL1\nS2W8-"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "07:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3607",
+        "staff": "SEEGOBIN,Naresh",
+        "room": "FST 412",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3607\nStaff: SEEGOBIN,Naresh\nRoom: FST 412"
+      }
+    ]
+  },
+  {
+    "source_file": "m71203.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 3608, E-Commerce (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3608",
+        "staff": "MAHABIR,Selris",
+        "room": "FST C3",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3608\nStaff: MAHABIR,Selris\nRoom: FST C3"
+      },
+      {
+        "day": "Saturday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W11",
+        "week_count": 4,
+        "course": "INFO 3608",
+        "staff": "MAHABIR,Selris",
+        "room": "Remote Teaching",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W11\n[=4]\nCourse: INFO 3608\nStaff: MAHABIR,Selris\nRoom: Remote Teaching"
+      }
+    ]
+  },
+  {
+    "source_file": "m71204.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 3611, Database Administration for Professionals (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "07:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3611",
+        "staff": "KHAN,Koffka",
+        "room": "TCB 23 Lab,",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3611\nStaff: KHAN,Koffka\nRoom: TCB 23\nLab, Wks"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "12:00 PM",
+        "end_time": "02:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3611",
+        "staff": "KHAN,Koffka",
+        "room": "FST CSL1",
+        "group_label": "L1",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 3611\nStaff: KHAN,Koffka\nRoom: FST CSL1\n(L1)"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "06:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3611",
+        "staff": "KHAN,Koffka",
+        "room": "FST CSL1",
+        "group_label": "L2",
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 3611\nStaff: KHAN,Koffka\nRoom: FST CSL1\n(L2)"
+      }
+    ]
+  },
+  {
+    "source_file": "m71309.pdf",
+    "semester": "Semester_2_TT2025_2026",
+    "course_title": "Course timetable - INFO 3602, Web Programming & Technologies II (Wks S2W8-S2W12)",
+    "entries": [
+      {
+        "day": "Thursday",
+        "start_time": "08:00 AM",
+        "end_time": "10:00 AM",
+        "type": "Lab",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3602",
+        "staff": "ROBERTSON, Devon",
+        "room": "FST CSL1",
+        "group_label": null,
+        "raw_text": "Lab, Wks S2W8-S2W12\n[=5]\nCourse: INFO 3602\nStaff: ROBERTSON,\nDevon\nRoom: FST CSL1"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "type": "Lecture",
+        "weeks": "S2W8-S2W12",
+        "week_count": 5,
+        "course": "INFO 3602",
+        "staff": "ROBERTSON, Devon",
+        "room": "FST CSL3",
+        "group_label": null,
+        "raw_text": "Lecture, Wks S2W8-\nS2W12 [=5]\nCourse: INFO 3602\nStaff: ROBERTSON,\nDevon\nRoom: FST CSL3"
+      }
+    ]
+  }
+]

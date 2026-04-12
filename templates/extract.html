@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Upload & Extract - CELCAT Timetable Extractor{% endblock %}
+
+{% block content %}
+<div class="fade-up">
+    <div class="page-header">
+        <h1 class="page-title">
+            <span class="text-accent">Upload</span> & Extract
+        </h1>
+        <p class="page-subtitle">
+            Upload one or more CELCAT timetable PDFs to extract structured class data.
+        </p>
+    </div>
+
+    <div class="surface-card" style="max-width: 1000px; margin: 0 auto; position: relative;">
+        <div class="loading-overlay" id="extractLoading">
+            <div class="text-center">
+                <div class="spinner-border" role="status"></div>
+                <div class="mt-2" style="font-size: 0.8rem; color: var(--text-tertiary);">Extracting…</div>
+            </div>
+        </div>
+
+        <form id="extractForm" class="p-4">
+            <div class="upload-zone mb-3" id="uploadZone">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <div style="font-weight: 500; font-size: 0.85rem; margin-bottom: 0.25rem;">Drop PDFs here or click to browse</div>
+                <div style="font-size: 0.72rem; color: var(--text-tertiary);">Supports multiple files</div>
+                <label for="pdfFiles" class="upload-label-trigger"></label>
+                <input type="file" id="pdfFiles" multiple accept=".pdf" class="d-none">
+            </div>
+            <div id="fileList" class="mb-3" style="font-size: 0.8rem;"></div>
+            <button type="submit" class="btn btn-accent w-100" id="extractBtn" disabled>
+                <i class="bi bi-lightning-charge me-1"></i> Extract Timetables
+            </button>
+        </form>
+
+        <div id="extractResults" class="px-4 pb-4"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    'use strict';
+
+    // Elements
+    const uploadZone = document.getElementById('uploadZone');
+    const pdfFilesInput = document.getElementById('pdfFiles');
+    const fileList = document.getElementById('fileList');
+    const extractBtn = document.getElementById('extractBtn');
+    const extractForm = document.getElementById('extractForm');
+    const extractLoading = document.getElementById('extractLoading');
+    const extractResults = document.getElementById('extractResults');
+
+    let selectedFiles = [];
+
+    // Show/hide loading
+    function showLoading() {
+        extractLoading.classList.add('active');
+    }
+
+    function hideLoading() {
+        extractLoading.classList.remove('active');
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Render alert
+    function renderAlert(type, message) {
+        const alertClass = type === 'error' ? 'alert-danger' : 
+                          type === 'success' ? 'alert-success' : 'alert-warning';
+        const icon = type === 'error' ? 'exclamation-triangle' : 
+                     type === 'success' ? 'check-circle' : 'exclamation-circle';
+        return `<div class="result-alert alert ${alertClass} mb-3"><i class="bi bi-${icon} me-2"></i>${escapeHtml(message)}</div>`;
+    }
+
+    // Render extraction results
+    function renderExtractionResults(data) {
+        let html = '';
+        
+        // Handle error response
+        if (data.error) {
+            extractResults.innerHTML = renderAlert('error', data.error);
+            return;
+        }
+
+        // Handle API response format: { results: [...], total_files, total_entries }
+        if (data.results && Array.isArray(data.results)) {
+            // Summary stats at the top
+            html += `<div class="row g-2 mb-3">`;
+            html += `<div class="col-3"><div class="stat-card"><div class="stat-value cyan">${data.total_files}</div><div class="stat-label">Files</div></div></div>`;
+            html += `<div class="col-3"><div class="stat-card"><div class="stat-value green">${data.total_entries}</div><div class="stat-label">Entries</div></div></div>`;
+            html += `</div>`;
+            
+            data.results.forEach(result => {
+                const filename = result.source_file || result.course_title || 'Unknown file';
+                const entries = result.entries || [];
+                
+                html += `<div class="mb-3">`;
+                html += `<div class="d-flex align-items-center mb-2" style="font-size: 0.85rem; font-weight: 600;">`;
+                html += `<i class="bi bi-file-earmark-text me-2" style="color: var(--accent-cyan);"></i>${escapeHtml(filename)}`;
+                if (result.semester) {
+                    html += `<span class="badge ms-2" style="background: var(--accent-cyan-dim); color: var(--accent-cyan); font-size: 0.7rem;">${escapeHtml(result.semester)}</span>`;
+                }
+                html += `<span class="ms-auto" style="font-size: 0.72rem; color: var(--text-tertiary);">${entries.length} entries</span>`;
+                html += `</div>`;
+                
+                if (entries.length > 0) {
+                    html += renderTable(entries);
+                } else {
+                    html += renderAlert('warning', 'No timetable data found in this file.');
+                }
+                html += `</div>`;
+            });
+        }
+        
+        if (!html) {
+            html = renderAlert('warning', 'No results returned.');
+        }
+        
+        extractResults.innerHTML = html;
+    }
+
+    // Render data table
+    function renderTable(records) {
+        if (!records || records.length === 0) return '';
+        
+        // Define the columns we want to display
+        const columns = ['day', 'start_time', 'end_time', 'type', 'course', 'staff', 'room', 'weeks'];
+        
+        let html = '<div class="table-responsive"><table class="table table-dark table-sm"><thead><tr>';
+        columns.forEach(col => {
+            html += `<th style="text-transform: capitalize;">${col.replace('_', ' ')}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        records.slice(0, 100).forEach(row => {
+            html += '<tr>';
+            columns.forEach(col => {
+                const val = row[col];
+                const displayVal = val ? escapeHtml(String(val)) : '-';
+                const style = col === 'start_time' ? 'color: var(--accent-cyan);' : 
+                             col === 'course' ? 'font-weight: 500;' : '';
+                html += `<td style="${style}">${displayVal}</td>`;
+            });
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        
+        if (records.length > 100) {
+            html += `<p style="font-size: 0.75rem; color: var(--text-tertiary);">Showing first 100 of ${records.length} records</p>`;
+        }
+        
+        return html;
+    }
+
+    // Update file list display
+    function updateFileList() {
+        if (selectedFiles.length === 0) {
+            fileList.innerHTML = '';
+            extractBtn.disabled = true;
+            return;
+        }
+        
+        let html = '<div style="color: var(--text-secondary); margin-bottom: 0.5rem;">Selected files:</div>';
+        selectedFiles.forEach((file, index) => {
+            html += `<div class="d-flex align-items-center justify-content-between p-2 mb-1" style="background: var(--bg-deep); border-radius: 6px;">
+                <span><i class="bi bi-file-earmark-pdf me-2" style="color: var(--accent-red);"></i>${escapeHtml(file.name)}</span>
+                <button type="button" class="btn btn-sm" style="color: var(--text-tertiary); padding: 0;" onclick="window.removeFile(${index})">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>`;
+        });
+        
+        fileList.innerHTML = html;
+        extractBtn.disabled = false;
+    }
+
+    // Handle file selection
+    function handleFiles(files) {
+        const newFiles = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
+        selectedFiles = [...selectedFiles, ...newFiles];
+        updateFileList();
+    }
+
+    // Remove file by index
+    window.removeFile = function(index) {
+        selectedFiles.splice(index, 1);
+        updateFileList();
+    };
+
+    // Click to browse
+    uploadZone.addEventListener('click', function(e) {
+        if (!e.target.closest('.upload-label-trigger')) {
+            pdfFilesInput.click();
+        }
+    });
+
+    // File input change
+    pdfFilesInput.addEventListener('change', function() {
+        handleFiles(this.files);
+        this.value = '';
+    });
+
+    // Drag and drop
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    // Form submission
+    extractForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (selectedFiles.length === 0) return;
+        
+        showLoading();
+        extractResults.innerHTML = '';
+        
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        try {
+            const response = await fetch('/extract', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                extractResults.innerHTML = renderAlert('error', data.error || 'Extraction failed');
+            } else {
+                renderExtractionResults(data);
+                
+                // Auto-save to localStorage
+                const storageKey = 'celcat_timetable_data';
+                const storageData = {
+                    extractedAt: new Date().toISOString(),
+                    results: data.results,
+                    total_files: data.total_files,
+                    total_entries: data.total_entries
+                };
+                localStorage.setItem(storageKey, JSON.stringify(storageData));
+                console.log('Data saved to localStorage');
+            }
+        } catch (err) {
+            extractResults.innerHTML = renderAlert('error', 'Network error: ' + err.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    // Health check on page load
+    (function healthCheck() {
+        fetch('/health')
+            .then(res => {
+                if (!res.ok) {
+                    console.warn('Health check failed');
+                }
+            })
+            .catch(() => {
+                console.warn('Health check unavailable');
+            });
+    })();
+
+})();
+</script>
+{% endblock %}

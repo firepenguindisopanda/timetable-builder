@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Download Timetables - CELCAT Timetable Extractor{% endblock %}
+
+{% block content %}
+<div class="fade-up">
+    <div class="page-header">
+        <h1 class="page-title">
+            <span class="text-accent">Download</span> Timetables
+        </h1>
+        <p class="page-subtitle">
+            Fetch timetable PDFs from UWI's CELCAT server.
+        </p>
+    </div>
+
+    <div class="surface-card" style="max-width: 1000px; margin: 0 auto; position: relative;">
+        <div class="loading-overlay" id="downloadLoading">
+            <div class="text-center">
+                <div class="spinner-border" role="status"></div>
+                <div class="mt-2" style="font-size: 0.8rem; color: var(--text-tertiary);">Downloading…</div>
+            </div>
+        </div>
+
+        <form id="downloadForm" class="p-4">
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label for="dlFaculty" class="form-label">Faculty</label>
+                    <input type="text" class="form-control" id="dlFaculty" placeholder="e.g. FST">
+                </div>
+                <div class="col-6">
+                    <label for="dlDept" class="form-label">Department</label>
+                    <input type="text" class="form-control" id="dlDept" placeholder="e.g. DCIT">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="dlCodes" class="form-label">Course Codes</label>
+                <input type="text" class="form-control" id="dlCodes" placeholder="COMP1601, COMP2611 (comma-separated)">
+                <div class="form-text">Leave blank to download all matching timetables.</div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label for="dlResType" class="form-label">Resource Type</label>
+                    <select class="form-select" id="dlResType">
+                        <option value="module" selected>Module</option>
+                        <option value="group">Group</option>
+                        <option value="staff">Staff</option>
+                        <option value="room">Room</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label for="dlLimit" class="form-label">Limit</label>
+                    <input type="number" class="form-control" id="dlLimit" placeholder="No limit" min="1">
+                </div>
+            </div>
+            <div class="d-flex gap-3 mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="dlAllRes">
+                    <label class="form-check-label" for="dlAllRes">All resources</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="dlDryRun">
+                    <label class="form-check-label" for="dlDryRun">Dry run</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-accent w-100">
+                <i class="bi bi-cloud-download me-1"></i> Start Download
+            </button>
+        </form>
+
+        <div id="downloadResults" class="px-4 pb-4"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    'use strict';
+
+    // Elements
+    const downloadForm = document.getElementById('downloadForm');
+    const dlFaculty = document.getElementById('dlFaculty');
+    const dlDept = document.getElementById('dlDept');
+    const dlCodes = document.getElementById('dlCodes');
+    const dlResType = document.getElementById('dlResType');
+    const dlLimit = document.getElementById('dlLimit');
+    const dlAllRes = document.getElementById('dlAllRes');
+    const dlDryRun = document.getElementById('dlDryRun');
+    const downloadLoading = document.getElementById('downloadLoading');
+    const downloadResults = document.getElementById('downloadResults');
+
+    // Show/hide loading
+    function showLoading() {
+        downloadLoading.classList.add('active');
+    }
+
+    function hideLoading() {
+        downloadLoading.classList.remove('active');
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Render alert
+    function renderAlert(type, message) {
+        const alertClass = type === 'error' ? 'alert-danger' : 
+                          type === 'success' ? 'alert-success' : 'alert-warning';
+        return `<div class="result-alert alert ${alertClass} mb-3">${message}</div>`;
+    }
+
+    // Generate stat cards HTML
+    function statCardsHtml(stats) {
+        if (!stats) return '';
+        
+        let html = '<div class="row g-2 mb-3">';
+        
+        if (stats.downloaded !== undefined) {
+            html += `<div class="col-4"><div class="stat-card"><div class="stat-value cyan">${stats.downloaded}</div><div class="stat-label">Downloaded</div></div></div>`;
+        }
+        if (stats.skipped !== undefined) {
+            html += `<div class="col-4"><div class="stat-card"><div class="stat-value amber">${stats.skipped}</div><div class="stat-label">Skipped</div></div></div>`;
+        }
+        if (stats.failed !== undefined) {
+            html += `<div class="col-4"><div class="stat-card"><div class="stat-value red">${stats.failed}</div><div class="stat-label">Failed</div></div></div>`;
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    // Render download results
+    function renderDownloadResults(data) {
+        let html = '';
+        
+        // Handle error response
+        if (data.error) {
+            downloadResults.innerHTML = renderAlert('error', data.error);
+            return;
+        }
+
+        // Handle summary stats
+        if (data.summary) {
+            html += statCardsHtml(data.summary);
+        }
+
+        // Handle message
+        if (data.message) {
+            html += renderAlert('success', data.message);
+        }
+
+        // Handle download results
+        if (Array.isArray(data.results)) {
+            if (data.results.length === 0) {
+                html += renderAlert('warning', 'No timetables found matching your criteria.');
+                downloadResults.innerHTML = html;
+                return;
+            }
+
+            data.results.forEach(result => {
+                html += `<h6 class="section-title">${escapeHtml(result.filename || result.name || 'Unknown')}</h6>`;
+                
+                if (result.status === 'success' || result.status === 'downloaded') {
+                    html += renderAlert('success', `<i class="bi bi-check-circle me-2"></i>Downloaded successfully`);
+                } else if (result.status === 'skipped') {
+                    html += renderAlert('warning', `<i class="bi bi-skip-forward me-2"></i>Skipped: ${escapeHtml(result.reason || 'No matching criteria')}`);
+                } else if (result.status === 'failed' || result.error) {
+                    html += renderAlert('error', `<i class="bi bi-x-circle me-2"></i>Failed: ${escapeHtml(result.error || result.reason || 'Unknown error')}`);
+                }
+                
+                html += '<hr style="border-color: var(--border-subtle); margin: 1rem 0;">';
+            });
+
+            // Final summary
+            if (data.summary) {
+                const successful = data.results.filter(r => r.status === 'success' || r.status === 'downloaded').length;
+                const total = data.results.length;
+                if (successful > 0 || data.summary.failed > 0) {
+                    html = `<h5 class="section-title mb-3">Summary</h5>` + 
+                           statCardsHtml(data.summary) + 
+                           `<p class="text-secondary" style="font-size: 0.8rem;">Successfully downloaded ${successful} of ${total} timetables.</p>` +
+                           html;
+                }
+            }
+        }
+        
+        downloadResults.innerHTML = html;
+    }
+
+    // Form submission
+    downloadForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const faculty = dlFaculty.value.trim();
+        const dept = dlDept.value.trim();
+        const codesStr = dlCodes.value.trim();
+        const resType = dlResType.value;
+        const limit = dlLimit.value ? parseInt(dlLimit.value, 10) : null;
+        const allRes = dlAllRes.checked;
+        const dryRun = dlDryRun.checked;
+
+        // Build request payload
+        const payload = {
+            faculty: faculty || null,
+            dept: dept || null,
+            codes: codesStr ? codesStr.split(',').map(c => c.trim()).filter(c => c) : null,
+            res_type: resType,
+            limit: limit,
+            all_resources: allRes,
+            dry_run: dryRun
+        };
+
+        // Validate at least one filter
+        if (!faculty && !dept && !codesStr && !allRes) {
+            downloadResults.innerHTML = renderAlert('warning', 
+                '<i class="bi bi-exclamation-triangle me-2"></i>Please specify at least one filter (Faculty, Department, Course Codes, or check "All resources").'
+            );
+            return;
+        }
+
+        showLoading();
+        downloadResults.innerHTML = '';
+        
+        try {
+            const response = await fetch('/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                downloadResults.innerHTML = renderAlert('error', data.error || 'Download failed');
+            } else {
+                renderDownloadResults(data);
+            }
+        } catch (err) {
+            downloadResults.innerHTML = renderAlert('error', 'Network error: ' + err.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    // Health check on page load
+    (function healthCheck() {
+        fetch('/health')
+            .then(res => {
+                if (!res.ok) {
+                    console.warn('Health check failed');
+                }
+            })
+            .catch(() => {
+                console.warn('Health check unavailable');
+            });
+    })();
+
+})();
+</script>
+{% endblock %}
