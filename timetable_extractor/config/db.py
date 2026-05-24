@@ -24,6 +24,18 @@ class MongoSettings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
+class NemotronSettings(BaseSettings):
+    """NVIDIA NIM API settings for the Nemotron LLM provider."""
+
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://ai.api.nvidia.com/v1/gr/meta/llama-3.2-90b-vision-instruct/chat/completions"
+    nvidia_model: str = "nvidia/nemotron-4-340b-vision"
+    nvidia_max_tokens: int = 4096
+    nvidia_temperature: float = 0.1
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+
+
 def get_mongo_client() -> MongoClient:
     """Return a singleton MongoClient (sync)."""
     global _client
