@@ -15,3 +15,12 @@ dependencies = [
     "pdf2image>=1.17.0",
     "pydantic-settings>=2.5.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["timetable_extractor*"]
+
+[dependency-groups]
+test = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
