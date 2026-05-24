@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 from timetable_extractor.config.models import (
     PageRegions,
     DayColumn,

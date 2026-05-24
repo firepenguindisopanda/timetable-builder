@@ -77,3 +77,52 @@ class BatchExtractRequest(BaseModel):
         default="./downloaded_pdfs",
         description="Directory containing PDF files to extract",
     )
+
+
+# --- Calibration Schemas ---
+
+class CalibrateRequest(BaseModel):
+    course_code: str
+
+class CalibrateResponse(BaseModel):
+    session_id: str
+    course_code: str
+    config_id: str
+    confidence: float
+    entries_count: int
+    report: str
+    status: str = "completed"
+
+class SessionSummary(BaseModel):
+    session_id: str
+    course_code: str
+    status: str
+    confidence: float | None = None
+    config_id: str | None = None
+    created_at: str | None = None
+
+class ConfigSummary(BaseModel):
+    config_id: str
+    course_code: str
+    status: str
+    generated_by: str
+    version: int
+    confidence: float
+    created_at: str | None = None
+
+class SessionListResponse(BaseModel):
+    sessions: list[SessionSummary]
+    total: int
+
+class ConfigListResponse(BaseModel):
+    configs: list[ConfigSummary]
+    total: int
+
+class ActivateConfigRequest(BaseModel):
+    config_id: str
+
+class ActivateConfigResponse(BaseModel):
+    config_id: str
+    course_code: str
+    status: str = "active"
+    message: str = "Config activated"

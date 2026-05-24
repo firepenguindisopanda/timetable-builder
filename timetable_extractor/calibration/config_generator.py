@@ -5,10 +5,7 @@ and persists them to MongoDB.
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Optional
-
-from bson import ObjectId
+from typing import Any
 
 from timetable_extractor.config.db import get_collection
 from timetable_extractor.config.models import (
@@ -101,6 +98,13 @@ def _derive_day_columns(entries: list[dict[str, Any]]) -> DayColumns:
     return DayColumns(**columns)
 
 
+def _clean_time_str(t: str) -> str:
+    """Strip AM/PM suffix and return clean HH:MM string."""
+    t = t.strip().upper()
+    t = t.replace("AM", "").replace("PM", "").strip()
+    return t
+
+
 def _derive_time_slots(entries: list[dict[str, Any]]) -> list[TimeSlot]:
     """Collect unique time ranges from entries and assign vertical positions."""
     seen: list[tuple[str, float, float]] = []
@@ -111,8 +115,8 @@ def _derive_time_slots(entries: list[dict[str, Any]]) -> list[TimeSlot]:
         label = label.strip()
         if not label or any(existing[0] == label for existing in seen):
             continue
-        start_str = str(entry.get("start_time", "00:00"))
-        end_str = str(entry.get("end_time", "23:59"))
+        start_str = _clean_time_str(str(entry.get("start_time", "00:00")))
+        end_str = _clean_time_str(str(entry.get("end_time", "23:59")))
         try:
             start_h, start_m = start_str.split(":")
             end_h, end_m = end_str.split(":")
@@ -169,19 +173,21 @@ class ConfigGenerator:
     def save(
         self,
         course_config: CourseConfig,
+        course_code: str = "unknown",
         session_id: str | None = None,
     ) -> str:
         """Persist a CourseConfig to MongoDB wrapped in metadata.
 
         Args:
             course_config: The config to persist.
+            course_code: The actual course code (overrides layout_signature).
             session_id: Optional calibration session ID to link.
 
         Returns:
             The inserted document's _id as a string.
         """
         doc = MongoCourseConfig(
-            course_code=course_config.layout_signature or "unknown",
+            course_code=course_code or course_config.layout_signature or "unknown",
             config=course_config,
             llm_session_id=session_id,
         )
@@ -202,7 +208,7 @@ class ConfigGenerator:
             (course_config, config_id) tuple.
         """
         cfg = self.generate(course_code, extraction_result, llm_extraction)
-        config_id = self.save(cfg, session_id=session_id)
+        config_id = self.save(cfg, course_code=course_code, session_id=session_id)
         return cfg, config_id
 
     # ------------------------------------------------------------------

@@ -70,7 +70,7 @@ async def _cmd_calibrate(args: argparse.Namespace) -> None:
         print(f"Error during calibration: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"\nCalibration complete!")
+    print("\nCalibration complete!")
     print(f"  Session ID: {result['session_id']}")
     print(f"  Config ID:  {result['config_id']}")
     print(f"  Confidence:  {result['confidence']:.2f}")

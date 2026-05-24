@@ -6,7 +6,7 @@ for admin review and audit trails.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from timetable_extractor.config.models import CalibrationSession, CourseConfig
 

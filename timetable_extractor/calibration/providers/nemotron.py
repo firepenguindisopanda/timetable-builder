@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import io
 import json
 import logging
 from base64 import b64encode
 from typing import Any
 
+import fitz  # PyMuPDF (no poppler dependency)
 import httpx
-from pdf2image import convert_from_path
 
 from timetable_extractor.calibration.prompts import (
     CONFIG_SYSTEM_PROMPT,
@@ -76,14 +75,35 @@ class NemotronProvider:
 
     @staticmethod
     def _parse_json(raw: str) -> dict[str, Any]:
+        """Parse JSON from LLM response, handling markdown fences and text wrappers."""
         raw = raw.strip()
-        if raw.startswith("```"):
+
+        # Strategy 1: Strip markdown code fences (```json ... ``` or ``` ... ```)
+        if "```" in raw:
             lines = raw.splitlines()
-            if lines and lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            raw = "\n".join(lines).strip()
+            cleaned: list[str] = []
+            in_fence = False
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("```"):
+                    in_fence = not in_fence
+                    continue
+                if not in_fence:
+                    continue
+                cleaned.append(line)
+            if cleaned:
+                candidate = "\n".join(cleaned).strip()
+                if candidate.startswith("{"):
+                    return json.loads(candidate)
+
+        # Strategy 2: Find first { and last } anywhere in the text
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            candidate = raw[start : end + 1]
+            return json.loads(candidate)
+
+        # Strategy 3: Direct parse (may fail with a descriptive error)
         return json.loads(raw)
 
     async def extract_timetable(self, pdf_path: str) -> dict[str, Any]:
@@ -96,19 +116,23 @@ class NemotronProvider:
             dict with keys: course_code, course_name, semester, entries, layout_notes
         """
         try:
-            images = convert_from_path(pdf_path, first_page=1, last_page=2, dpi=200)
+            doc = fitz.open(pdf_path)
         except Exception as e:
-            raise RuntimeError(f"Failed to convert PDF to images: {e}") from e
+            raise RuntimeError(f"Failed to open PDF: {e}") from e
 
-        if not images:
+        if doc.page_count == 0:
             raise RuntimeError(f"No pages found in PDF: {pdf_path}")
 
+        max_pages = min(doc.page_count, 2)
         image_contents: list[str] = []
-        for img in images:
-            buffer = io.BytesIO()
-            img.save(buffer, format="JPEG")
-            b64 = b64encode(buffer.getvalue()).decode("utf-8")
+        for page_num in range(max_pages):
+            page = doc[page_num]
+            pix = page.get_pixmap(dpi=200)
+            img_bytes = pix.tobytes("jpeg")
+            b64 = b64encode(img_bytes).decode("utf-8")
             image_contents.append(f"data:image/jpeg;base64,{b64}")
+
+        doc.close()
 
         content: list[dict[str, Any]] = [
             {"type": "text", "text": EXTRACTION_USER_PROMPT}

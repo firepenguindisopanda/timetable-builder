@@ -11,3 +11,11 @@ wheels/
 
 downloaded_pdfs/
 downloaded_pdfs_all/
+
+# Design docs / specs
+docs/
+
+# Generated calibration reports
+*_calibration_report.md
+
+.env

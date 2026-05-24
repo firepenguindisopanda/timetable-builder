@@ -2,14 +2,7 @@ from __future__ import annotations
 
 import pytest
 from unittest.mock import patch, MagicMock
-from timetable_extractor.config.models import (
-    CourseConfig,
-    PageRegions,
-    DayColumns,
-    DayColumn,
-    TimeSlot,
-    TextPatterns,
-)
+from timetable_extractor.config.models import CourseConfig
 from timetable_extractor.calibration.config_generator import ConfigGenerator
 
 

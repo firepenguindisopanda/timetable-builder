@@ -5,8 +5,13 @@ Prompt templates for two-phase LLM calibration.
 # Phase 1: Extract timetable data from CELCAT PDF
 EXTRACTION_SYSTEM_PROMPT = """\
 You are a timetable extraction expert. Analyze the attached PDF page images \
-of a CELCAT university timetable. Return ONLY valid JSON with:
+of a CELCAT university timetable.
 
+STRICT RULE: Your entire response must be ONLY a valid JSON object. \
+No markdown, no code fences, no explanations before or after. \
+Start with { and end with }.
+
+Expected JSON structure:
 {
   "course_code": "string — the course/module code found in the PDF header",
   "course_name": "string — full course name",
@@ -24,14 +29,18 @@ of a CELCAT university timetable. Return ONLY valid JSON with:
   "layout_notes": "string — observations about the page layout structure"
 }"""
 
-EXTRACTION_USER_PROMPT = "Extract the timetable data from this CELCAT PDF."
+EXTRACTION_USER_PROMPT = "Extract the timetable data from this CELCAT PDF. Remember: ONLY raw JSON output, no markdown."
 
 # Phase 2: Generate config from layout analysis
 CONFIG_SYSTEM_PROMPT = """\
 Based on the extracted timetable and the PDF page layout, generate a \
-configuration map for a deterministic CELCAT parser. Return ONLY valid JSON.
+configuration map for a deterministic CELCAT parser.
 
-Respond with:
+STRICT RULE: Your entire response must be ONLY a valid JSON object. \
+No markdown, no code fences, no explanations before or after. \
+Start with { and end with }.
+
+Expected JSON structure:
 {
   "page_regions": {
     "header_top": float (0-1),
@@ -58,4 +67,4 @@ Respond with:
   "layout_signature": "string — identifier for this layout type"
 }"""
 
-CONFIG_USER_PROMPT = "Analyze the layout of this CELCAT PDF and generate a parser configuration."
+CONFIG_USER_PROMPT = "Analyze the layout of this CELCAT PDF and generate a parser configuration. Remember: ONLY raw JSON output, no markdown."

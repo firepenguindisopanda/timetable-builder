@@ -29,7 +29,7 @@ class NemotronSettings(BaseSettings):
 
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://ai.api.nvidia.com/v1/gr/meta/llama-3.2-90b-vision-instruct/chat/completions"
-    nvidia_model: str = "nvidia/nemotron-4-340b-vision"
+    nvidia_model: str = "meta/llama-3.2-90b-vision-instruct"
     nvidia_max_tokens: int = 4096
     nvidia_temperature: float = 0.1
 
