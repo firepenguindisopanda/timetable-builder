@@ -4,17 +4,33 @@ Day mapping functions for timetable extraction.
 
 from typing import Any
 
+from timetable_extractor.config.models import CourseConfig
 from timetable_extractor.constants import REVERSED_DAYS, DAY_LABEL_X_MAX, Y_TOLERANCE
 
 
-def build_day_y_map(words: list[dict[str, Any]]) -> list[tuple[float, float, str]]:
+def build_day_y_map(
+    words: list[dict[str, Any]],
+    config: Any | None = None,
+    page_width: float | None = None,
+    page_height: float | None = None,
+) -> list[tuple[float, float, str]]:
     """
     Return a sorted list of (y_top, y_bottom, day_name) from rotated day labels.
     Day labels live on the far left (x0 < DAY_LABEL_X_MAX).
     """
+    day_label_x_max = DAY_LABEL_X_MAX
+    if config is not None and page_width is not None and isinstance(config, CourseConfig):
+        col_lefts: list[float] = []
+        for day_attr in ("monday", "tuesday", "wednesday", "thursday", "friday"):
+            col = getattr(config.day_columns, day_attr, None)
+            if col is not None and col.left is not None:
+                col_lefts.append(col.left * page_width)
+        if col_lefts:
+            day_label_x_max = min(day_label_x_max, min(col_lefts) - 5)
+
     day_entries: list[tuple[float, float, str]] = []
     for w in words:
-        if w["x0"] < DAY_LABEL_X_MAX and w["x1"] < DAY_LABEL_X_MAX + 20:
+        if w["x0"] < day_label_x_max and w["x1"] < day_label_x_max + 20:
             day = REVERSED_DAYS.get(w["text"])
             if day:
                 day_entries.append((w["top"], w["bottom"], day))

@@ -5,8 +5,13 @@ Text parsing functions for extracting structured data from class blocks.
 import re
 from typing import Any
 
+from timetable_extractor.config.models import CourseConfig
 
-def parse_block_text(block_words: list[dict[str, Any]]) -> dict[str, Any]:
+
+def parse_block_text(
+    block_words: list[dict[str, Any]],
+    config: Any | None = None,
+) -> dict[str, Any]:
     """
     Parse the text words of a class block into structured fields.
 
@@ -42,13 +47,24 @@ def parse_block_text(block_words: list[dict[str, Any]]) -> dict[str, Any]:
         "raw_text": raw_text,
     }
 
-    # Type
-    if re.search(r"\bLecture\b", joined, re.I):
-        result["type"] = "Lecture"
-    elif re.search(r"\bLab\b", joined, re.I):
-        result["type"] = "Lab"
-    elif re.search(r"\bTutorial\b", joined, re.I):
-        result["type"] = "Tutorial"
+    # Get patterns from config if available
+    patterns = None
+    if config is not None and isinstance(config, CourseConfig) and config.text_patterns:
+        patterns = config.text_patterns
+
+    # Type detection — use config activity_types if available
+    if patterns and patterns.activity_types:
+        for at in patterns.activity_types:
+            if re.search(rf"\b{re.escape(at)}\b", joined, re.I):
+                result["type"] = at
+                break
+    else:
+        if re.search(r"\bLecture\b", joined, re.I):
+            result["type"] = "Lecture"
+        elif re.search(r"\bLab\b", joined, re.I):
+            result["type"] = "Lab"
+        elif re.search(r"\bTutorial\b", joined, re.I):
+            result["type"] = "Tutorial"
 
     # Weeks: "S2W7-S2W12" (after repair above)
     wk = re.search(r"(S\d+W\d+-S\d+W\d+)", joined)

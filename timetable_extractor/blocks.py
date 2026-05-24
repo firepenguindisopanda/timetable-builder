@@ -4,11 +4,16 @@ Class block detection functions for timetable extraction.
 
 from typing import Any
 
+from timetable_extractor.config.models import CourseConfig
 from timetable_extractor.constants import DAY_LABEL_X_MAX, MAX_BLOCK_HEIGHT
 
 
 def identify_class_blocks(
-    words: list[dict[str, Any]], rects: list[dict[str, Any]]
+    words: list[dict[str, Any]],
+    rects: list[dict[str, Any]],
+    config: Any | None = None,
+    page_width: float | None = None,
+    page_height: float | None = None,
 ) -> list[dict[str, Any]]:
     """
     Each class block has 1-2 filled highlight rectangles at its top.
@@ -17,8 +22,22 @@ def identify_class_blocks(
 
     Returns list of raw word groups (one per class block).
     """
+    # Determine day column bounds from config
+    day_col_x_min: float | None = None
+    day_col_x_max: float | None = None
+    if config is not None and page_width is not None and isinstance(config, CourseConfig):
+        bounds: list[tuple[float, float]] = []
+        for day_attr in ("monday", "tuesday", "wednesday", "thursday", "friday"):
+            col = getattr(config.day_columns, day_attr, None)
+            if col is not None and col.left is not None and col.right is not None:
+                bounds.append((col.left * page_width, col.right * page_width))
+        if bounds:
+            day_col_x_min = min(b[0] for b in bounds)
+            day_col_x_max = max(b[1] for b in bounds)
+
     # Filled rects = highlight bars on class header rows
-    filled = [r for r in rects if r.get("fill") and r["x0"] > 50 and r["width"] > 20]
+    rect_left_bound = day_col_x_min if day_col_x_min is not None else 50
+    filled = [r for r in rects if r.get("fill") and r["x0"] > rect_left_bound and r["width"] > 20]
 
     # Cluster filled rects into blocks by BOTH x-range overlap AND y-proximity.
     # Two rects belong to the same block only if they overlap in x AND are
@@ -58,6 +77,8 @@ def identify_class_blocks(
             else (c["top"] + MAX_BLOCK_HEIGHT)
         )
 
+    block_left_bound = day_col_x_min if day_col_x_min is not None else DAY_LABEL_X_MAX
+
     blocks: list[dict[str, Any]] = []
     for c in clusters:
         y_bottom = get_y_bottom(c)
@@ -69,7 +90,8 @@ def identify_class_blocks(
             and w["top"] >= c["top"] - 5
             and w["top"] <= y_bottom
             and w["top"] < 560
-            and w["x0"] > DAY_LABEL_X_MAX
+            and w["x0"] > block_left_bound
+            and (day_col_x_max is None or w["x1"] <= day_col_x_max)
         ]
         if block_words:
             blocks.append(

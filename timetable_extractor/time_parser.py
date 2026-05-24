@@ -5,6 +5,7 @@ Time parsing and mapping functions for timetable extraction.
 import re
 from typing import Any
 
+from timetable_extractor.config.models import CourseConfig
 from timetable_extractor.constants import TIME_HEADER_Y_RANGE
 
 
@@ -17,15 +18,31 @@ def parse_time(t: str) -> str:
     return t
 
 
-def build_time_x_map(words: list[dict[str, Any]]) -> list[tuple[float, float, str]]:
+def build_time_x_map(
+    words: list[dict[str, Any]],
+    config: Any | None = None,
+    page_width: float | None = None,
+    page_height: float | None = None,
+) -> list[tuple[float, float, str]]:
     """
     Return a sorted list of (x_start, x_end, time_label) tuples
     derived from the time-header row of the page.
     """
+    time_y_min, time_y_max = TIME_HEADER_Y_RANGE
+    if config is not None and page_height is not None and isinstance(config, CourseConfig) and config.time_slot_map:
+        y_vals: list[float] = []
+        for ts in config.time_slot_map:
+            if ts.top is not None and ts.bottom is not None:
+                y_vals.append(ts.top * page_height)
+                y_vals.append(ts.bottom * page_height)
+        if y_vals:
+            time_y_min = min(y_vals)
+            time_y_max = max(y_vals)
+
     time_words = [
         w
         for w in words
-        if TIME_HEADER_Y_RANGE[0] <= w["top"] <= TIME_HEADER_Y_RANGE[1]
+        if time_y_min <= w["top"] <= time_y_max
         and re.match(r"\d{2}:\d{2}[AP]M", w["text"])
     ]
     time_words.sort(key=lambda w: w["x0"])
