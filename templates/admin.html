@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard — CELCAT Extractor{% endblock %}
+
+{% block extra_head %}
+<style>
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .admin-tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        padding: 3px 8px;
+        border-radius: 4px;
+        background: var(--accent-cyan-dim);
+        color: var(--accent-cyan);
+        font-weight: 500;
+    }
+
+    .session-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-subtle);
+        transition: background 0.15s ease;
+    }
+
+    .session-row:last-child {
+        border-bottom: none;
+    }
+
+    .session-row:hover {
+        background: var(--bg-interactive);
+    }
+
+    .session-code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .session-status {
+        font-size: 0.72rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .session-status.completed {
+        background: rgba(0, 214, 143, 0.15);
+        color: var(--accent-green);
+    }
+
+    .session-status.failed {
+        background: rgba(255, 61, 113, 0.15);
+        color: var(--accent-red);
+    }
+
+    .session-status.running {
+        background: var(--accent-amber-dim);
+        color: var(--accent-amber);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        color: var(--text-tertiary);
+        margin-bottom: 1rem;
+    }
+
+    .config-badge {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: var(--bg-deep);
+        color: var(--text-secondary);
+    }
+
+    .confidence-bar {
+        height: 4px;
+        background: var(--bg-deep);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+
+    .confidence-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.5s ease;
+    }
+
+    .confidence-fill.high { background: var(--accent-green); }
+    .confidence-fill.medium { background: var(--accent-amber); }
+    .confidence-fill.low { background: var(--accent-red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-up">
+    <!-- Login prompt overlay -->
+    <div id="loginPrompt" class="text-center" style="padding: 4rem 1rem;">
+        <i class="bi bi-shield-lock" style="font-size: 3rem; color: var(--text-tertiary);"></i>
+        <h2 class="page-title" style="font-size: 1.25rem; margin-top: 1rem;">Authentication Required</h2>
+        <p class="page-subtitle" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+            You need to log in with your admin API key to view this dashboard.
+        </p>
+        <a href="/admin/login" class="btn btn-accent">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Go to Login
+        </a>
+    </div>
+
+    <!-- Dashboard content (hidden until authenticated) -->
+    <div id="dashboardContent" class="d-none">
+        <div class="admin-header">
+            <div>
+                <h1 class="page-title" style="font-size: 1.25rem; margin-bottom: 0.25rem;">
+                    <i class="bi bi-sliders me-2" style="color: var(--accent-cyan);"></i>
+                    Calibration Admin
+                </h1>
+                <p class="page-subtitle" style="font-size: 0.8rem; margin: 0;">
+                    Manage LLM-powered extraction configs for courses
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="admin-tag" id="adminKeyStatus">Key loaded</span>
+                <button class="btn btn-sm" onclick="logout()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value cyan" id="sessionCount">—</div>
+                    <div class="stat-label">Calibration Sessions</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value amber" id="configCount">—</div>
+                    <div class="stat-label">Course Configs</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value green" id="activeConfigCount">—</div>
+                    <div class="stat-label">Active Configs</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="surface-card mb-4">
+            <div class="d-flex justify-content-between align-items-center p-3" style="border-bottom: 1px solid var(--border-subtle);">
+                <h2 style="font-size: 0.85rem; font-weight: 600; margin: 0;">
+                    <i class="bi bi-clock-history me-2" style="color: var(--accent-cyan);"></i>
+                    Calibration Sessions
+                </h2>
+                <button class="btn btn-sm" onclick="refreshSessions()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                </button>
+            </div>
+            <div id="sessionsList" class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p style="color: var(--text-tertiary); font-size: 0.85rem;">No sessions yet. Run a calibration to see results.</p>
+            </div>
+        </div>
+
+        <!-- Configs -->
+        <div class="surface-card mb-4">
+            <div class="d-flex justify-content-between align-items-center p-3" style="border-bottom: 1px solid var(--border-subtle);">
+                <h2 style="font-size: 0.85rem; font-weight: 600; margin: 0;">
+                    <i class="bi bi-gear me-2" style="color: var(--accent-amber);"></i>
+                    Course Configs
+                </h2>
+                <button class="btn btn-sm" onclick="refreshConfigs()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                </button>
+            </div>
+            <div id="configsList" class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p style="color: var(--text-tertiary); font-size: 0.85rem;">No configs generated yet.</p>
+            </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="text-center" style="padding-top: 1rem;">
+            <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem;">Quick Links</p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <a href="/docs" target="_blank" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
+                    <i class="bi bi-braces me-1"></i> API Docs
+                </a>
+                <a href="/extract" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
+                    <i class="bi bi-upload me-1"></i> Extract Page
+                </a>
+                <a href="/download" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
+                    <i class="bi bi-cloud-download me-1"></i> Download PDFs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API_KEY = sessionStorage.getItem('admin_api_key');
+
+function getHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY,
+    };
+}
+
+function logout() {
+    sessionStorage.removeItem('admin_api_key');
+    window.location.href = '/admin/login';
+}
+
+async function fetchWithAuth(url) {
+    const response = await fetch(url, { headers: getHeaders() });
+    if (response.status === 401 || response.status === 403) {
+        logout();
+        return null;
+    }
+    return response.json();
+}
+
+function formatTime(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.toLocaleString();
+}
+
+function confidenceClass(score) {
+    if (score >= 0.8) return 'high';
+    if (score >= 0.5) return 'medium';
+    return 'low';
+}
+
+function renderSessions(data) {
+    const container = document.getElementById('sessionsList');
+    if (!data || !data.sessions || data.sessions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p style="color: var(--text-tertiary); font-size: 0.85rem;">No sessions yet.</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+    data.sessions.forEach(s => {
+        const conf = s.confidence || 0;
+        html += `
+            <div class="session-row">
+                <div>
+                    <div class="session-code">${s.course_code || '—'}</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 2px;">
+                        ${s.session_id ? s.session_id.substring(0, 8) + '…' : '—'}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="session-status ${s.status}">${s.status}</span>
+                    <div style="font-size: 0.68rem; color: var(--text-tertiary); margin-top: 2px;">
+                        ${formatTime(s.created_at)}
+                    </div>
+                    ${s.config_id ? `
+                        <div style="margin-top: 6px; width: 80px;">
+                            <div style="font-size: 0.6rem; color: var(--text-tertiary);">${Math.round(conf * 100)}% confident</div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill ${confidenceClass(conf)}" style="width: ${Math.round(conf * 100)}%;"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function renderConfigs(data) {
+    const container = document.getElementById('configsList');
+    if (!data || !data.configs || data.configs.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p style="color: var(--text-tertiary); font-size: 0.85rem;">No configs generated yet.</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+    let activeCount = 0;
+    data.configs.forEach(c => {
+        if (c.status === 'active') activeCount++;
+        const conf = c.confidence || 0;
+        html += `
+            <div class="session-row">
+                <div>
+                    <div class="session-code">${c.course_code || '—'}</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 2px;">
+                        v${c.version} &middot; ${c.generated_by || '—'}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="config-badge" style="background: ${c.status === 'active' ? 'rgba(0, 214, 143, 0.15)' : 'var(--bg-deep)'}; color: ${c.status === 'active' ? 'var(--accent-green)' : 'var(--text-tertiary)'};">${c.status}</span>
+                    <div style="font-size: 0.68rem; color: var(--text-tertiary); margin-top: 2px;">
+                        ${formatTime(c.created_at)}
+                    </div>
+                    <div style="margin-top: 6px; width: 80px;">
+                        <div style="font-size: 0.6rem; color: var(--text-tertiary);">${Math.round(conf * 100)}%</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill ${confidenceClass(conf)}" style="width: ${Math.round(conf * 100)}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    });
+    container.innerHTML = html;
+    document.getElementById('activeConfigCount').textContent = activeCount;
+}
+
+async function refreshSessions() {
+    const data = await fetchWithAuth('/admin/sessions?limit=20');
+    renderSessions(data);
+    if (data) document.getElementById('sessionCount').textContent = data.total || 0;
+}
+
+async function refreshConfigs() {
+    const data = await fetchWithAuth('/admin/configs');
+    renderConfigs(data);
+    if (data) document.getElementById('configCount').textContent = data.total || 0;
+}
+
+async function loadDashboard() {
+    if (!API_KEY) {
+        // Show login prompt, hide dashboard
+        document.getElementById('loginPrompt').classList.remove('d-none');
+        document.getElementById('dashboardContent').classList.add('d-none');
+        return;
+    }
+
+    // Key present — show dashboard
+    document.getElementById('loginPrompt').classList.add('d-none');
+    document.getElementById('dashboardContent').classList.remove('d-none');
+
+    // Load data
+    await Promise.all([refreshSessions(), refreshConfigs()]);
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login — CELCAT Extractor{% endblock %}
+
+{% block content %}
+<div class="fade-up">
+    <div class="row justify-content-center" style="margin-top: 10vh;">
+        <div class="col-md-5 col-lg-4">
+            <div class="surface-card p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock" style="font-size: 2.5rem; color: var(--accent-cyan);"></i>
+                    <h1 class="page-title" style="font-size: 1.25rem; margin-top: 0.75rem;">Admin Login</h1>
+                    <p class="page-subtitle" style="font-size: 0.8rem;">
+                        Enter your admin API key to access calibration tools.
+                    </p>
+                </div>
+
+                <div id="loginError" class="alert alert-danger d-none" role="alert">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    <span id="loginErrorText">Invalid API key</span>
+                </div>
+
+                <form id="loginForm" onsubmit="return handleLogin(event)">
+                    <div class="mb-3">
+                        <label for="apiKey" class="form-label">API Key</label>
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="apiKey"
+                                placeholder="Enter your admin API key"
+                                required
+                                autocomplete="off"
+                                style="border-top-right-radius: 0; border-bottom-right-radius: 0;"
+                            />
+                            <button
+                                type="button"
+                                class="btn"
+                                id="toggleKey"
+                                onclick="toggleKeyVisibility()"
+                                style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-left: none; color: var(--text-tertiary); border-radius: 0 8px 8px 0;"
+                            >
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">The key is stored in your browser session only.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-accent w-100" id="loginBtn">
+                        <span id="loginBtnText">Authenticate</span>
+                        <span id="loginBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <a href="/" class="text-tertiary" style="font-size: 0.8rem; text-decoration: none;">
+                        <i class="bi bi-arrow-left me-1"></i> Back to home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function handleLogin(event) {
+    event.preventDefault();
+
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const errorDiv = document.getElementById('loginError');
+    const errorText = document.getElementById('loginErrorText');
+    const btn = document.getElementById('loginBtn');
+    const btnText = document.getElementById('loginBtnText');
+    const spinner = document.getElementById('loginBtnSpinner');
+
+    // Reset
+    errorDiv.classList.add('d-none');
+    btn.disabled = true;
+    btnText.textContent = 'Verifying...';
+    spinner.classList.remove('d-none');
+
+    try {
+        const response = await fetch('/admin/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: apiKey }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.valid) {
+                // Store in sessionStorage (cleared when tab closes)
+                sessionStorage.setItem('admin_api_key', apiKey);
+                window.location.href = '/admin';
+                return;
+            }
+        }
+
+        // If we get here, auth failed
+        let message = 'Invalid API key';
+        try {
+            const err = await response.json();
+            message = err.detail || message;
+        } catch (e) {}
+        errorText.textContent = message;
+        errorDiv.classList.remove('d-none');
+    } catch (err) {
+        errorText.textContent = 'Network error — is the server running?';
+        errorDiv.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Authenticate';
+        spinner.classList.add('d-none');
+    }
+}
+
+function toggleKeyVisibility() {
+    const input = document.getElementById('apiKey');
+    const icon = document.querySelector('#toggleKey i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

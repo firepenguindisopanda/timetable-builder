@@ -21,7 +21,7 @@ class MongoSettings(BaseSettings):
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_db_name: str = "timetable_calibration"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 class NemotronSettings(BaseSettings):
@@ -57,6 +57,13 @@ def get_database() -> Database:
 def get_collection(name: str) -> Collection:
     """Get a named collection from the calibration database."""
     return get_database()[name]
+
+
+class AdminSettings(BaseSettings):
+    """Admin authentication settings from environment."""
+
+    admin_api_key: str = ""
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 def close_mongo_client() -> None:
