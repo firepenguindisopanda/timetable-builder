@@ -21,8 +21,6 @@ try:
     from timetable_extractor.calibration.providers.nemotron import NemotronProvider
     from timetable_extractor.calibration.config_generator import ConfigGenerator
     from timetable_extractor.calibration.report_generator import ReportGenerator
-    from timetable_extractor.calibration.cli import main as calibration_cli
-
     __all__ = [
         "extract_timetable",
         "download_timetables",
@@ -33,7 +31,6 @@ try:
         "NemotronProvider",
         "ConfigGenerator",
         "ReportGenerator",
-        "calibration_cli",
     ]
 except ImportError:
     __all__ = [
