@@ -5,12 +5,15 @@ Constants used throughout the timetable extraction package.
 # Day names are rendered rotated/reversed in CELCAT PDFs
 REVERSED_DAYS: dict[str, str] = {
     "yadnoM": "Monday",
+    "noM": "Monday",  # abbreviated (reversed "Mon")
     "yadseuT": "Tuesday",
+    "euT": "Tuesday",  # abbreviated (reversed "Tue")
     "yadsendew": "Wednesday",  # full
     "eW": "Wednesday",  # abbreviated (as seen on page)
     "yadsruhT": "Thursday",
     "uhT": "Thursday",  # abbreviated
     "yadirF": "Friday",
+    "irF": "Friday",  # abbreviated (reversed "Fri")
     "yadrutaS": "Saturday",
     "taS": "Saturday",  # abbreviated
     "yadnuS": "Sunday",

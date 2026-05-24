@@ -65,9 +65,13 @@ def parse_block_text(
             result["type"] = "Lab"
         elif re.search(r"\bTutorial\b", joined, re.I):
             result["type"] = "Tutorial"
+        elif re.search(r"\bPostgraduate\b", joined, re.I):
+            result["type"] = "Postgraduate"
 
-    # Weeks: "S2W7-S2W12" (after repair above)
+    # Weeks: "S2W7-S2W12" or "SUM W1-SUM W7" (after repair above)
     wk = re.search(r"(S\d+W\d+-S\d+W\d+)", joined)
+    if not wk:
+        wk = re.search(r"(SUM W\d+-SUM W\d+)", joined)
     if wk:
         result["weeks"] = wk.group(1)
 
@@ -90,13 +94,15 @@ def parse_block_text(
     for i in range(1, len(segments) - 1, 2):
         key = segments[i].strip()
         val = segments[i + 1].strip()
-        # Strip any trailing week/label noise
+        # Strip any trailing week/label/noise
         val = re.split(r"\s*(?:Wks|\[=|\(L\d)", val)[0].strip()
         if key == "Course":
             result["course"] = val or None
         elif key == "Staff":
             result["staff"] = val or None
         elif key == "Room":
-            result["room"] = val or None
+            # Clean trailing orphan tokens (single letters like W, E direction suffixes)
+            cleaned = re.sub(r"\s+[A-Z0-9]\s*$", "", val).strip()
+            result["room"] = cleaned or None
 
     return result

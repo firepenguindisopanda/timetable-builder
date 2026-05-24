@@ -47,7 +47,7 @@ def parse_resources(root: ET.Element) -> list[dict]:
             "id":       r.get("id"),
             "type":     r.get("type"), # module / staff / room / group …
             "link":     r.get("link"), # e.g. m62602.pdf
-            "name":     (r.findtext("n") or "").strip(),
+            "name":     (r.findtext("name") or "").strip(),
             "dept":     (r.findtext("dept") or "").strip(),
             "faculty":  (r.findtext("faculty") or "").strip(),
         })

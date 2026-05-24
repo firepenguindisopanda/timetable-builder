@@ -54,6 +54,7 @@ def extract_timetable(
     }
     """
     entries: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str | None, str | None, str | None, str | None]] = set()
     meta: dict[str, str | None] = {"semester": None, "course_title": None}
 
     config = None
@@ -70,7 +71,7 @@ def extract_timetable(
 
             if meta["semester"] is None:
                 for w in words:
-                    if w["text"].startswith("Semester_"):
+                    if w["text"].startswith("Semester_") or w["text"].startswith("Summer_"):
                         meta["semester"] = w["text"]
                     if w["text"] == "timetable":
                         # "Course timetable - COMP XXXX, Course Name"
@@ -100,7 +101,12 @@ def extract_timetable(
                     "end_time": end,
                     **parsed,
                 }
-                entries.append(entry)
+
+                # Deduplicate: skip if same day + time + course already seen
+                dup_key = (day, start, end, parsed.get("course"))
+                if dup_key not in seen_keys:
+                    seen_keys.add(dup_key)
+                    entries.append(entry)
 
     return {
         "source_file": str(Path(pdf_path).name),
