@@ -567,6 +567,14 @@
     {% block scripts %}{% endblock %}
 
 <script>
+// Show admin-only nav items if user has authenticated
+(function() {
+    const apiKey = sessionStorage.getItem('admin_api_key');
+    if (apiKey) {
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
     const memeBtn = document.getElementById('memeBtn');
     const muteToast = document.getElementById('muteToast');

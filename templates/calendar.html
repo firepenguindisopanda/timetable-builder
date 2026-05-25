@@ -897,6 +897,10 @@
 
         if (saved) {
             state = new TimetableState(saved.sourceData, saved.scheduleState);
+            // Auto-populate if coming from fresh extraction (no saved placements)
+            if (state.placements.length === 0) {
+                state.autoPlaceAll();
+            }
             onChangeUnsubscribe = state.onChange(() => {
                 renderEvents();
                 saveState();
