@@ -579,29 +579,29 @@
         if (state) updateUndoRedoButtons();
     }
 
-    // Setup interact.js drag and drop with snap + touch support
+    // Setup constraint-aware drag and drop with ghost zones
     function setupDragDrop() {
-        const SLOT_HEIGHT = 30; // px per 30-min slot
-        const SNAP_INTERVAL = SLOT_HEIGHT; // snap to 30-min slots
-
-        // Wait for interact.js to load (deferred script)
         function initInteract() {
             if (typeof interact === 'undefined') {
-                // Retry after a short delay if CDN hasn't loaded yet
                 setTimeout(initInteract, 100);
                 return;
             }
 
             interact('.calendar-event').draggable({
-                // Enable touch input
                 allowFrom: '.calendar-event',
                 listeners: {
                     start(event) {
-                        event.target.classList.add('dragging');
+                        const target = event.target;
+                        target.classList.add('dragging');
+
+                        const courseId = target.dataset.courseId;
+                        const streamType = target.dataset.streamType;
+                        if (courseId && streamType) {
+                            showGhostZones(courseId, streamType);
+                        }
                     },
                     move(event) {
                         const target = event.target;
-                        // Update the element's position via transform
                         const x = (parseFloat(target.dataset.dragX) || 0) + event.dx;
                         const y = (parseFloat(target.dataset.dragY) || 0) + event.dy;
 
@@ -609,93 +609,45 @@
                         target.dataset.dragY = y;
                         target.style.transform = `translate(${x}px, ${y}px)`;
 
-                        // Highlight the drop target slot under the cursor
-                        highlightDropTarget(event.clientX, event.clientY);
+                        document.querySelectorAll('.drop-zone.active').forEach(z => z.classList.remove('active'));
+                        const zone = getGhostZoneAt(event.clientX, event.clientY);
+                        if (zone) zone.classList.add('active');
                     },
                     end(event) {
                         const target = event.target;
                         target.classList.remove('dragging');
 
-                        // Calculate new day and time from final position
+                        const courseId = target.dataset.courseId;
+                        const streamType = target.dataset.streamType;
+
                         const rect = target.getBoundingClientRect();
                         const centerX = rect.left + rect.width / 2;
                         const centerY = rect.top + rect.height / 2;
 
-                        // Clear drop target highlights
-                        clearDropTargetHighlights();
+                        const ghostZone = getGhostZoneAt(centerX, centerY);
 
-                        // Find which day column the center of the event is over
-                        const dayColumns = document.querySelectorAll('.day-column');
-                        let newDayIdx = -1;
-                        dayColumns.forEach(col => {
-                            const colRect = col.getBoundingClientRect();
-                            if (centerX >= colRect.left && centerX <= colRect.right) {
-                                newDayIdx = parseInt(col.dataset.day);
+                        if (ghostZone) {
+                            const newStreamId = ghostZone.dataset.streamId;
+                            if (courseId && streamType && newStreamId && state) {
+                                state.moveEvent(courseId, streamType, newStreamId);
                             }
-                        });
-
-                        if (newDayIdx === -1) {
-                            // Dropped outside a valid day — reset position
+                            clearGhostZones();
+                            target.dataset.dragX = 0;
+                            target.dataset.dragY = 0;
+                            target.style.transform = '';
+                        } else {
+                            clearGhostZones();
                             resetDragPosition(target);
-                            return;
                         }
-
-                        // Find which time slot the center of the event is over
-                        const timeSlotsCol = document.querySelector(`.time-slots[data-day="${newDayIdx}"]`);
-                        if (!timeSlotsCol) {
-                            resetDragPosition(target);
-                            return;
-                        }
-
-                        const colRect = timeSlotsCol.getBoundingClientRect();
-                        const relativeY = centerY - colRect.top;
-                        const snappedSlot = Math.round(relativeY / SNAP_INTERVAL);
-                        const clampedSlot = Math.max(0, Math.min(snappedSlot, TOTAL_HOURS * SLOTS_PER_HOUR - 1));
-                        const newMins = START_HOUR * 60 + clampedSlot * 30;
-
-                        // Update the event data
-                        const eventIdx = parseInt(target.dataset.index);
-                        const events = loadEvents();
-                        const eventData = events[eventIdx];
-                        if (!eventData) {
-                            resetDragPosition(target);
-                            return;
-                        }
-
-                        const duration = timeToMins(eventData.end_time) - timeToMins(eventData.start_time);
-
-                        // Update event — always use 24hr format for consistency
-                        eventData.day = DAYS[newDayIdx];
-                        eventData.start_time = minsToTime(newMins);
-                        eventData.end_time = minsToTime(newMins + duration);
-
-                        // Save and re-render
-                        saveEvents(events);
-                        renderEvents(events);
                     }
                 },
-                // Snap to grid
                 modifiers: [
-                    interact.modifiers.snap({
-                        targets: [
-                            interact.createSnapGrid({
-                                x: 0, // No horizontal snapping — free movement between days
-                                y: SNAP_INTERVAL,
-                                range: Infinity,
-                                relativePoints: [{ x: 0.5, y: 0 }] // Snap from top-center of event
-                            })
-                        ],
-                        offset: 'parent',
-                        endOnly: false
-                    }),
-                    // Keep within calendar bounds
                     interact.modifiers.restrict({
                         restriction: '#calendarWrapper',
                         endOnly: true,
                         elementRect: { left: 0, right: 0, top: 0, bottom: 0 }
                     })
                 ],
-                // Inertia for smooth feel
                 inertia: {
                     enabled: true,
                     resistance: 30,
@@ -708,23 +660,52 @@
         initInteract();
     }
 
-    // Highlight the time slot under the cursor during drag
-    function highlightDropTarget(clientX, clientY) {
-        clearDropTargetHighlights();
-        const slots = document.querySelectorAll('.time-slot');
-        slots.forEach(slot => {
-            const rect = slot.getBoundingClientRect();
-            if (clientY >= rect.top && clientY <= rect.bottom &&
-                clientX >= rect.left && clientX <= rect.right) {
-                slot.classList.add('drop-target');
-            }
+    // Show ghost zones at valid stream positions for the given course+type
+    function showGhostZones(courseId, streamType) {
+        clearGhostZones();
+
+        if (!state) return;
+        const streams = state.getAvailableStreams(courseId, streamType);
+
+        streams.forEach(stream => {
+            const dayIdx = DAYS.indexOf(stream.day);
+            if (dayIdx === -1) return;
+
+            const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
+            if (!col) return;
+
+            const startSlot = timeToSlot(stream.startTime);
+            const endSlot = timeToSlot(stream.endTime);
+            const top = slotToTop(startSlot);
+            const height = Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT);
+
+            const zone = document.createElement('div');
+            zone.className = 'drop-zone';
+            zone.style.top = `${top}px`;
+            zone.style.height = `${height}px`;
+            zone.dataset.day = stream.day;
+            zone.dataset.startTime = stream.startTime;
+            zone.dataset.endTime = stream.endTime;
+            zone.dataset.streamId = stream.streamId;
+
+            col.appendChild(zone);
         });
     }
 
-    function clearDropTargetHighlights() {
-        document.querySelectorAll('.time-slot.drop-target').forEach(s => {
-            s.classList.remove('drop-target');
-        });
+    function clearGhostZones() {
+        document.querySelectorAll('.drop-zone').forEach(z => z.remove());
+    }
+
+    function getGhostZoneAt(clientX, clientY) {
+        const zones = document.querySelectorAll('.drop-zone');
+        for (const zone of zones) {
+            const rect = zone.getBoundingClientRect();
+            if (clientX >= rect.left && clientX <= rect.right &&
+                clientY >= rect.top && clientY <= rect.bottom) {
+                return zone;
+            }
+        }
+        return null;
     }
 
     // Reset element position if dropped in invalid area
