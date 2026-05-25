@@ -63,7 +63,7 @@ class TestConfigGenerator:
         assert "Lecture" in config.text_patterns.activity_types
 
     def test_generate_with_minimal_data(self, generator):
-        """Test generate() with no data — should produce default config."""
+        """Test generate() with no data - should produce default config."""
         config = generator.generate("COMP9999", {}, {})
 
         assert isinstance(config, CourseConfig)
@@ -73,7 +73,7 @@ class TestConfigGenerator:
         assert config.time_slot_map == []
 
     def test_generate_with_entries_no_layout(self, generator):
-        """Test generate() with entries but no structured layout — heuristic derivation."""
+        """Test generate() with entries but no structured layout - heuristic derivation."""
         extraction_result = {
             "entries": [
                 {

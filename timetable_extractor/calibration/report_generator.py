@@ -136,26 +136,26 @@ class ReportGenerator:
 
         if confidence < 0.5:
             recs.append(
-                "- ⚠️ **Low confidence** — review the generated config "
+                "- ⚠️ **Low confidence** - review the generated config "
                 "carefully against the source PDF before activating."
             )
         elif confidence < 0.8:
             recs.append(
-                "- ℹ️ **Moderate confidence** — spot-check against a "
+                "- ℹ️ **Moderate confidence** - spot-check against a "
                 "handful of entries before activating."
             )
         else:
-            recs.append("- ✅ **High confidence** — config is ready for staging.")
+            recs.append("- ✅ **High confidence** - config is ready for staging.")
 
         if not present_days:
             recs.append(
-                "- ⚠️ **No day columns** were detected — verify the PDF "
+                "- ⚠️ **No day columns** were detected - verify the PDF "
                 "contains a recognisable timetable layout."
             )
 
         if not time_slots:
             recs.append(
-                "- ⚠️ **No time slots** were mapped — extraction will "
+                "- ⚠️ **No time slots** were mapped - extraction will "
                 "not identify session times."
             )
 
@@ -196,7 +196,7 @@ class ReportGenerator:
             A formatted markdown string showing differences.
         """
         lines: list[str] = []
-        lines.append(f"# Config Comparison — `{course_code}`")
+        lines.append(f"# Config Comparison - `{course_code}`")
         lines.append("")
         lines.append(f"- **{label_a}** confidence: {config_a.confidence:.2f}")
         lines.append(f"- **{label_b}** confidence: {config_b.confidence:.2f}")
@@ -213,7 +213,7 @@ class ReportGenerator:
                       "table_bottom", "footer_bottom"):
             va = getattr(pr_a, attr, None)
             vb = getattr(pr_b, attr, None)
-            delta = f"{va - vb:+.4f}" if va is not None and vb is not None else "—"
+            delta = f"{va - vb:+.4f}" if va is not None and vb is not None else "-"
             lines.append(f"| `{attr}` | {va} | {vb} | {delta} |")
         lines.append("")
 
@@ -234,7 +234,7 @@ class ReportGenerator:
                     f"| {day.capitalize()} | "
                     f"L={ca['left']:.4f} R={ca['right']:.4f} | "
                     f"L={cb['left']:.4f} R={cb['right']:.4f} | "
-                    f"{'⚠️ Yes' if changed else '—'} |"
+                    f"{'⚠️ Yes' if changed else '-'} |"
                 )
             elif ca and not cb:
                 lines.append(
@@ -249,7 +249,7 @@ class ReportGenerator:
                     f"➕ Added |"
                 )
             else:
-                lines.append(f"| {day.capitalize()} | _absent_ | _absent_ | — |")
+                lines.append(f"| {day.capitalize()} | _absent_ | _absent_ | - |")
         lines.append("")
 
         # ── Time Slot Counts ─────────────────────────────────────────
@@ -304,7 +304,7 @@ class ReportGenerator:
         if changed_items:
             lines.append("⚠️ **Changes detected in:** " + ", ".join(changed_items))
         else:
-            lines.append("✅ **No differences — configs are identical.**")
+            lines.append("✅ **No differences - configs are identical.**")
         lines.append("")
 
         return "\n".join(lines)

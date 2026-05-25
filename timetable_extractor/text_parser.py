@@ -52,7 +52,7 @@ def parse_block_text(
     if config is not None and isinstance(config, CourseConfig) and config.text_patterns:
         patterns = config.text_patterns
 
-    # Type detection — use config activity_types if available
+    # Type detection - use config activity_types if available
     if patterns and patterns.activity_types:
         for at in patterns.activity_types:
             if re.search(rf"\b{re.escape(at)}\b", joined, re.I):

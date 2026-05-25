@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Login — CELCAT Extractor{% endblock %}
+{% block title %}Admin Login - CELCAT Extractor{% endblock %}
 
 {% block content %}
 <div class="fade-up">
@@ -107,7 +107,7 @@ async function handleLogin(event) {
         errorText.textContent = message;
         errorDiv.classList.remove('d-none');
     } catch (err) {
-        errorText.textContent = 'Network error — is the server running?';
+        errorText.textContent = 'Network error - is the server running?';
         errorDiv.classList.remove('d-none');
     } finally {
         btn.disabled = false;

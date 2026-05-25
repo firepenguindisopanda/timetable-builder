@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard — CELCAT Extractor{% endblock %}
+{% block title %}Admin Dashboard - CELCAT Extractor{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -146,19 +146,19 @@
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="stat-card">
-                    <div class="stat-value cyan" id="sessionCount">—</div>
+                    <div class="stat-value cyan" id="sessionCount">-</div>
                     <div class="stat-label">Calibration Sessions</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card">
-                    <div class="stat-value amber" id="configCount">—</div>
+                    <div class="stat-value amber" id="configCount">-</div>
                     <div class="stat-label">Course Configs</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card">
-                    <div class="stat-value green" id="activeConfigCount">—</div>
+                    <div class="stat-value green" id="activeConfigCount">-</div>
                     <div class="stat-label">Active Configs</div>
                 </div>
             </div>
@@ -243,7 +243,7 @@ async function fetchWithAuth(url) {
 }
 
 function formatTime(dateStr) {
-    if (!dateStr) return '—';
+    if (!dateStr) return '-';
     const d = new Date(dateStr);
     return d.toLocaleString();
 }
@@ -271,9 +271,9 @@ function renderSessions(data) {
         html += `
             <div class="session-row">
                 <div>
-                    <div class="session-code">${s.course_code || '—'}</div>
+                    <div class="session-code">${s.course_code || '-'}</div>
                     <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 2px;">
-                        ${s.session_id ? s.session_id.substring(0, 8) + '…' : '—'}
+                        ${s.session_id ? s.session_id.substring(0, 8) + '…' : '-'}
                     </div>
                 </div>
                 <div class="text-end">
@@ -314,9 +314,9 @@ function renderConfigs(data) {
         html += `
             <div class="session-row">
                 <div>
-                    <div class="session-code">${c.course_code || '—'}</div>
+                    <div class="session-code">${c.course_code || '-'}</div>
                     <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 2px;">
-                        v${c.version} &middot; ${c.generated_by || '—'}
+                        v${c.version} &middot; ${c.generated_by || '-'}
                     </div>
                 </div>
                 <div class="text-end">
@@ -357,7 +357,7 @@ async function loadDashboard() {
         return;
     }
 
-    // Key present — show dashboard
+    // Key present - show dashboard
     document.getElementById('loginPrompt').classList.add('d-none');
     document.getElementById('dashboardContent').classList.remove('d-none');
 

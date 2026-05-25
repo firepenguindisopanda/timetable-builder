@@ -60,7 +60,7 @@ class CalibrationOrchestrator:
             result = sessions_coll.insert_one(doc)
             session_id = str(result.inserted_id)
 
-        # b) Phase 1 — LLM Extraction
+        # b) Phase 1 - LLM Extraction
         try:
             extraction_result = await self._provider.extract_timetable(pdf_path_str)
             sessions_coll.update_one(
@@ -82,7 +82,7 @@ class CalibrationOrchestrator:
             )
             raise
 
-        # c) Phase 2 — Config Generation
+        # c) Phase 2 - Config Generation
         try:
             config, config_id = self._config_generator.generate_and_save(
                 course_code,
@@ -112,7 +112,7 @@ class CalibrationOrchestrator:
             )
             raise
 
-        # d) Phase 3 — Report Generation
+        # d) Phase 3 - Report Generation
         try:
             report = self._report_generator.generate_pattern_report(
                 course_code,
