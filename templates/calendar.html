@@ -399,7 +399,6 @@
     const START_HOUR = 8;
     const SLOTS_PER_HOUR = 2;
     const TOTAL_HOURS = 14; // 8am to 10pm = 14 hours
-    const STORAGE_KEY = 'celcat_timetable_data';
 
     const calendarWrapper = document.getElementById('calendarWrapper');
     const emptyState = document.getElementById('emptyState');
@@ -744,50 +743,130 @@
     }
 
     // Storage helpers
-    function loadFullData() {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : null;
+    function saveState() {
+        if (!state) return;
+        const snapshot = {
+            version: 2,
+            sourceData: state.sourceData,
+            scheduleState: {
+                placements: state.placements,
+                history: state.history.slice(0, 50),
+                future: state.future.slice(0, 50),
+            },
+            savedAt: new Date().toISOString()
+        };
+        try {
+            localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(snapshot));
+        } catch (e) {
+            console.warn('Failed to save calendar state:', e.message);
+        }
     }
 
-    function loadEvents() {
-        const data = loadFullData();
-        return data ? data.calendar_events : null;
+    function loadState() {
+        // Try v2 format first
+        const v2raw = localStorage.getItem(STORAGE_KEY_V2);
+        if (v2raw) {
+            try {
+                const data = JSON.parse(v2raw);
+                if (data && data.version === 2 && data.sourceData && data.scheduleState) {
+                    return data;
+                }
+            } catch (e) {
+                console.warn('Failed to parse v2 data:', e.message);
+            }
+        }
+
+        // Migrate from v1
+        const v1raw = localStorage.getItem('celcat_timetable_data');
+        if (v1raw) {
+            try {
+                const v1Data = JSON.parse(v1raw);
+                const migrated = migrateV1toV2(v1Data);
+                if (migrated) {
+                    return migrated;
+                }
+            } catch (e) {
+                console.warn('Failed to migrate v1 data:', e.message);
+            }
+        }
+
+        return null;
     }
 
-    function saveEvents(events) {
-        const existing = loadFullData() || {};
-        existing.calendar_events = events;
-        existing.updatedAt = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    function migrateV1toV2(v1Data) {
+        if (!v1Data) return null;
+
+        // Build sourceData from the v1 extraction results
+        const sourceData = TimetableState.fromExtractResponse(v1Data);
+        if (!sourceData.courses || sourceData.courses.length === 0) return null;
+
+        // Try to map existing calendar_events to placements
+        const placements = [];
+        const v1Events = v1Data.calendar_events || [];
+
+        // For each v1 event, try to find a matching course+type+stream
+        for (const v1ev of v1Events) {
+            const courseTitle = v1ev.course || '';
+            const courseId = courseTitle.toUpperCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
+            const type = normalizeType(v1ev.type || 'Other');
+            const v1Start = v1ev.start_time || '';
+            const v1End = v1ev.end_time || '';
+
+            // Find matching course
+            const course = sourceData.courses.find(c => c.courseId === courseId);
+            if (!course) continue;
+
+            // Check if we already have a placement for this course+type
+            if (placements.some(p => p.courseId === courseId && p.streamType === type)) continue;
+
+            // Find the stream that matches the v1 event's day+time
+            const match = course.streams.find(s =>
+                s.type === type &&
+                s.day === v1ev.day &&
+                timeToMins(s.startTime) === timeToMins(v1Start) &&
+                timeToMins(s.endTime) === timeToMins(v1End)
+            );
+
+            if (match) {
+                placements.push({
+                    courseId: course.courseId,
+                    streamType: type,
+                    selectedStreamId: match.streamId,
+                });
+            }
+        }
+
+        return {
+            version: 2,
+            sourceData: sourceData,
+            scheduleState: {
+                placements: placements,
+                history: [],
+                future: [],
+            },
+            savedAt: new Date().toISOString()
+        };
     }
 
     function loadExtracted() {
-        const data = loadFullData();
-        console.log('Full data:', data);
-        
-        if (!data || !data.results || data.results.length === 0) {
-            alert('No extracted data found. Extract PDFs first.');
+        const saved = loadState();
+
+        if (saved) {
+            state = new TimetableState(saved.sourceData, saved.scheduleState);
+            onChangeUnsubscribe = state.onChange(() => {
+                renderEvents();
+                saveState();
+            });
+            renderEvents();
             return;
         }
-        
-        const src = TimetableState.fromExtractResponse(data);
-        if (!src.courses || src.courses.length === 0) {
-            alert('No courses found in extracted data.');
-            return;
-        }
-        
-        state = new TimetableState(src, null);
-        state.autoPlaceAll();
-        renderEvents();
+
+        alert('No extracted data found. Extract PDFs first.');
     }
 
     function showCalendar() {
         calendarWrapper.style.display = state ? 'flex' : 'none';
         emptyState.style.display = state ? 'none' : 'block';
-        
-        if (state) {
-            renderEvents();
-        }
     }
 
 
@@ -810,29 +889,19 @@
     buildGrid();
     
     (function autoLoadOnInit() {
-        const data = loadFullData();
-        
-        if (!data || !data.results || data.results.length === 0) {
+        const saved = loadState();
+
+        if (saved) {
+            state = new TimetableState(saved.sourceData, saved.scheduleState);
+            onChangeUnsubscribe = state.onChange(() => {
+                renderEvents();
+                saveState();
+            });
+            renderEvents();
+        } else {
             console.log('No data - showing empty state');
             showCalendar();
-            return;
         }
-        
-        const src = TimetableState.fromExtractResponse(data);
-        if (!src.courses || src.courses.length === 0) {
-            console.log('No courses - showing empty state');
-            showCalendar();
-            return;
-        }
-        
-        state = new TimetableState(src, null);
-        state.autoPlaceAll();
-        
-        onChangeUnsubscribe = state.onChange(() => {
-            renderEvents();
-        });
-        
-        renderEvents();
     })();
 
 })();
