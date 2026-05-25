@@ -405,41 +405,6 @@
     const emptyState = document.getElementById('emptyState');
     const clearBtn = document.getElementById('clearBtn');
     const searchBox = document.getElementById('searchBox');
-    // Time functions - handle both 24hr and 12hr formats
-    function timeToMins(time) {
-        if (!time) return 480; // default 8:00 AM
-        
-        let hours, mins;
-        
-        if (time.includes('AM') || time.includes('PM')) {
-            // 12-hour format: "12:00 PM"
-            const isPM = time.includes('PM');
-            const parts = time.replace(/(AM|PM)/, '').trim().split(':');
-            hours = parseInt(parts[0]);
-            mins = parseInt(parts[1] || 0);
-            if (isPM && hours !== 12) hours += 12;
-            if (!isPM && hours === 12) hours = 0;
-        } else {
-            // 24-hour format: "14:00"
-            const parts = time.split(':');
-            hours = parseInt(parts[0]);
-            mins = parseInt(parts[1] || 0);
-        }
-        
-        return hours * 60 + mins;
-    }
-
-    function minsToTime(mins) {
-        return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`;
-    }
-
-    function timeLabel(mins) {
-        const h = Math.floor(mins / 60);
-        const m = mins % 60;
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
-    }
 
     // Build calendar grid
     function buildGrid() {
@@ -475,40 +440,7 @@
         return slot * 30;
     }
 
-    // Find conflicts
-    function findConflicts(events) {
-        const conflicts = [];
-        
-        for (let i = 0; i < events.length; i++) {
-            for (let j = i + 1; j < events.length; j++) {
-                const e1 = events[i];
-                const e2 = events[j];
-                
-                if (e1.day !== e2.day) continue;
-                
-                const s1 = timeToMins(e1.start_time);
-                const e1End = timeToMins(e1.end_time);
-                const s2 = timeToMins(e2.start_time);
-                const e2End = timeToMins(e2.end_time);
-                
-                if (s1 < e2End && s2 < e1End) {
-                    // Calculate actual overlap range
-                    const overlapStart = Math.max(s1, s2);
-                    const overlapEnd = Math.min(e1End, e2End);
-                    conflicts.push({
-                        indices: [i, j],
-                        events: [e1, e2],
-                        day: e1.day,
-                        time: `${minsToTime(overlapStart)} - ${minsToTime(overlapEnd)}`
-                    });
-                }
-            }
-        }
-        
-        return conflicts;
-    }
 
-    // Render events list
     function renderEventsList(events, filter = '') {
         const listEl = document.getElementById('eventsList');
         const countEl = document.getElementById('eventCount');
@@ -519,46 +451,40 @@
             return;
         }
         
-        // Filter by search term
         let filtered = events;
         if (filter.trim()) {
             const term = filter.toLowerCase();
             filtered = events.filter(e => 
-                (e.course || '').toLowerCase().includes(term) ||
+                (e.courseTitle || '').toLowerCase().includes(term) ||
                 (e.day || '').toLowerCase().includes(term) ||
-                (e.type || '').toLowerCase().includes(term) ||
+                (e.streamType || '').toLowerCase().includes(term) ||
                 (e.room || '').toLowerCase().includes(term)
             );
         }
         
         countEl.textContent = filtered.length + (filter.trim() ? ` / ${events.length}` : '');
         
-        // Sort by day then time
         const sorted = [...filtered].sort((a, b) => {
             const dayA = DAYS.indexOf(a.day);
             const dayB = DAYS.indexOf(b.day);
             if (dayA !== dayB) return dayA - dayB;
-            return timeToMins(a.start_time) - timeToMins(b.start_time);
+            return timeToMins(a.startTime) - timeToMins(b.startTime);
         });
         
         let html = '';
         sorted.forEach(event => {
-            // Find original index in FULL events array
-            const origIdx = events.indexOf(event);
-            const typeClass = (event.type || 'other').toLowerCase();
-            
-            html += `<div class="event-list-item" data-idx="${origIdx}" onclick="highlightEvent(${origIdx})">
+            const typeClass = (event.streamType || 'other').toLowerCase();
+            html += `<div class="event-list-item" data-course-id="${escapeHtml(event.courseId)}" data-stream-type="${escapeHtml(event.streamType)}" onclick="highlightEventFromList('${escapeHtml(event.courseId)}', '${escapeHtml(event.streamType)}')">
                 <span class="event-dot ${typeClass}"></span>
-                <span class="event-list-time">${event.day.substring(0,3)} ${event.start_time}</span>
-                <span class="event-list-course">${escapeHtml(event.course || '?')}</span>
-                <span class="event-list-type">${escapeHtml(event.type || 'Event')}</span>
+                <span class="event-list-time">${event.day.substring(0,3)} ${event.startTime}</span>
+                <span class="event-list-course">${escapeHtml(event.courseTitle || '?')}</span>
+                <span class="event-list-type">${escapeHtml(event.streamType || 'Event')}</span>
             </div>`;
         });
         
         listEl.innerHTML = html;
     }
 
-    // Render conflicts
     function renderConflicts(events) {
         const conflictsPanel = document.getElementById('conflictsPanel');
         const conflictsContent = document.getElementById('conflictsContent');
@@ -576,26 +502,18 @@
         
         let html = '';
         conflicts.forEach(c => {
-            const e1 = c.events[0];
-            const e2 = c.events[1];
             html += `<div class="conflict-item">
-                <strong>${escapeHtml(e1.course || '?')}</strong> clashes with <strong>${escapeHtml(e2.course || '?')}</strong>
-                <br>${c.day} ${c.time}
+                <strong>${escapeHtml(c.courseA)}</strong> clashes with <strong>${escapeHtml(c.courseB)}</strong>
+                <br>${c.day} ${c.timeA} vs ${c.timeB}
             </div>`;
         });
         
         conflictsContent.innerHTML = html;
     }
 
-    // Highlight event from list
-    window.highlightEvent = function(idx) {
-        // Remove previous selection
+    window.highlightEventFromList = function(courseId, streamType) {
         document.querySelectorAll('.event-list-item.selected').forEach(el => el.classList.remove('selected'));
-        
-        // Highlight in list
-        document.querySelector(`.event-list-item[data-idx="${idx}"]`)?.classList.add('selected');
-        
-        // Scroll calendar to event (optional)
+        document.querySelector(`.event-list-item[data-course-id="${courseId}"][data-stream-type="${streamType}"]`)?.classList.add('selected');
     };
 
     // Toggle conflicts panel
@@ -604,62 +522,62 @@
         content.classList.toggle('open');
     };
 
-    // Render events
-    function renderEvents(events) {
-        // Store for search filtering
-        currentEvents = events || [];
-        const filter = searchBox ? searchBox.value : '';
+    function renderEvents() {
+        const events = state ? state.getPlacedEvents() : [];
         
-        // Remove old events
+        currentEvents = events || [];
+        const filter = $searchBox ? $searchBox.value : '';
+        
         document.querySelectorAll('.calendar-event').forEach(e => e.remove());
         
         if (!events || events.length === 0) {
-            emptyState.style.display = 'block';
-            document.getElementById('eventCount').textContent = '0';
-            document.getElementById('conflictsPanel').style.display = 'none';
-            document.getElementById('eventsList').innerHTML = '';
+            if ($emptyState) $emptyState.style.display = 'block';
+            const countEl = document.getElementById('eventCount');
+            if (countEl) countEl.textContent = '0';
+            const cp = document.getElementById('conflictsPanel');
+            if (cp) cp.style.display = 'none';
+            const el = document.getElementById('eventsList');
+            if (el) el.innerHTML = '';
             return;
         }
         
-        events.forEach((event, idx) => {
+        events.forEach(event => {
             const dayIdx = DAYS.indexOf(event.day);
-            
             if (dayIdx === -1) return;
             
-            const col = calendarWrapper.querySelector(`.time-slots[data-day="${dayIdx}"]`);
-            if (!col) {
-                console.log(`  No column found for dayIdx ${dayIdx}`);
-                return;
-            }
+            const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
+            if (!col) return;
             
-            const startSlot = timeToSlot(event.start_time);
-            const endSlot = timeToSlot(event.end_time);
+            const startSlot = timeToSlot(event.startTime);
+            const endSlot = timeToSlot(event.endTime);
             const top = slotToTop(startSlot);
-            const height = Math.max(25, (endSlot - startSlot) * 30);
+            const height = Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT);
             
-            const typeClass = (event.type || 'other').toLowerCase();
+            const typeClass = (event.streamType || 'other').toLowerCase();
             
             const el = document.createElement('div');
             el.className = `calendar-event ${typeClass}`;
             el.style.top = `${top}px`;
             el.style.height = `${height}px`;
-            el.dataset.index = idx;
-            // interact.js handles drag — no HTML5 draggable
+            el.dataset.courseId = event.courseId;
+            el.dataset.streamType = event.streamType;
+            el.dataset.streamId = '';
             
             el.innerHTML = `
-                <div class="event-course">${escapeHtml(event.course || '?')}</div>
-                <div class="event-type">${escapeHtml(event.type || 'Event')}</div>
-                <div class="event-time">${escapeHtml(event.start_time)}-${escapeHtml(event.end_time)}</div>
+                <div class="event-course">${escapeHtml(event.courseTitle || '?')}</div>
+                <div class="event-type">${escapeHtml(event.streamType || 'Event')}</div>
+                <div class="event-time">${escapeHtml(event.startTime)}-${escapeHtml(event.endTime)}</div>
             `;
             
             col.appendChild(el);
         });
         
-        // Also render the event list and detect conflicts
         renderEventsList(events, filter);
         renderConflicts(events);
         
-        emptyState.style.display = 'none';
+        if ($emptyState) $emptyState.style.display = 'none';
+        
+        if (state) updateUndoRedoButtons();
     }
 
     // Setup interact.js drag and drop with snap + touch support
@@ -819,6 +737,12 @@
         setTimeout(() => { target.style.transition = ''; }, 200);
     }
 
+    function updateUndoRedoButtons() {
+        if (!$undoBtn || !$redoBtn || !state) return;
+        $undoBtn.disabled = !state.canUndo();
+        $redoBtn.disabled = !state.canRedo();
+    }
+
     // Storage helpers
     function loadFullData() {
         const data = localStorage.getItem(STORAGE_KEY);
@@ -837,7 +761,6 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
     }
 
-    // Load ALL events from extraction (no filtering!)
     function loadExtracted() {
         const data = loadFullData();
         console.log('Full data:', data);
@@ -847,52 +770,27 @@
             return;
         }
         
-        console.log('Results:', data.results);
+        const src = TimetableState.fromExtractResponse(data);
+        if (!src.courses || src.courses.length === 0) {
+            alert('No courses found in extracted data.');
+            return;
+        }
         
-        // Load ALL entries, keep their original day/time
-        const allEvents = [];
-        
-        data.results.forEach(result => {
-            const course = result.course_title || result.source_file.replace('.pdf', '');
-            
-            result.entries.forEach(entry => {
-                allEvents.push({
-                    course: course,
-                    day: entry.day,
-                    start_time: entry.start_time,
-                    end_time: entry.end_time,
-                    type: entry.type || 'Other',
-                    room: entry.room || '',
-                    staff: entry.staff || '',
-                    source_file: result.source_file
-                });
-            });
-        });
-        
-        saveEvents(allEvents);
-        renderEvents(allEvents);
+        state = new TimetableState(src, null);
+        state.autoPlaceAll();
+        renderEvents();
     }
 
     function showCalendar() {
-        const events = loadEvents();
-        const data = loadFullData();
-        const hasExtracted = data && data.results && data.results.length > 0;
-        const hasEvents = events && events.length > 0;
-        const hasData = hasExtracted || hasEvents;
+        calendarWrapper.style.display = state ? 'flex' : 'none';
+        emptyState.style.display = state ? 'none' : 'block';
         
-        calendarWrapper.style.display = hasData ? 'flex' : 'none';
-        emptyState.style.display = hasData ? 'none' : 'block';
-        
-        if (hasEvents) {
-            renderEvents(events);
+        if (state) {
+            renderEvents();
         }
     }
 
-    function escapeHtml(text) {
-        const d = document.createElement('div');
-        d.textContent = text || '';
-        return d.innerHTML;
-    }
+
 
     // Search filter listener
     searchBox.addEventListener('input', e => {
@@ -901,12 +799,10 @@
     });
 
     // Listeners
-    clearBtn.addEventListener('click', () => {
+    $clearBtn.addEventListener('click', () => {
         if (confirm('Clear all events?')) {
-            saveEvents([]);
-            renderEvents([]);
-            if (searchBox) searchBox.value = '';
-            showCalendar();
+            if (state) state.autoPlaceAll();
+            if ($searchBox) $searchBox.value = '';
         }
     });
 
@@ -914,27 +810,29 @@
     buildGrid();
     
     (function autoLoadOnInit() {
-        const savedData = loadFullData();
-        const hasEvents = savedData && savedData.calendar_events && savedData.calendar_events.length > 0;
-        const hasExtraction = savedData && savedData.results && savedData.results.length > 0;
+        const data = loadFullData();
         
-        console.log('Initial check - hasEvents:', hasEvents, 'hasExtraction:', hasExtraction);
-        
-        if (hasEvents) {
-            console.log('Rendering saved events:', savedData.calendar_events.length);
-            renderEvents(savedData.calendar_events);
-        } else if (hasExtraction) {
-            console.log('Auto-loading from extraction - calling loadExtracted()');
-            try {
-                loadExtracted();
-                console.log('loadExtracted completed');
-            } catch(e) {
-                console.error('loadExtracted error:', e);
-            }
-        } else {
+        if (!data || !data.results || data.results.length === 0) {
             console.log('No data - showing empty state');
             showCalendar();
+            return;
         }
+        
+        const src = TimetableState.fromExtractResponse(data);
+        if (!src.courses || src.courses.length === 0) {
+            console.log('No courses - showing empty state');
+            showCalendar();
+            return;
+        }
+        
+        state = new TimetableState(src, null);
+        state.autoPlaceAll();
+        
+        onChangeUnsubscribe = state.onChange(() => {
+            renderEvents();
+        });
+        
+        renderEvents();
     })();
 
 })();
