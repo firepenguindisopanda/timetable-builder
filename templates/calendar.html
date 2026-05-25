@@ -114,6 +114,7 @@
 }
 
 .calendar-wrapper {
+    position: relative;
     display: flex;
     gap: 3px;
     min-height: 700px;
@@ -122,6 +123,8 @@
 .calendar-scroll-wrapper {
     scrollbar-width: thin;
     scrollbar-color: var(--border-subtle) transparent;
+    overflow-y: auto;
+    max-height: 70vh;
 }
 
 .calendar-scroll-wrapper::-webkit-scrollbar {
@@ -157,7 +160,7 @@
 
 .time-slots {
     position: relative;
-    height: 690px; /* 26 x 30 = 780px, use less */
+    height: 840px; /* 28 x 30 = 840px */
 }
 
 /* Hour lines */
@@ -268,6 +271,28 @@
     border-radius: 2px;
     margin-right: 3px;
 }
+
+/* Ghost zone styles for drag-and-drop */
+.drop-zone {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    border: 2px dashed rgba(13, 202, 240, 0.3);
+    border-radius: 6px;
+    background: rgba(13, 202, 240, 0.05);
+    z-index: 1;
+    pointer-events: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.drop-zone.active {
+    border-color: rgba(13, 202, 240, 0.8);
+    background: rgba(13, 202, 240, 0.12);
+    border-style: solid;
+}
+.drop-zone.same-slot {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+}
 </style>
 {% endblock %}
 
@@ -306,13 +331,17 @@
     </div>
 
     <!-- Controls -->
-    <div class="d-flex justify-content-between mb-3" style="max-width: 1000px; margin: 0 auto;">
-        <button id="clearBtn" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px;">
-            <i class="bi bi-trash me-1"></i> Clear
-        </button>
-        <span style="font-size: 0.75rem; color: var(--text-tertiary);">
-            <i class="bi bi-info-circle me-1"></i> Events load automatically after extraction
-        </span>
+    <div class="container mt-3">
+        <div class="row align-items-center mb-2">
+            <div class="col-auto">
+                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">↩ Undo</button>
+                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">↪ Redo</button>
+                <button id="clearBtn" class="btn btn-outline-warning btn-sm">↺ Clear &amp; Auto-Place</button>
+            </div>
+            <div class="col">
+                <small class="text-muted">Drag events to available stream slots. Same course+type events can swap.</small>
+            </div>
+        </div>
     </div>
 
     <!-- Calendar -->
@@ -347,9 +376,24 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/assets/js/calendar-utils.js"></script>
+<script src="/assets/js/timetable-state.js"></script>
 <script>
 (function() {
     'use strict';
+
+    // Calendar State
+    const STORAGE_KEY_V2 = 'celcat_timetable_v2';
+    const $undoBtn = document.getElementById('undoBtn');
+    const $redoBtn = document.getElementById('redoBtn');
+    const $clearBtn = document.getElementById('clearBtn');
+    const $searchBox = document.getElementById('searchBox');
+    const $eventList = document.getElementById('eventList');
+    const $conflictPanel = document.getElementById('conflictPanel');
+    const $emptyState = document.getElementById('emptyState');
+    let currentEvents = [];
+    let state = null;
+    let onChangeUnsubscribe = null;
 
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const START_HOUR = 8;
@@ -361,8 +405,6 @@
     const emptyState = document.getElementById('emptyState');
     const clearBtn = document.getElementById('clearBtn');
     const searchBox = document.getElementById('searchBox');
-    let currentEvents = [];
-
     // Time functions - handle both 24hr and 12hr formats
     function timeToMins(time) {
         if (!time) return 480; // default 8:00 AM
