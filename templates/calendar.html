@@ -402,7 +402,6 @@
 
     const calendarWrapper = document.getElementById('calendarWrapper');
     const emptyState = document.getElementById('emptyState');
-    const clearBtn = document.getElementById('clearBtn');
     const searchBox = document.getElementById('searchBox');
 
     // Build calendar grid
@@ -863,6 +862,30 @@
         if (confirm('Clear all events?')) {
             if (state) state.autoPlaceAll();
             if ($searchBox) $searchBox.value = '';
+        }
+    });
+
+    $undoBtn.addEventListener('click', () => {
+        if (state) state.undo();
+    });
+
+    $redoBtn.addEventListener('click', () => {
+        if (state) state.redo();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        const isCtrl = e.ctrlKey || e.metaKey;
+
+        if (isCtrl && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            if (state) state.undo();
+            return;
+        }
+
+        if ((isCtrl && e.key === 'z' && e.shiftKey) || (isCtrl && e.key === 'y')) {
+            e.preventDefault();
+            if (state) state.redo();
+            return;
         }
     });
 
