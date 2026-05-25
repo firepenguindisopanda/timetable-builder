@@ -1,0 +1,57 @@
+{
+  "pdf": "m2215.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - GOVT 3023, Administrative Law I (Wks SUM W1-SUM W7)",
+    "entry_count": 1
+  },
+  "llm_result": {
+    "course_code": "GOVT 3023",
+    "course_name": "Administrative Law I",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 1,
+    "layout_notes": "The timetable is structured with a grid layout, with days of the week listed vertically on the left and time slots listed horizontally across the top. The course code and name are displayed at the top of the page, along with the semester information. The lecture entry is highlighted in a box, with the day, start and end times, room, activity type, and staff name listed inside."
+  },
+  "comparison": {
+    "rule_count": 1,
+    "llm_count": 1,
+    "matched_count": 0,
+    "only_rule": [
+      {
+        "day": "Thursday",
+        "start_time": "10:00 AM",
+        "end_time": "01:00 PM",
+        "start_minutes": 600,
+        "end_minutes": 780,
+        "duration_minutes": 180,
+        "room": "FSS 100",
+        "staff": "FRANCIS-BLACKMAN,Lue Anda",
+        "activity_type": "Lecture",
+        "course": "GOVT 3023",
+        "weeks": "SUM W1-SUM W7",
+        "week_count": 7,
+        "group_label": null
+      }
+    ],
+    "only_llm": [
+      {
+        "day": "Thursday",
+        "start_time": "01:00PM",
+        "end_time": "02:00PM",
+        "start_minutes": 780,
+        "end_minutes": 840,
+        "duration_minutes": 60,
+        "room": "FSS 100 W",
+        "staff": "FRANCIS-BLACKMAN,Lue Anda",
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      }
+    ],
+    "field_disagreements": [],
+    "match_rate": 0.0
+  }
+}

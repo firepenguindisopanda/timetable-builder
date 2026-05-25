@@ -1,0 +1,122 @@
+{
+  "pdf": "m55716.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - COMP 1601, Computer Programming I (Wks SUM W1-SUM W7)",
+    "entry_count": 4
+  },
+  "llm_result": {
+    "course_code": "COMP 1601",
+    "course_name": "Computer Programming I",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 4,
+    "layout_notes": "The timetable is organized by day of the week, with each day having a separate section. The sections are labeled with the day of the week and the time range for the activities. The activities are listed in a table format, with columns for the start time, end time, room, activity type, and staff. The timetable also includes a header with the course code, course name, and semester."
+  },
+  "comparison": {
+    "rule_count": 4,
+    "llm_count": 4,
+    "matched_count": 2,
+    "only_rule": [
+      {
+        "day": "Tuesday",
+        "start_time": "10:00 AM",
+        "end_time": "12:00 PM",
+        "start_minutes": 600,
+        "end_minutes": 720,
+        "duration_minutes": 120,
+        "room": "FST",
+        "staff": "Diana",
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": 6,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "11:00 AM",
+        "end_time": "01:00 PM",
+        "start_minutes": 660,
+        "end_minutes": 780,
+        "duration_minutes": 120,
+        "room": "FST CSL1 W1-SUM 1601",
+        "staff": "RAGBIR-SHRIPAT, Diana",
+        "activity_type": "Lab",
+        "course": "COMP 1601",
+        "weeks": "SUM W1-SUM W6",
+        "week_count": 6,
+        "group_label": null
+      }
+    ],
+    "only_llm": [
+      {
+        "day": "Tuesday",
+        "start_time": "08:00AM",
+        "end_time": "09:00AM",
+        "start_minutes": 480,
+        "end_minutes": 540,
+        "duration_minutes": 60,
+        "room": "FST CSL1",
+        "staff": "RAGBIR-SHRIPAT Diana",
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "03:00PM",
+        "end_time": "04:00PM",
+        "start_minutes": 900,
+        "end_minutes": 960,
+        "duration_minutes": 60,
+        "room": "FST CSL1",
+        "staff": "RAGBIR-SHRIPAT Diana",
+        "activity_type": "Lab",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      }
+    ],
+    "field_disagreements": [
+      {
+        "day": "Monday",
+        "rule_start": "04:00 PM",
+        "llm_start": "04:00PM",
+        "time_diff_min": 0,
+        "rule_course": "COMP 1601",
+        "differences": {
+          "start_time": {
+            "rule": "04:00 PM",
+            "llm": "04:00PM"
+          },
+          "end_time": {
+            "rule": "06:00 PM",
+            "llm": "05:00PM"
+          }
+        }
+      },
+      {
+        "day": "Friday",
+        "rule_start": "10:00 AM",
+        "llm_start": "09:00AM",
+        "time_diff_min": 60,
+        "rule_course": "COMP 1601",
+        "differences": {
+          "start_time": {
+            "rule": "10:00 AM",
+            "llm": "09:00AM"
+          },
+          "end_time": {
+            "rule": "12:00 PM",
+            "llm": "10:00AM"
+          }
+        }
+      }
+    ],
+    "match_rate": 0.5
+  }
+}

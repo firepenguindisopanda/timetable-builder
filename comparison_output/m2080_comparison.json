@@ -1,0 +1,175 @@
+{
+  "pdf": "m2080.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - FOUN 1210, Science Medicine & Technology in Society (Wks SUM W1-SUM W7)",
+    "entry_count": 8
+  },
+  "llm_result": {
+    "course_code": "FOUN 1210",
+    "course_name": "Science Medicine & Technology in Society",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 4,
+    "layout_notes": "The timetable is organized by day, with each entry containing the start and end times, room, activity type, and staff information."
+  },
+  "comparison": {
+    "rule_count": 8,
+    "llm_count": 4,
+    "matched_count": 4,
+    "only_rule": [
+      {
+        "day": "Monday",
+        "start_time": "07:00 PM",
+        "end_time": "08:00 PM",
+        "start_minutes": 1140,
+        "end_minutes": 1200,
+        "duration_minutes": 60,
+        "room": "FHE SOE South Block Old Library SOE Section",
+        "staff": "RAMROOP SINGH, Mitra; RENWICK, Camille",
+        "activity_type": "Tutorial",
+        "course": "FOUN 1210",
+        "weeks": "SUM W1-SUM W7",
+        "week_count": 7,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "start_minutes": 1020,
+        "end_minutes": 1200,
+        "duration_minutes": 180,
+        "room": null,
+        "staff": "RAMROOPSINGH,Mitra; RENWICK,Camille Rooms: FHE SOE 203; FHE SOE 204 SOE Section",
+        "activity_type": "Lecture",
+        "course": "FOUN 1210",
+        "weeks": "SUM W1-SUM W6",
+        "week_count": 6,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "07:00 PM",
+        "start_minutes": 1020,
+        "end_minutes": 1140,
+        "duration_minutes": 120,
+        "room": "FST C3",
+        "staff": null,
+        "activity_type": "Lecture",
+        "course": "FOUN 1210",
+        "weeks": null,
+        "week_count": 7,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "07:00 PM",
+        "end_time": "08:00 PM",
+        "start_minutes": 1140,
+        "end_minutes": 1200,
+        "duration_minutes": 60,
+        "room": "FST C3",
+        "staff": null,
+        "activity_type": "Tutorial",
+        "course": "FOUN 1210",
+        "weeks": "SUM W1-SUM W7",
+        "week_count": 7,
+        "group_label": null
+      }
+    ],
+    "only_llm": [],
+    "field_disagreements": [
+      {
+        "day": "Monday",
+        "rule_start": "05:00 PM",
+        "llm_start": "05:00PM",
+        "time_diff_min": 0,
+        "rule_course": "FOUN 1210",
+        "differences": {
+          "start_time": {
+            "rule": "05:00 PM",
+            "llm": "05:00PM"
+          },
+          "end_time": {
+            "rule": "07:00 PM",
+            "llm": "06:00PM"
+          },
+          "room": {
+            "rule": "FHE SOE South Block Old Library SOE Section",
+            "llm": "FHE SOE South Block Old Library"
+          }
+        }
+      },
+      {
+        "day": "Monday",
+        "rule_start": "05:00 PM",
+        "llm_start": "06:00PM",
+        "time_diff_min": 60,
+        "rule_course": "FOUN 1210",
+        "differences": {
+          "start_time": {
+            "rule": "05:00 PM",
+            "llm": "06:00PM"
+          },
+          "end_time": {
+            "rule": "08:00 PM",
+            "llm": "07:00PM"
+          },
+          "room": {
+            "rule": "FHE SOE South Block Old Library SOE Section",
+            "llm": "FHE SOE 203; FHE SOE 204"
+          },
+          "activity_type": {
+            "rule": "Lecture",
+            "llm": "Tutorial"
+          }
+        }
+      },
+      {
+        "day": "Tuesday",
+        "rule_start": "05:00 PM",
+        "llm_start": "05:00PM",
+        "time_diff_min": 0,
+        "rule_course": "FOUN 1210",
+        "differences": {
+          "start_time": {
+            "rule": "05:00 PM",
+            "llm": "05:00PM"
+          },
+          "end_time": {
+            "rule": "07:00 PM",
+            "llm": "06:00PM"
+          },
+          "staff": {
+            "rule": null,
+            "llm": "FOUN 1210"
+          }
+        }
+      },
+      {
+        "day": "Tuesday",
+        "rule_start": "07:00 PM",
+        "llm_start": "06:00PM",
+        "time_diff_min": 60,
+        "rule_course": "FOUN 1210",
+        "differences": {
+          "start_time": {
+            "rule": "07:00 PM",
+            "llm": "06:00PM"
+          },
+          "end_time": {
+            "rule": "08:00 PM",
+            "llm": "07:00PM"
+          },
+          "staff": {
+            "rule": null,
+            "llm": "FOUN 1210"
+          }
+        }
+      }
+    ],
+    "match_rate": 0.5
+  }
+}

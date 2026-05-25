@@ -3,6 +3,8 @@
 {% block title %}Calendar - CELCAT Timetable Extractor{% endblock %}
 
 {% block extra_head %}
+<!-- interact.js for touch-friendly drag & drop -->
+<script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js" defer></script>
 <style>
 .events-panel {
     max-height: 200px;
@@ -117,9 +119,27 @@
     min-height: 700px;
 }
 
+.calendar-scroll-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 3px;
+}
+
 .day-column {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
     background: var(--bg-surface);
     border-radius: 6px;
     overflow: hidden;
@@ -171,11 +191,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 80px;
+    touch-action: none; /* Required for interact.js touch support */
+    user-select: none;  /* Prevent text selection during drag */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    transition: box-shadow 0.15s ease, transform 0.1s ease;
 }
 
 .calendar-event:active {
     cursor: grabbing;
-    z-index: 10;
+}
+
+/* interact.js dragging state */
+.calendar-event.dragging {
+    opacity: 0.85;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transform: scale(1.02);
+    cursor: grabbing;
+}
+
+/* Drop target highlight */
+.time-slot.drop-target {
+    background: rgba(0, 229, 255, 0.15);
+    border-top: 2px solid var(--accent-cyan);
 }
 
 .calendar-event.lecture {
@@ -239,7 +278,7 @@
             <span class="text-accent">My</span> Timetable
         </h1>
         <p class="page-subtitle">
-            Drag events to reschedule. Click events in the list to highlight them.
+            Drag or touch events to reschedule. Click events in the list to highlight them.
         </p>
     </div>
 
@@ -278,8 +317,10 @@
 
     <!-- Calendar -->
     <div class="surface-card" style="max-width: 1000px; margin: 0 auto; padding: 8px;">
-        <div id="calendarWrapper" class="calendar-wrapper">
-            <!-- 7 day columns -->
+        <div class="calendar-scroll-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <div id="calendarWrapper" class="calendar-wrapper" style="min-width: 700px;">
+                <!-- 7 day columns -->
+            </div>
         </div>
     </div>
 
@@ -409,11 +450,14 @@
                 const e2End = timeToMins(e2.end_time);
                 
                 if (s1 < e2End && s2 < e1End) {
+                    // Calculate actual overlap range
+                    const overlapStart = Math.max(s1, s2);
+                    const overlapEnd = Math.min(e1End, e2End);
                     conflicts.push({
                         indices: [i, j],
                         events: [e1, e2],
                         day: e1.day,
-                        time: `${e1.start_time} - ${e1.end_time}`
+                        time: `${minsToTime(overlapStart)} - ${minsToTime(overlapEnd)}`
                     });
                 }
             }
@@ -557,21 +601,14 @@
             el.className = `calendar-event ${typeClass}`;
             el.style.top = `${top}px`;
             el.style.height = `${height}px`;
-            el.draggable = true;
             el.dataset.index = idx;
+            // interact.js handles drag — no HTML5 draggable
             
             el.innerHTML = `
                 <div class="event-course">${escapeHtml(event.course || '?')}</div>
                 <div class="event-type">${escapeHtml(event.type || 'Event')}</div>
                 <div class="event-time">${escapeHtml(event.start_time)}-${escapeHtml(event.end_time)}</div>
             `;
-            
-            // Drag handlers
-            el.addEventListener('dragstart', e => {
-                e.dataTransfer.setData('text/plain', idx);
-                el.style.opacity = '0.5';
-            });
-            el.addEventListener('dragend', () => el.style.opacity = '1');
             
             col.appendChild(el);
         });
@@ -583,47 +620,161 @@
         emptyState.style.display = 'none';
     }
 
-    // Setup drag and drop
+    // Setup interact.js drag and drop with snap + touch support
     function setupDragDrop() {
+        const SLOT_HEIGHT = 30; // px per 30-min slot
+        const SNAP_INTERVAL = SLOT_HEIGHT; // snap to 30-min slots
+
+        // Wait for interact.js to load (deferred script)
+        function initInteract() {
+            if (typeof interact === 'undefined') {
+                // Retry after a short delay if CDN hasn't loaded yet
+                setTimeout(initInteract, 100);
+                return;
+            }
+
+            interact('.calendar-event').draggable({
+                // Enable touch input
+                allowFrom: '.calendar-event',
+                listeners: {
+                    start(event) {
+                        event.target.classList.add('dragging');
+                    },
+                    move(event) {
+                        const target = event.target;
+                        // Update the element's position via transform
+                        const x = (parseFloat(target.dataset.dragX) || 0) + event.dx;
+                        const y = (parseFloat(target.dataset.dragY) || 0) + event.dy;
+
+                        target.dataset.dragX = x;
+                        target.dataset.dragY = y;
+                        target.style.transform = `translate(${x}px, ${y}px)`;
+
+                        // Highlight the drop target slot under the cursor
+                        highlightDropTarget(event.clientX, event.clientY);
+                    },
+                    end(event) {
+                        const target = event.target;
+                        target.classList.remove('dragging');
+
+                        // Calculate new day and time from final position
+                        const rect = target.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+
+                        // Clear drop target highlights
+                        clearDropTargetHighlights();
+
+                        // Find which day column the center of the event is over
+                        const dayColumns = document.querySelectorAll('.day-column');
+                        let newDayIdx = -1;
+                        dayColumns.forEach(col => {
+                            const colRect = col.getBoundingClientRect();
+                            if (centerX >= colRect.left && centerX <= colRect.right) {
+                                newDayIdx = parseInt(col.dataset.day);
+                            }
+                        });
+
+                        if (newDayIdx === -1) {
+                            // Dropped outside a valid day — reset position
+                            resetDragPosition(target);
+                            return;
+                        }
+
+                        // Find which time slot the center of the event is over
+                        const timeSlotsCol = document.querySelector(`.time-slots[data-day="${newDayIdx}"]`);
+                        if (!timeSlotsCol) {
+                            resetDragPosition(target);
+                            return;
+                        }
+
+                        const colRect = timeSlotsCol.getBoundingClientRect();
+                        const relativeY = centerY - colRect.top;
+                        const snappedSlot = Math.round(relativeY / SNAP_INTERVAL);
+                        const clampedSlot = Math.max(0, Math.min(snappedSlot, TOTAL_HOURS * SLOTS_PER_HOUR - 1));
+                        const newMins = START_HOUR * 60 + clampedSlot * 30;
+
+                        // Update the event data
+                        const eventIdx = parseInt(target.dataset.index);
+                        const events = loadEvents();
+                        const eventData = events[eventIdx];
+                        if (!eventData) {
+                            resetDragPosition(target);
+                            return;
+                        }
+
+                        const duration = timeToMins(eventData.end_time) - timeToMins(eventData.start_time);
+
+                        // Update event — always use 24hr format for consistency
+                        eventData.day = DAYS[newDayIdx];
+                        eventData.start_time = minsToTime(newMins);
+                        eventData.end_time = minsToTime(newMins + duration);
+
+                        // Save and re-render
+                        saveEvents(events);
+                        renderEvents(events);
+                    }
+                },
+                // Snap to grid
+                modifiers: [
+                    interact.modifiers.snap({
+                        targets: [
+                            interact.createSnapGrid({
+                                x: 0, // No horizontal snapping — free movement between days
+                                y: SNAP_INTERVAL,
+                                range: Infinity,
+                                relativePoints: [{ x: 0.5, y: 0 }] // Snap from top-center of event
+                            })
+                        ],
+                        offset: 'parent',
+                        endOnly: false
+                    }),
+                    // Keep within calendar bounds
+                    interact.modifiers.restrict({
+                        restriction: '#calendarWrapper',
+                        endOnly: true,
+                        elementRect: { left: 0, right: 0, top: 0, bottom: 0 }
+                    })
+                ],
+                // Inertia for smooth feel
+                inertia: {
+                    enabled: true,
+                    resistance: 30,
+                    minSpeed: 100,
+                    endSpeed: 50
+                }
+            });
+        }
+
+        initInteract();
+    }
+
+    // Highlight the time slot under the cursor during drag
+    function highlightDropTarget(clientX, clientY) {
+        clearDropTargetHighlights();
         const slots = document.querySelectorAll('.time-slot');
-        
         slots.forEach(slot => {
-            slot.addEventListener('dragover', e => {
-                e.preventDefault();
-                slot.style.background = 'rgba(0,229,255,0.1)';
-            });
-            
-            slot.addEventListener('dragleave', () => {
-                slot.style.background = '';
-            });
-            
-            slot.addEventListener('drop', e => {
-                e.preventDefault();
-                slot.style.background = '';
-                
-                const eventIdx = parseInt(e.dataTransfer.getData('text/plain'));
-                if (isNaN(eventIdx)) return;
-                
-                const dayIdx = parseInt(slot.dataset.day);
-                const newMins = parseInt(slot.dataset.mins);
-                
-                // Get event and calculate duration
-                const events = loadEvents();
-                const event = events[eventIdx];
-                if (!event) return;
-                
-                const duration = timeToMins(event.end_time) - timeToMins(event.start_time);
-                
-                // Update
-                event.day = DAYS[dayIdx];
-                event.start_time = minsToTime(newMins);
-                event.end_time = minsToTime(newMins + duration);
-                
-                // Save and re-render
-                saveEvents(events);
-                renderEvents(events);
-            });
+            const rect = slot.getBoundingClientRect();
+            if (clientY >= rect.top && clientY <= rect.bottom &&
+                clientX >= rect.left && clientX <= rect.right) {
+                slot.classList.add('drop-target');
+            }
         });
+    }
+
+    function clearDropTargetHighlights() {
+        document.querySelectorAll('.time-slot.drop-target').forEach(s => {
+            s.classList.remove('drop-target');
+        });
+    }
+
+    // Reset element position if dropped in invalid area
+    function resetDragPosition(target) {
+        target.style.transition = 'transform 0.2s ease';
+        target.dataset.dragX = 0;
+        target.dataset.dragY = 0;
+        target.style.transform = 'translate(0px, 0px)';
+        setTimeout(() => { target.style.transition = ''; }, 200);
     }
 
     // Storage helpers

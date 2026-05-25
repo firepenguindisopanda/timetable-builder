@@ -1,0 +1,60 @@
+{
+  "pdf": "m2143.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - GEOM 2030, Adjustment Computations I (Wks SUM W1-SUM W7)",
+    "entry_count": 2
+  },
+  "llm_result": {
+    "course_code": "GEOM 2030",
+    "course_name": "Adjustment Computations I",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 2,
+    "layout_notes": "The timetable is organized by day of the week, with each day having a separate section. The course code and name are displayed at the top of the page, along with the semester information. Each entry includes the day, start and end times, room number, activity type, and staff name (if applicable)."
+  },
+  "comparison": {
+    "rule_count": 2,
+    "llm_count": 2,
+    "matched_count": 2,
+    "only_rule": [],
+    "only_llm": [],
+    "field_disagreements": [
+      {
+        "day": "Monday",
+        "rule_start": "03:00 PM",
+        "llm_start": "03:00PM",
+        "time_diff_min": 0,
+        "rule_course": "GEOM 2030",
+        "differences": {
+          "start_time": {
+            "rule": "03:00 PM",
+            "llm": "03:00PM"
+          },
+          "end_time": {
+            "rule": "05:00 PM",
+            "llm": "04:00PM"
+          }
+        }
+      },
+      {
+        "day": "Wednesday",
+        "rule_start": "03:00 PM",
+        "llm_start": "03:00PM",
+        "time_diff_min": 0,
+        "rule_course": "GEOM 2030",
+        "differences": {
+          "start_time": {
+            "rule": "03:00 PM",
+            "llm": "03:00PM"
+          },
+          "end_time": {
+            "rule": "05:00 PM",
+            "llm": "04:00PM"
+          }
+        }
+      }
+    ],
+    "match_rate": 1.0
+  }
+}

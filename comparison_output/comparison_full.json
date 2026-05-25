@@ -1,0 +1,866 @@
+[
+  {
+    "pdf": "m36307.pdf",
+    "rule_result": {
+      "source_file": "m36307.pdf",
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - RENT 6008, Electrical Integration of Renewables (Wks SUM W1-SUM W7)",
+      "entries": [
+        {
+          "day": "Tuesday",
+          "start_time": "05:00 PM",
+          "end_time": "08:00 PM",
+          "type": "Postgraduate",
+          "weeks": "SUM W1-SUM W6",
+          "week_count": 6,
+          "course": "RENT 6008",
+          "staff": "POWELL,Courtney",
+          "room": "Remote Teaching",
+          "group_label": null,
+          "raw_text": "Postgraduate, Wks SUM W1-SUM W6\n[=6]\nCourse: RENT 6008\nStaff: POWELL,Courtney\nRoom: Remote Teaching"
+        },
+        {
+          "day": "Thursday",
+          "start_time": "05:00 PM",
+          "end_time": "08:00 PM",
+          "type": "Postgraduate",
+          "weeks": "SUM W1-SUM W6",
+          "week_count": 6,
+          "course": "RENT 6008",
+          "staff": "POWELL,Courtney",
+          "room": "Remote Teaching",
+          "group_label": null,
+          "raw_text": "Postgraduate, Wks SUM W1-SUM W6\n[=6]\nCourse: RENT 6008\nStaff: POWELL,Courtney\nRoom: Remote Teaching"
+        }
+      ]
+    },
+    "error": "LLM extraction failed: NVIDIA NIM API request timed out"
+  },
+  {
+    "pdf": "m17329.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - MATH 1115, Fundamental Mathematics for the General Science I (Wks SUM W1-SUM W7)",
+      "entry_count": 3
+    },
+    "llm_result": {
+      "course_code": "MATH 1115",
+      "course_name": "Fundamental Mathematics for the General Science I",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 4,
+      "layout_notes": "The timetable is organized by day of the week, with each entry listing the start and end times, room, activity type, and staff members. The course code and name are displayed at the top of the page, along with the semester information."
+    },
+    "comparison": {
+      "rule_count": 3,
+      "llm_count": 4,
+      "matched_count": 3,
+      "only_rule": [],
+      "only_llm": [
+        {
+          "day": "Wednesday",
+          "start_time": "01:00PM",
+          "end_time": "02:00PM",
+          "start_minutes": 780,
+          "end_minutes": 840,
+          "duration_minutes": 60,
+          "room": "FST CSL1",
+          "staff": "KAMALUDIN, Saleem; LATCHMAN, Gyshan",
+          "activity_type": "Lab",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        }
+      ],
+      "field_disagreements": [
+        {
+          "day": "Monday",
+          "rule_start": "01:00 PM",
+          "llm_start": "01:00PM",
+          "time_diff_min": 0,
+          "rule_course": "MATH 1115",
+          "differences": {
+            "start_time": {
+              "rule": "01:00 PM",
+              "llm": "01:00PM"
+            },
+            "end_time": {
+              "rule": "03:00 PM",
+              "llm": "02:00PM"
+            },
+            "room": {
+              "rule": "FST 114 SUM W1- 1115",
+              "llm": "FST 114"
+            }
+          }
+        },
+        {
+          "day": "Tuesday",
+          "rule_start": "12:00 PM",
+          "llm_start": "01:00PM",
+          "time_diff_min": 60,
+          "rule_course": "MATH 1115",
+          "differences": {
+            "start_time": {
+              "rule": "12:00 PM",
+              "llm": "01:00PM"
+            },
+            "end_time": {
+              "rule": "02:00 PM",
+              "llm": "02:00PM"
+            }
+          }
+        },
+        {
+          "day": "Thursday",
+          "rule_start": "12:00 PM",
+          "llm_start": "01:00PM",
+          "time_diff_min": 60,
+          "rule_course": "MATH 1115",
+          "differences": {
+            "start_time": {
+              "rule": "12:00 PM",
+              "llm": "01:00PM"
+            },
+            "end_time": {
+              "rule": "02:00 PM",
+              "llm": "02:00PM"
+            }
+          }
+        }
+      ],
+      "match_rate": 0.75
+    }
+  },
+  {
+    "pdf": "m1266.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - AGBU 2002, Management & Economics Of Agriculture (Wks SUM W1-SUM W7)",
+      "entry_count": 2
+    },
+    "llm_result": {
+      "course_code": "AGBU 2002",
+      "course_name": "Management & Economics Of Agriculture",
+      "semester": "Summer_2025_2026",
+      "confidence": null,
+      "entry_count": 2,
+      "layout_notes": "The timetable is organized in a grid format with days of the week on the left and time slots on the top. Each entry is represented by a box with the course code, staff name, and room number. The timetable appears to be for a single course, AGBU 2002, with two lecture sessions per week."
+    },
+    "comparison": {
+      "rule_count": 2,
+      "llm_count": 2,
+      "matched_count": 0,
+      "only_rule": [
+        {
+          "day": "Tuesday",
+          "start_time": "04:00 PM",
+          "end_time": "06:00 PM",
+          "start_minutes": 960,
+          "end_minutes": 1080,
+          "duration_minutes": 120,
+          "room": "FFA",
+          "staff": "MAHARAJ, Omardath",
+          "activity_type": "Lecture",
+          "course": "AGBU 2002",
+          "weeks": null,
+          "week_count": 7,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "04:00 PM",
+          "end_time": "06:00 PM",
+          "start_minutes": 960,
+          "end_minutes": 1080,
+          "duration_minutes": 120,
+          "room": "FFA",
+          "staff": "MAHARAJ, Omardath",
+          "activity_type": "Lecture",
+          "course": "AGBU 2002",
+          "weeks": null,
+          "week_count": 7,
+          "group_label": null
+        }
+      ],
+      "only_llm": [
+        {
+          "day": "Monday",
+          "start_time": "06:00PM",
+          "end_time": "07:00PM",
+          "start_minutes": 1080,
+          "end_minutes": 1140,
+          "duration_minutes": 60,
+          "room": "FFA W",
+          "staff": "MAHARAJ, Omardath",
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "06:00PM",
+          "end_time": "07:00PM",
+          "start_minutes": 1080,
+          "end_minutes": 1140,
+          "duration_minutes": 60,
+          "room": "FFA W",
+          "staff": "MAHARAJ, Omardath",
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        }
+      ],
+      "field_disagreements": [],
+      "match_rate": 0.0
+    }
+  },
+  {
+    "pdf": "m55716.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - COMP 1601, Computer Programming I (Wks SUM W1-SUM W7)",
+      "entry_count": 4
+    },
+    "llm_result": {
+      "course_code": "COMP 1601",
+      "course_name": "Computer Programming I",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 4,
+      "layout_notes": "The timetable is organized by day of the week, with each day having a separate section. The sections are labeled with the day of the week and the time range for the activities. The activities are listed in a table format, with columns for the start time, end time, room, activity type, and staff. The timetable also includes a header with the course code, course name, and semester."
+    },
+    "comparison": {
+      "rule_count": 4,
+      "llm_count": 4,
+      "matched_count": 2,
+      "only_rule": [
+        {
+          "day": "Tuesday",
+          "start_time": "10:00 AM",
+          "end_time": "12:00 PM",
+          "start_minutes": 600,
+          "end_minutes": 720,
+          "duration_minutes": 120,
+          "room": "FST",
+          "staff": "Diana",
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": 6,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "11:00 AM",
+          "end_time": "01:00 PM",
+          "start_minutes": 660,
+          "end_minutes": 780,
+          "duration_minutes": 120,
+          "room": "FST CSL1 W1-SUM 1601",
+          "staff": "RAGBIR-SHRIPAT, Diana",
+          "activity_type": "Lab",
+          "course": "COMP 1601",
+          "weeks": "SUM W1-SUM W6",
+          "week_count": 6,
+          "group_label": null
+        }
+      ],
+      "only_llm": [
+        {
+          "day": "Tuesday",
+          "start_time": "08:00AM",
+          "end_time": "09:00AM",
+          "start_minutes": 480,
+          "end_minutes": 540,
+          "duration_minutes": 60,
+          "room": "FST CSL1",
+          "staff": "RAGBIR-SHRIPAT Diana",
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "03:00PM",
+          "end_time": "04:00PM",
+          "start_minutes": 900,
+          "end_minutes": 960,
+          "duration_minutes": 60,
+          "room": "FST CSL1",
+          "staff": "RAGBIR-SHRIPAT Diana",
+          "activity_type": "Lab",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        }
+      ],
+      "field_disagreements": [
+        {
+          "day": "Monday",
+          "rule_start": "04:00 PM",
+          "llm_start": "04:00PM",
+          "time_diff_min": 0,
+          "rule_course": "COMP 1601",
+          "differences": {
+            "start_time": {
+              "rule": "04:00 PM",
+              "llm": "04:00PM"
+            },
+            "end_time": {
+              "rule": "06:00 PM",
+              "llm": "05:00PM"
+            }
+          }
+        },
+        {
+          "day": "Friday",
+          "rule_start": "10:00 AM",
+          "llm_start": "09:00AM",
+          "time_diff_min": 60,
+          "rule_course": "COMP 1601",
+          "differences": {
+            "start_time": {
+              "rule": "10:00 AM",
+              "llm": "09:00AM"
+            },
+            "end_time": {
+              "rule": "12:00 PM",
+              "llm": "10:00AM"
+            }
+          }
+        }
+      ],
+      "match_rate": 0.5
+    }
+  },
+  {
+    "pdf": "m2215.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - GOVT 3023, Administrative Law I (Wks SUM W1-SUM W7)",
+      "entry_count": 1
+    },
+    "llm_result": {
+      "course_code": "GOVT 3023",
+      "course_name": "Administrative Law I",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 1,
+      "layout_notes": "The timetable is structured with a grid layout, with days of the week listed vertically on the left and time slots listed horizontally across the top. The course code and name are displayed at the top of the page, along with the semester information. The lecture entry is highlighted in a box, with the day, start and end times, room, activity type, and staff name listed inside."
+    },
+    "comparison": {
+      "rule_count": 1,
+      "llm_count": 1,
+      "matched_count": 0,
+      "only_rule": [
+        {
+          "day": "Thursday",
+          "start_time": "10:00 AM",
+          "end_time": "01:00 PM",
+          "start_minutes": 600,
+          "end_minutes": 780,
+          "duration_minutes": 180,
+          "room": "FSS 100",
+          "staff": "FRANCIS-BLACKMAN,Lue Anda",
+          "activity_type": "Lecture",
+          "course": "GOVT 3023",
+          "weeks": "SUM W1-SUM W7",
+          "week_count": 7,
+          "group_label": null
+        }
+      ],
+      "only_llm": [
+        {
+          "day": "Thursday",
+          "start_time": "01:00PM",
+          "end_time": "02:00PM",
+          "start_minutes": 780,
+          "end_minutes": 840,
+          "duration_minutes": 60,
+          "room": "FSS 100 W",
+          "staff": "FRANCIS-BLACKMAN,Lue Anda",
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        }
+      ],
+      "field_disagreements": [],
+      "match_rate": 0.0
+    }
+  },
+  {
+    "pdf": "m2143.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - GEOM 2030, Adjustment Computations I (Wks SUM W1-SUM W7)",
+      "entry_count": 2
+    },
+    "llm_result": {
+      "course_code": "GEOM 2030",
+      "course_name": "Adjustment Computations I",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 2,
+      "layout_notes": "The timetable is organized by day of the week, with each day having a separate section. The course code and name are displayed at the top of the page, along with the semester information. Each entry includes the day, start and end times, room number, activity type, and staff name (if applicable)."
+    },
+    "comparison": {
+      "rule_count": 2,
+      "llm_count": 2,
+      "matched_count": 2,
+      "only_rule": [],
+      "only_llm": [],
+      "field_disagreements": [
+        {
+          "day": "Monday",
+          "rule_start": "03:00 PM",
+          "llm_start": "03:00PM",
+          "time_diff_min": 0,
+          "rule_course": "GEOM 2030",
+          "differences": {
+            "start_time": {
+              "rule": "03:00 PM",
+              "llm": "03:00PM"
+            },
+            "end_time": {
+              "rule": "05:00 PM",
+              "llm": "04:00PM"
+            }
+          }
+        },
+        {
+          "day": "Wednesday",
+          "rule_start": "03:00 PM",
+          "llm_start": "03:00PM",
+          "time_diff_min": 0,
+          "rule_course": "GEOM 2030",
+          "differences": {
+            "start_time": {
+              "rule": "03:00 PM",
+              "llm": "03:00PM"
+            },
+            "end_time": {
+              "rule": "05:00 PM",
+              "llm": "04:00PM"
+            }
+          }
+        }
+      ],
+      "match_rate": 1.0
+    }
+  },
+  {
+    "pdf": "m2080.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - FOUN 1210, Science Medicine & Technology in Society (Wks SUM W1-SUM W7)",
+      "entry_count": 8
+    },
+    "llm_result": {
+      "course_code": "FOUN 1210",
+      "course_name": "Science Medicine & Technology in Society",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 4,
+      "layout_notes": "The timetable is organized by day, with each entry containing the start and end times, room, activity type, and staff information."
+    },
+    "comparison": {
+      "rule_count": 8,
+      "llm_count": 4,
+      "matched_count": 4,
+      "only_rule": [
+        {
+          "day": "Monday",
+          "start_time": "07:00 PM",
+          "end_time": "08:00 PM",
+          "start_minutes": 1140,
+          "end_minutes": 1200,
+          "duration_minutes": 60,
+          "room": "FHE SOE South Block Old Library SOE Section",
+          "staff": "RAMROOP SINGH, Mitra; RENWICK, Camille",
+          "activity_type": "Tutorial",
+          "course": "FOUN 1210",
+          "weeks": "SUM W1-SUM W7",
+          "week_count": 7,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "05:00 PM",
+          "end_time": "08:00 PM",
+          "start_minutes": 1020,
+          "end_minutes": 1200,
+          "duration_minutes": 180,
+          "room": null,
+          "staff": "RAMROOPSINGH,Mitra; RENWICK,Camille Rooms: FHE SOE 203; FHE SOE 204 SOE Section",
+          "activity_type": "Lecture",
+          "course": "FOUN 1210",
+          "weeks": "SUM W1-SUM W6",
+          "week_count": 6,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "05:00 PM",
+          "end_time": "07:00 PM",
+          "start_minutes": 1020,
+          "end_minutes": 1140,
+          "duration_minutes": 120,
+          "room": "FST C3",
+          "staff": null,
+          "activity_type": "Lecture",
+          "course": "FOUN 1210",
+          "weeks": null,
+          "week_count": 7,
+          "group_label": null
+        },
+        {
+          "day": "Thursday",
+          "start_time": "07:00 PM",
+          "end_time": "08:00 PM",
+          "start_minutes": 1140,
+          "end_minutes": 1200,
+          "duration_minutes": 60,
+          "room": "FST C3",
+          "staff": null,
+          "activity_type": "Tutorial",
+          "course": "FOUN 1210",
+          "weeks": "SUM W1-SUM W7",
+          "week_count": 7,
+          "group_label": null
+        }
+      ],
+      "only_llm": [],
+      "field_disagreements": [
+        {
+          "day": "Monday",
+          "rule_start": "05:00 PM",
+          "llm_start": "05:00PM",
+          "time_diff_min": 0,
+          "rule_course": "FOUN 1210",
+          "differences": {
+            "start_time": {
+              "rule": "05:00 PM",
+              "llm": "05:00PM"
+            },
+            "end_time": {
+              "rule": "07:00 PM",
+              "llm": "06:00PM"
+            },
+            "room": {
+              "rule": "FHE SOE South Block Old Library SOE Section",
+              "llm": "FHE SOE South Block Old Library"
+            }
+          }
+        },
+        {
+          "day": "Monday",
+          "rule_start": "05:00 PM",
+          "llm_start": "06:00PM",
+          "time_diff_min": 60,
+          "rule_course": "FOUN 1210",
+          "differences": {
+            "start_time": {
+              "rule": "05:00 PM",
+              "llm": "06:00PM"
+            },
+            "end_time": {
+              "rule": "08:00 PM",
+              "llm": "07:00PM"
+            },
+            "room": {
+              "rule": "FHE SOE South Block Old Library SOE Section",
+              "llm": "FHE SOE 203; FHE SOE 204"
+            },
+            "activity_type": {
+              "rule": "Lecture",
+              "llm": "Tutorial"
+            }
+          }
+        },
+        {
+          "day": "Tuesday",
+          "rule_start": "05:00 PM",
+          "llm_start": "05:00PM",
+          "time_diff_min": 0,
+          "rule_course": "FOUN 1210",
+          "differences": {
+            "start_time": {
+              "rule": "05:00 PM",
+              "llm": "05:00PM"
+            },
+            "end_time": {
+              "rule": "07:00 PM",
+              "llm": "06:00PM"
+            },
+            "staff": {
+              "rule": null,
+              "llm": "FOUN 1210"
+            }
+          }
+        },
+        {
+          "day": "Tuesday",
+          "rule_start": "07:00 PM",
+          "llm_start": "06:00PM",
+          "time_diff_min": 60,
+          "rule_course": "FOUN 1210",
+          "differences": {
+            "start_time": {
+              "rule": "07:00 PM",
+              "llm": "06:00PM"
+            },
+            "end_time": {
+              "rule": "08:00 PM",
+              "llm": "07:00PM"
+            },
+            "staff": {
+              "rule": null,
+              "llm": "FOUN 1210"
+            }
+          }
+        }
+      ],
+      "match_rate": 0.5
+    }
+  },
+  {
+    "pdf": "m1764.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - ECNG 1015, Intro. to Electrical Energy Systems (Wks SUM W1-SUM W7)",
+      "entry_count": 2
+    },
+    "llm_result": {
+      "course_code": "ECNG 1015",
+      "course_name": "Intro. to Electrical Energy Systems",
+      "semester": "Summer_2025_2026",
+      "confidence": null,
+      "entry_count": 2,
+      "layout_notes": "The timetable is structured with days of the week on the left and time slots across the top. Each entry is represented by a box with the course code, room, and activity type."
+    },
+    "comparison": {
+      "rule_count": 2,
+      "llm_count": 2,
+      "matched_count": 1,
+      "only_rule": [
+        {
+          "day": "Friday",
+          "start_time": "09:00 AM",
+          "end_time": "12:00 PM",
+          "start_minutes": 540,
+          "end_minutes": 720,
+          "duration_minutes": 180,
+          "room": "ENG 11",
+          "staff": null,
+          "activity_type": "Lecture",
+          "course": "ECNG 1015",
+          "weeks": "SUM W1-SUM W7",
+          "week_count": 7,
+          "group_label": null
+        }
+      ],
+      "only_llm": [
+        {
+          "day": "Friday",
+          "start_time": "01:00PM",
+          "end_time": "02:00PM",
+          "start_minutes": 780,
+          "end_minutes": 840,
+          "duration_minutes": 60,
+          "room": "ENG 11",
+          "staff": null,
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        }
+      ],
+      "field_disagreements": [
+        {
+          "day": "Wednesday",
+          "rule_start": "01:00 PM",
+          "llm_start": "01:00PM",
+          "time_diff_min": 0,
+          "rule_course": "ECNG 1015",
+          "differences": {
+            "start_time": {
+              "rule": "01:00 PM",
+              "llm": "01:00PM"
+            },
+            "end_time": {
+              "rule": "04:00 PM",
+              "llm": "02:00PM"
+            }
+          }
+        }
+      ],
+      "match_rate": 0.5
+    }
+  },
+  {
+    "pdf": "m55714.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - COMP 1600, Introduction to Computer Concepts (Wks SUM W1-SUM W7)",
+      "entry_count": 4
+    },
+    "llm_result": {
+      "course_code": "COMP 1600",
+      "course_name": "Introduction to Computer Concepts",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 3,
+      "layout_notes": "The timetable is organized by day of the week, with each day having a separate section. The sections are labeled with the day of the week and the time range for each activity. The activities are listed in chronological order within each section."
+    },
+    "comparison": {
+      "rule_count": 4,
+      "llm_count": 3,
+      "matched_count": 3,
+      "only_rule": [
+        {
+          "day": "Friday",
+          "start_time": "04:00 PM",
+          "end_time": "05:00 PM",
+          "start_minutes": 960,
+          "end_minutes": 1020,
+          "duration_minutes": 60,
+          "room": "FST CSL1",
+          "staff": "RASHEED, Daniel",
+          "activity_type": "Tutorial",
+          "course": "COMP 1600",
+          "weeks": "SUM W1-SUM W6",
+          "week_count": 6,
+          "group_label": null
+        }
+      ],
+      "only_llm": [],
+      "field_disagreements": [
+        {
+          "day": "Monday",
+          "rule_start": "08:00 AM",
+          "llm_start": "08:00AM",
+          "time_diff_min": 0,
+          "rule_course": "COMP 1600",
+          "differences": {
+            "start_time": {
+              "rule": "08:00 AM",
+              "llm": "08:00AM"
+            },
+            "end_time": {
+              "rule": "10:00 AM",
+              "llm": "09:00AM"
+            }
+          }
+        },
+        {
+          "day": "Tuesday",
+          "rule_start": "08:00 AM",
+          "llm_start": "08:00AM",
+          "time_diff_min": 0,
+          "rule_course": "COMP 1600",
+          "differences": {
+            "start_time": {
+              "rule": "08:00 AM",
+              "llm": "08:00AM"
+            },
+            "end_time": {
+              "rule": "10:00 AM",
+              "llm": "09:00AM"
+            }
+          }
+        },
+        {
+          "day": "Friday",
+          "rule_start": "03:00 PM",
+          "llm_start": "04:00PM",
+          "time_diff_min": 60,
+          "rule_course": "COMP 1600",
+          "differences": {
+            "start_time": {
+              "rule": "03:00 PM",
+              "llm": "04:00PM"
+            },
+            "end_time": {
+              "rule": "04:00 PM",
+              "llm": "05:00PM"
+            },
+            "activity_type": {
+              "rule": "Lecture",
+              "llm": "Tutorial"
+            }
+          }
+        }
+      ],
+      "match_rate": 0.75
+    }
+  },
+  {
+    "pdf": "m1707.pdf",
+    "rule_result": {
+      "semester": "Summer_2025_2026",
+      "course_title": "Course timetable - CVNG 3002, Structural Analysis (Wks SUM W1-SUM W7)",
+      "entry_count": 1
+    },
+    "llm_result": {
+      "course_code": "CVNG 3002",
+      "course_name": "Structural Analysis",
+      "semester": "Summer 2025-2026",
+      "confidence": null,
+      "entry_count": 1,
+      "layout_notes": "The timetable is structured with days of the week on the left and time slots across the top. The course code and name are displayed at the top of the page, along with the semester information."
+    },
+    "comparison": {
+      "rule_count": 1,
+      "llm_count": 1,
+      "matched_count": 0,
+      "only_rule": [
+        {
+          "day": "Thursday",
+          "start_time": "01:00 PM",
+          "end_time": "04:00 PM",
+          "start_minutes": 780,
+          "end_minutes": 960,
+          "duration_minutes": 180,
+          "room": "ENG 10",
+          "staff": null,
+          "activity_type": "Lecture",
+          "course": "CVNG 3002",
+          "weeks": "SUM W1-SUM W7",
+          "week_count": 7,
+          "group_label": null
+        }
+      ],
+      "only_llm": [
+        {
+          "day": "Wednesday",
+          "start_time": "01:00PM",
+          "end_time": "02:00PM",
+          "start_minutes": 780,
+          "end_minutes": 840,
+          "duration_minutes": 60,
+          "room": "ENG 10",
+          "staff": null,
+          "activity_type": "Lecture",
+          "course": null,
+          "weeks": null,
+          "week_count": null,
+          "group_label": null
+        }
+      ],
+      "field_disagreements": [],
+      "match_rate": 0.0
+    }
+  }
+]

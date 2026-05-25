@@ -1,0 +1,97 @@
+{
+  "pdf": "m17329.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - MATH 1115, Fundamental Mathematics for the General Science I (Wks SUM W1-SUM W7)",
+    "entry_count": 3
+  },
+  "llm_result": {
+    "course_code": "MATH 1115",
+    "course_name": "Fundamental Mathematics for the General Science I",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 4,
+    "layout_notes": "The timetable is organized by day of the week, with each entry listing the start and end times, room, activity type, and staff members. The course code and name are displayed at the top of the page, along with the semester information."
+  },
+  "comparison": {
+    "rule_count": 3,
+    "llm_count": 4,
+    "matched_count": 3,
+    "only_rule": [],
+    "only_llm": [
+      {
+        "day": "Wednesday",
+        "start_time": "01:00PM",
+        "end_time": "02:00PM",
+        "start_minutes": 780,
+        "end_minutes": 840,
+        "duration_minutes": 60,
+        "room": "FST CSL1",
+        "staff": "KAMALUDIN, Saleem; LATCHMAN, Gyshan",
+        "activity_type": "Lab",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      }
+    ],
+    "field_disagreements": [
+      {
+        "day": "Monday",
+        "rule_start": "01:00 PM",
+        "llm_start": "01:00PM",
+        "time_diff_min": 0,
+        "rule_course": "MATH 1115",
+        "differences": {
+          "start_time": {
+            "rule": "01:00 PM",
+            "llm": "01:00PM"
+          },
+          "end_time": {
+            "rule": "03:00 PM",
+            "llm": "02:00PM"
+          },
+          "room": {
+            "rule": "FST 114 SUM W1- 1115",
+            "llm": "FST 114"
+          }
+        }
+      },
+      {
+        "day": "Tuesday",
+        "rule_start": "12:00 PM",
+        "llm_start": "01:00PM",
+        "time_diff_min": 60,
+        "rule_course": "MATH 1115",
+        "differences": {
+          "start_time": {
+            "rule": "12:00 PM",
+            "llm": "01:00PM"
+          },
+          "end_time": {
+            "rule": "02:00 PM",
+            "llm": "02:00PM"
+          }
+        }
+      },
+      {
+        "day": "Thursday",
+        "rule_start": "12:00 PM",
+        "llm_start": "01:00PM",
+        "time_diff_min": 60,
+        "rule_course": "MATH 1115",
+        "differences": {
+          "start_time": {
+            "rule": "12:00 PM",
+            "llm": "01:00PM"
+          },
+          "end_time": {
+            "rule": "02:00 PM",
+            "llm": "02:00PM"
+          }
+        }
+      }
+    ],
+    "match_rate": 0.75
+  }
+}

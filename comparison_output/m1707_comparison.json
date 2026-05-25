@@ -1,0 +1,57 @@
+{
+  "pdf": "m1707.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - CVNG 3002, Structural Analysis (Wks SUM W1-SUM W7)",
+    "entry_count": 1
+  },
+  "llm_result": {
+    "course_code": "CVNG 3002",
+    "course_name": "Structural Analysis",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 1,
+    "layout_notes": "The timetable is structured with days of the week on the left and time slots across the top. The course code and name are displayed at the top of the page, along with the semester information."
+  },
+  "comparison": {
+    "rule_count": 1,
+    "llm_count": 1,
+    "matched_count": 0,
+    "only_rule": [
+      {
+        "day": "Thursday",
+        "start_time": "01:00 PM",
+        "end_time": "04:00 PM",
+        "start_minutes": 780,
+        "end_minutes": 960,
+        "duration_minutes": 180,
+        "room": "ENG 10",
+        "staff": null,
+        "activity_type": "Lecture",
+        "course": "CVNG 3002",
+        "weeks": "SUM W1-SUM W7",
+        "week_count": 7,
+        "group_label": null
+      }
+    ],
+    "only_llm": [
+      {
+        "day": "Wednesday",
+        "start_time": "01:00PM",
+        "end_time": "02:00PM",
+        "start_minutes": 780,
+        "end_minutes": 840,
+        "duration_minutes": 60,
+        "room": "ENG 10",
+        "staff": null,
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      }
+    ],
+    "field_disagreements": [],
+    "match_rate": 0.0
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "pdf": "m1266.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - AGBU 2002, Management & Economics Of Agriculture (Wks SUM W1-SUM W7)",
+    "entry_count": 2
+  },
+  "llm_result": {
+    "course_code": "AGBU 2002",
+    "course_name": "Management & Economics Of Agriculture",
+    "semester": "Summer_2025_2026",
+    "confidence": null,
+    "entry_count": 2,
+    "layout_notes": "The timetable is organized in a grid format with days of the week on the left and time slots on the top. Each entry is represented by a box with the course code, staff name, and room number. The timetable appears to be for a single course, AGBU 2002, with two lecture sessions per week."
+  },
+  "comparison": {
+    "rule_count": 2,
+    "llm_count": 2,
+    "matched_count": 0,
+    "only_rule": [
+      {
+        "day": "Tuesday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "start_minutes": 960,
+        "end_minutes": 1080,
+        "duration_minutes": 120,
+        "room": "FFA",
+        "staff": "MAHARAJ, Omardath",
+        "activity_type": "Lecture",
+        "course": "AGBU 2002",
+        "weeks": null,
+        "week_count": 7,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "04:00 PM",
+        "end_time": "06:00 PM",
+        "start_minutes": 960,
+        "end_minutes": 1080,
+        "duration_minutes": 120,
+        "room": "FFA",
+        "staff": "MAHARAJ, Omardath",
+        "activity_type": "Lecture",
+        "course": "AGBU 2002",
+        "weeks": null,
+        "week_count": 7,
+        "group_label": null
+      }
+    ],
+    "only_llm": [
+      {
+        "day": "Monday",
+        "start_time": "06:00PM",
+        "end_time": "07:00PM",
+        "start_minutes": 1080,
+        "end_minutes": 1140,
+        "duration_minutes": 60,
+        "room": "FFA W",
+        "staff": "MAHARAJ, Omardath",
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      },
+      {
+        "day": "Thursday",
+        "start_time": "06:00PM",
+        "end_time": "07:00PM",
+        "start_minutes": 1080,
+        "end_minutes": 1140,
+        "duration_minutes": 60,
+        "room": "FFA W",
+        "staff": "MAHARAJ, Omardath",
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      }
+    ],
+    "field_disagreements": [],
+    "match_rate": 0.0
+  }
+}

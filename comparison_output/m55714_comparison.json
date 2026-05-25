@@ -1,0 +1,97 @@
+{
+  "pdf": "m55714.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - COMP 1600, Introduction to Computer Concepts (Wks SUM W1-SUM W7)",
+    "entry_count": 4
+  },
+  "llm_result": {
+    "course_code": "COMP 1600",
+    "course_name": "Introduction to Computer Concepts",
+    "semester": "Summer 2025-2026",
+    "confidence": null,
+    "entry_count": 3,
+    "layout_notes": "The timetable is organized by day of the week, with each day having a separate section. The sections are labeled with the day of the week and the time range for each activity. The activities are listed in chronological order within each section."
+  },
+  "comparison": {
+    "rule_count": 4,
+    "llm_count": 3,
+    "matched_count": 3,
+    "only_rule": [
+      {
+        "day": "Friday",
+        "start_time": "04:00 PM",
+        "end_time": "05:00 PM",
+        "start_minutes": 960,
+        "end_minutes": 1020,
+        "duration_minutes": 60,
+        "room": "FST CSL1",
+        "staff": "RASHEED, Daniel",
+        "activity_type": "Tutorial",
+        "course": "COMP 1600",
+        "weeks": "SUM W1-SUM W6",
+        "week_count": 6,
+        "group_label": null
+      }
+    ],
+    "only_llm": [],
+    "field_disagreements": [
+      {
+        "day": "Monday",
+        "rule_start": "08:00 AM",
+        "llm_start": "08:00AM",
+        "time_diff_min": 0,
+        "rule_course": "COMP 1600",
+        "differences": {
+          "start_time": {
+            "rule": "08:00 AM",
+            "llm": "08:00AM"
+          },
+          "end_time": {
+            "rule": "10:00 AM",
+            "llm": "09:00AM"
+          }
+        }
+      },
+      {
+        "day": "Tuesday",
+        "rule_start": "08:00 AM",
+        "llm_start": "08:00AM",
+        "time_diff_min": 0,
+        "rule_course": "COMP 1600",
+        "differences": {
+          "start_time": {
+            "rule": "08:00 AM",
+            "llm": "08:00AM"
+          },
+          "end_time": {
+            "rule": "10:00 AM",
+            "llm": "09:00AM"
+          }
+        }
+      },
+      {
+        "day": "Friday",
+        "rule_start": "03:00 PM",
+        "llm_start": "04:00PM",
+        "time_diff_min": 60,
+        "rule_course": "COMP 1600",
+        "differences": {
+          "start_time": {
+            "rule": "03:00 PM",
+            "llm": "04:00PM"
+          },
+          "end_time": {
+            "rule": "04:00 PM",
+            "llm": "05:00PM"
+          },
+          "activity_type": {
+            "rule": "Lecture",
+            "llm": "Tutorial"
+          }
+        }
+      }
+    ],
+    "match_rate": 0.75
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "pdf": "m1764.pdf",
+  "rule_result": {
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - ECNG 1015, Intro. to Electrical Energy Systems (Wks SUM W1-SUM W7)",
+    "entry_count": 2
+  },
+  "llm_result": {
+    "course_code": "ECNG 1015",
+    "course_name": "Intro. to Electrical Energy Systems",
+    "semester": "Summer_2025_2026",
+    "confidence": null,
+    "entry_count": 2,
+    "layout_notes": "The timetable is structured with days of the week on the left and time slots across the top. Each entry is represented by a box with the course code, room, and activity type."
+  },
+  "comparison": {
+    "rule_count": 2,
+    "llm_count": 2,
+    "matched_count": 1,
+    "only_rule": [
+      {
+        "day": "Friday",
+        "start_time": "09:00 AM",
+        "end_time": "12:00 PM",
+        "start_minutes": 540,
+        "end_minutes": 720,
+        "duration_minutes": 180,
+        "room": "ENG 11",
+        "staff": null,
+        "activity_type": "Lecture",
+        "course": "ECNG 1015",
+        "weeks": "SUM W1-SUM W7",
+        "week_count": 7,
+        "group_label": null
+      }
+    ],
+    "only_llm": [
+      {
+        "day": "Friday",
+        "start_time": "01:00PM",
+        "end_time": "02:00PM",
+        "start_minutes": 780,
+        "end_minutes": 840,
+        "duration_minutes": 60,
+        "room": "ENG 11",
+        "staff": null,
+        "activity_type": "Lecture",
+        "course": null,
+        "weeks": null,
+        "week_count": null,
+        "group_label": null
+      }
+    ],
+    "field_disagreements": [
+      {
+        "day": "Wednesday",
+        "rule_start": "01:00 PM",
+        "llm_start": "01:00PM",
+        "time_diff_min": 0,
+        "rule_course": "ECNG 1015",
+        "differences": {
+          "start_time": {
+            "rule": "01:00 PM",
+            "llm": "01:00PM"
+          },
+          "end_time": {
+            "rule": "04:00 PM",
+            "llm": "02:00PM"
+          }
+        }
+      }
+    ],
+    "match_rate": 0.5
+  }
+}

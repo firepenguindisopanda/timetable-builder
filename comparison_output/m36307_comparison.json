@@ -1,0 +1,37 @@
+{
+  "pdf": "m36307.pdf",
+  "rule_result": {
+    "source_file": "m36307.pdf",
+    "semester": "Summer_2025_2026",
+    "course_title": "Course timetable - RENT 6008, Electrical Integration of Renewables (Wks SUM W1-SUM W7)",
+    "entries": [
+      {
+        "day": "Tuesday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Postgraduate",
+        "weeks": "SUM W1-SUM W6",
+        "week_count": 6,
+        "course": "RENT 6008",
+        "staff": "POWELL,Courtney",
+        "room": "Remote Teaching",
+        "group_label": null,
+        "raw_text": "Postgraduate, Wks SUM W1-SUM W6\n[=6]\nCourse: RENT 6008\nStaff: POWELL,Courtney\nRoom: Remote Teaching"
+      },
+      {
+        "day": "Thursday",
+        "start_time": "05:00 PM",
+        "end_time": "08:00 PM",
+        "type": "Postgraduate",
+        "weeks": "SUM W1-SUM W6",
+        "week_count": 6,
+        "course": "RENT 6008",
+        "staff": "POWELL,Courtney",
+        "room": "Remote Teaching",
+        "group_label": null,
+        "raw_text": "Postgraduate, Wks SUM W1-SUM W6\n[=6]\nCourse: RENT 6008\nStaff: POWELL,Courtney\nRoom: Remote Teaching"
+      }
+    ]
+  },
+  "error": "LLM extraction failed: NVIDIA NIM API request timed out"
+}

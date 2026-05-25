@@ -42,7 +42,7 @@ class NemotronProvider:
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._http_client is None:
-            self._http_client = httpx.AsyncClient(timeout=60.0)
+            self._http_client = httpx.AsyncClient(timeout=120.0)
         return self._http_client
 
     async def _call_api(self, messages: list[dict]) -> dict[str, Any]:
@@ -123,7 +123,7 @@ class NemotronProvider:
         if doc.page_count == 0:
             raise RuntimeError(f"No pages found in PDF: {pdf_path}")
 
-        max_pages = min(doc.page_count, 2)
+        max_pages = min(doc.page_count, 1)
         image_contents: list[str] = []
         for page_num in range(max_pages):
             page = doc[page_num]
