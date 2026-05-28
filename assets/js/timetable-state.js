@@ -89,6 +89,41 @@ class TimetableState {
     return events;
   }
 
+  /**
+   * Returns enriched event data with all available stream and course metadata
+   * for the detail panel view.
+   */
+  getPlacedEventDetails(courseId, streamType) {
+    const course = this._findCourse(courseId);
+    if (!course) return null;
+    const placement = this.placements.find(p => p.courseId === courseId && p.streamType === streamType);
+    if (!placement) return null;
+    const stream = course.streams.find(s => s.streamId === placement.selectedStreamId);
+    if (!stream) return null;
+
+    return {
+      // Core schedule
+      courseId: course.courseId,
+      courseTitle: course.title,
+      streamType: streamType,
+      typeKey: stream.typeKey || streamType,
+      day: stream.day,
+      startTime: stream.startTime,
+      endTime: stream.endTime,
+      // Location & people
+      room: stream.room,
+      staff: stream.staff,
+      // Grouping & recurrence
+      groupLabel: stream.groupLabel,
+      weeks: stream.weeks,
+      weekCount: stream.weekCount,
+      // Identifiers
+      streamId: stream.streamId,
+      // Course metadata
+      sourceFile: course.sourceFile,
+    };
+  }
+
   getAvailableStreams(courseId, streamType) {
     const course = this._findCourse(courseId);
     if (!course) return [];

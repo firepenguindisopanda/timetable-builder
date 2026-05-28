@@ -6,19 +6,33 @@
 <!-- interact.js for touch-friendly drag & drop -->
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js" defer></script>
 <style>
-.events-panel {
-    max-height: 200px;
-    overflow-y: auto;
+/* ===== Events Master-Detail Panel ===== */
+.events-master-detail {
+    display: flex;
+    gap: 0;
     background: var(--bg-surface);
     border-radius: 8px;
     border: 1px solid var(--border-subtle);
+    overflow: hidden;
+    min-height: 280px;
+    max-height: 400px;
 }
 
-.events-panel-header {
+/* Left column: event list */
+.events-list-column {
+    flex: 0 0 38%;
+    min-width: 280px;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-subtle);
+}
+
+.events-list-header {
     position: sticky;
     top: 0;
     background: var(--bg-elevated);
-    padding: 8px 12px;
+    padding: 10px 14px;
     font-weight: 600;
     font-size: 0.8rem;
     color: var(--text-secondary);
@@ -26,23 +40,57 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    z-index: 2;
+}
+
+.events-list-scroll {
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.events-list-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.events-list-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.events-list-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 3px;
 }
 
 .event-list-item {
-    padding: 6px 10px;
+    padding: 8px 14px;
     border-bottom: 1px solid var(--border-subtle);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
+    transition: background 0.15s ease;
+    outline: none;
 }
 
 .event-list-item:hover {
     background: var(--bg-interactive);
 }
 
+.event-list-item:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: -2px;
+}
+
 .event-list-item.selected {
+    background: var(--accent-cyan-dim);
+    border-left: 3px solid var(--accent-cyan);
+    padding-left: 11px;
+}
+
+.event-list-item[aria-selected="true"] {
     background: var(--accent-cyan-dim);
 }
 
@@ -60,7 +108,9 @@
 
 .event-list-time {
     color: var(--text-tertiary);
-    min-width: 70px;
+    min-width: 75px;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .event-list-course {
@@ -74,7 +124,221 @@
 .event-list-type {
     color: var(--text-secondary);
     font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
+
+/* Right column: detail panel */
+.events-detail-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 2rem;
+}
+
+.detail-placeholder i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.detail-placeholder p {
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.detail-placeholder .hint {
+    font-size: 0.7rem;
+    margin-top: 0.5rem;
+    opacity: 0.6;
+}
+
+.detail-content {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.detail-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.detail-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.detail-content::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 3px;
+}
+
+/* Detail header */
+.detail-header {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.detail-header .detail-course-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.detail-header .detail-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.detail-type-badge.lecture { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); }
+.detail-type-badge.lab { background: rgba(255, 184, 0, 0.15); color: var(--accent-amber); }
+.detail-type-badge.tutorial { background: rgba(0, 214, 143, 0.15); color: var(--accent-green); }
+.detail-type-badge.other { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+
+/* Detail field groups */
+.detail-section {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.detail-section-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.detail-section-title i {
+    font-size: 0.75rem;
+}
+
+.detail-field {
+    display: flex;
+    align-items: baseline;
+    padding: 4px 0;
+    gap: 8px;
+}
+
+.detail-field-label {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.detail-field-value {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.detail-field-value.empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Collapsible raw data section */
+.detail-raw-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: background 0.15s ease;
+    outline: none;
+}
+
+.detail-raw-toggle:hover {
+    background: var(--bg-interactive);
+}
+
+.detail-raw-toggle:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: -2px;
+}
+
+.detail-raw-toggle i {
+    transition: transform 0.2s ease;
+}
+
+.detail-raw-toggle[aria-expanded="true"] i {
+    transform: rotate(90deg);
+}
+
+.detail-raw-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.detail-raw-content.open {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.detail-raw-inner {
+    padding: 0 18px 14px;
+}
+
+.detail-raw-inner pre {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* ===== Existing styles (preserved) ===== */
 
 /* Conflicts section */
 .conflicts-panel {
@@ -160,10 +424,9 @@
 
 .time-slots {
     position: relative;
-    height: 840px; /* 28 x 30 = 840px */
+    height: 840px;
 }
 
-/* Hour lines */
 .time-slot {
     height: 30px;
     border-bottom: 1px solid var(--border-subtle);
@@ -180,7 +443,6 @@
     color: var(--text-tertiary);
 }
 
-/* Events positioned absolutely in time column */
 .calendar-event {
     position: absolute;
     left: 2px;
@@ -194,8 +456,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 80px;
-    touch-action: none; /* Required for interact.js touch support */
-    user-select: none;  /* Prevent text selection during drag */
+    touch-action: none;
+    user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
     transition: box-shadow 0.15s ease, transform 0.1s ease;
@@ -205,7 +467,6 @@
     cursor: grabbing;
 }
 
-/* interact.js dragging state */
 .calendar-event.dragging {
     opacity: 0.85;
     z-index: 100;
@@ -214,7 +475,6 @@
     cursor: grabbing;
 }
 
-/* Drop target highlight */
 .time-slot.drop-target {
     background: rgba(0, 229, 255, 0.15);
     border-top: 2px solid var(--accent-cyan);
@@ -272,7 +532,6 @@
     margin-right: 3px;
 }
 
-/* Ghost zone styles for drag-and-drop */
 .drop-zone {
     position: absolute;
     left: 8px;
@@ -293,6 +552,40 @@
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.04);
 }
+
+/* ===== Responsive: stack on small screens ===== */
+@media (max-width: 768px) {
+    .events-master-detail {
+        flex-direction: column;
+        min-height: auto;
+        max-height: none;
+    }
+
+    .events-list-column {
+        flex: none;
+        max-width: none;
+        min-width: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+        max-height: 200px;
+    }
+
+    .events-detail-column {
+        min-height: 250px;
+        max-height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .events-list-column {
+        max-height: 150px;
+    }
+
+    .events-detail-column {
+        min-height: 200px;
+        max-height: 300px;
+    }
+}
 </style>
 {% endblock %}
 
@@ -303,7 +596,7 @@
             <span class="text-accent">My</span> Timetable
         </h1>
         <p class="page-subtitle">
-            Drag or touch events to reschedule. Click events in the list to highlight them.
+            Drag or touch events to reschedule. Double-click an event in the list to view its details.
         </p>
     </div>
 
@@ -319,14 +612,31 @@
         </div>
     </div>
 
-    <!-- Events List -->
-    <div class="surface-card mb-3" style="max-width: 1000px; margin: 0 auto;">
-        <div class="events-panel-header">
-            <span><i class="bi bi-list me-1"></i> All Events (<span id="eventCount">0</span>)</span>
-            <input type="text" id="searchBox" placeholder="Search..." style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem;">
-        </div>
-        <div id="eventsList" class="events-panel" style="max-height: 150px;">
-            <!-- Event list items -->
+    <!-- Events Master-Detail Panel -->
+    <div class="surface-card mb-3" style="margin: 0 auto;">
+        <div class="events-master-detail">
+            <!-- Left: Event List -->
+            <div class="events-list-column">
+                <div class="events-list-header">
+                    <span><i class="bi bi-list me-1"></i> All Events (<span id="eventCount">0</span>)</span>
+                    <input type="text" id="searchBox" placeholder="Search..." style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; width: 120px;">
+                </div>
+                <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="Event list" tabindex="0">
+                    <!-- Event list items rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Right: Detail Panel -->
+            <div class="events-detail-column">
+                <div id="detailPlaceholder" class="detail-placeholder">
+                    <i class="bi bi-hand-index"></i>
+                    <p>No event selected</p>
+                    <p class="hint">Double-click an event to view its details</p>
+                </div>
+                <div id="detailContent" class="detail-content" style="display: none;" role="region" aria-label="Event details" aria-live="polite">
+                    <!-- Detail content rendered by JS -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -334,9 +644,9 @@
     <div class="container mt-3">
         <div class="row align-items-center mb-2">
             <div class="col-auto">
-                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">↩ Undo</button>
-                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">↪ Redo</button>
-                <button id="clearBtn" class="btn btn-outline-warning btn-sm">↺ Clear &amp; Auto-Place</button>
+                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">&larrhk; Undo</button>
+                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">&larrhk; Redo</button>
+                <button id="clearBtn" class="btn btn-outline-warning btn-sm">&crarr; Clear &amp; Auto-Place</button>
             </div>
             <div class="col">
                 <small class="text-muted">Drag events to available stream slots. Same course+type events can swap.</small>
@@ -376,8 +686,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/assets/js/calendar-utils.js"></script>
-<script src="/assets/js/timetable-state.js"></script>
+<script src="/assets/js/calendar-utils.js?v=2"></script>
+<script src="/assets/js/timetable-state.js?v=2"></script>
 <script>
 (function() {
     'use strict';
@@ -388,17 +698,20 @@
     const $redoBtn = document.getElementById('redoBtn');
     const $clearBtn = document.getElementById('clearBtn');
     const $searchBox = document.getElementById('searchBox');
-    const $eventList = document.getElementById('eventList');
+    const $eventList = document.getElementById('eventsList');
     const $conflictPanel = document.getElementById('conflictPanel');
     const $emptyState = document.getElementById('emptyState');
+    const $detailPlaceholder = document.getElementById('detailPlaceholder');
+    const $detailContent = document.getElementById('detailContent');
     let currentEvents = [];
     let state = null;
     let onChangeUnsubscribe = null;
+    let selectedEventKey = null; // tracks currently selected event
 
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const START_HOUR = 8;
     const SLOTS_PER_HOUR = 2;
-    const TOTAL_HOURS = 14; // 8am to 10pm = 14 hours
+    const TOTAL_HOURS = 14;
 
     const calendarWrapper = document.getElementById('calendarWrapper');
     const emptyState = document.getElementById('emptyState');
@@ -411,8 +724,7 @@
             html += `<div class="day-column" data-day="${idx}">`;
             html += `<div class="day-header">${day}</div>`;
             html += `<div class="time-slots" data-day="${idx}">`;
-            
-            // 28 slots (14 hours x 2 half-hours)
+
             for (let h = 0; h < TOTAL_HOURS * SLOTS_PER_HOUR; h++) {
                 const mins = START_HOUR * 60 + h * 30;
                 const showLabel = h % 2 === 0;
@@ -426,78 +738,243 @@
         setupDragDrop();
     }
 
-    // Convert time to slot index
     function timeToSlot(time) {
         if (!time) return 0;
         const mins = timeToMins(time);
         return Math.floor((mins - START_HOUR * 60) / 30);
     }
 
-    // Get slot Y position
     function slotToTop(slot) {
         return slot * 30;
     }
 
-
+    // ===== Event List Rendering =====
     function renderEventsList(events, filter = '') {
         const listEl = document.getElementById('eventsList');
         const countEl = document.getElementById('eventCount');
-        
+
         if (!events || events.length === 0) {
             listEl.innerHTML = '<div style="padding: 20px; color: var(--text-tertiary); text-align: center;">No events</div>';
             countEl.textContent = '0';
             return;
         }
-        
+
         let filtered = events;
         if (filter.trim()) {
             const term = filter.toLowerCase();
-            filtered = events.filter(e => 
+            filtered = events.filter(e =>
                 (e.courseTitle || '').toLowerCase().includes(term) ||
                 (e.day || '').toLowerCase().includes(term) ||
                 (e.streamType || '').toLowerCase().includes(term) ||
                 (e.room || '').toLowerCase().includes(term)
             );
         }
-        
+
         countEl.textContent = filtered.length + (filter.trim() ? ` / ${events.length}` : '');
-        
+
         const sorted = [...filtered].sort((a, b) => {
             const dayA = DAYS.indexOf(a.day);
             const dayB = DAYS.indexOf(b.day);
             if (dayA !== dayB) return dayA - dayB;
             return timeToMins(a.startTime) - timeToMins(b.startTime);
         });
-        
+
         let html = '';
         sorted.forEach(event => {
             const typeClass = (event.streamType || 'other').toLowerCase();
-            html += `<div class="event-list-item" data-course-id="${escapeHtml(event.courseId)}" data-stream-type="${escapeHtml(event.streamType)}" onclick="highlightEventFromList('${escapeHtml(event.courseId)}', '${escapeHtml(event.streamType)}')">
+            const eventKey = event.courseId + '|' + event.streamType;
+            const isSelected = eventKey === selectedEventKey;
+            html += `<div class="event-list-item${isSelected ? ' selected' : ''}"
+                data-course-id="${escapeHtml(event.courseId)}"
+                data-stream-type="${escapeHtml(event.streamType)}"
+                data-event-key="${escapeHtml(eventKey)}"
+                role="option"
+                aria-selected="${isSelected}"
+                tabindex="0"
+                ondblclick="showEventDetail('${escapeHtml(event.courseId)}', '${escapeHtml(event.streamType)}')"
+                onkeydown="handleListKeydown(event, '${escapeHtml(event.courseId)}', '${escapeHtml(event.streamType)}')">
                 <span class="event-dot ${typeClass}"></span>
                 <span class="event-list-time">${event.day.substring(0,3)} ${event.startTime}</span>
                 <span class="event-list-course">${escapeHtml(event.courseTitle || '?')}</span>
                 <span class="event-list-type">${escapeHtml(event.streamType || 'Event')}</span>
             </div>`;
         });
-        
+
         listEl.innerHTML = html;
     }
 
+    // Keyboard handler for list items: Enter/Space triggers detail view
+    window.handleListKeydown = function(e, courseId, streamType) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showEventDetail(courseId, streamType);
+        }
+    };
+
+    // ===== Detail Panel Rendering =====
+    window.showEventDetail = function(courseId, streamType) {
+        if (!state) return;
+
+        // Update selection state
+        selectedEventKey = courseId + '|' + streamType;
+
+        // Highlight the selected list item
+        document.querySelectorAll('.event-list-item.selected').forEach(el => {
+            el.classList.remove('selected');
+            el.setAttribute('aria-selected', 'false');
+        });
+        const selectedItem = document.querySelector(`.event-list-item[data-event-key="${selectedEventKey}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+            selectedItem.setAttribute('aria-selected', 'true');
+            selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        // Get enriched event data
+        const details = state.getPlacedEventDetails(courseId, streamType);
+        if (!details) return;
+
+        // Hide placeholder, show detail content
+        $detailPlaceholder.style.display = 'none';
+        $detailContent.style.display = 'block';
+
+        const typeClass = (details.streamType || 'other').toLowerCase();
+        const typeIcon = getTypeIcon(details.streamType);
+
+        let html = '';
+
+        // Header with course title and type badge
+        html += `<div class="detail-header">
+            <h3 class="detail-course-title">${escapeHtml(details.courseTitle)}</h3>
+            <span class="detail-type-badge ${typeClass}">
+                <i class="bi ${typeIcon}"></i>
+                ${escapeHtml(details.streamType)}${details.groupLabel ? ' \u2014 ' + escapeHtml(details.groupLabel) : ''}
+            </span>
+        </div>`;
+
+        // Schedule section
+        html += `<div class="detail-section">
+            <h4 class="detail-section-title"><i class="bi bi-clock"></i> Schedule</h4>
+            ${detailField('Day', details.day)}
+            ${detailField('Start Time', formatTime12(details.startTime))}
+            ${detailField('End Time', formatTime12(details.endTime))}
+            ${details.weeks ? detailField('Weeks', details.weeks) : ''}
+            ${details.weekCount ? detailField('Week Count', details.weekCount + ' weeks') : ''}
+        </div>`;
+
+        // Location section
+        html += `<div class="detail-section">
+            <h4 class="detail-section-title"><i class="bi bi-geo-alt"></i> Location</h4>
+            ${detailField('Room', details.room || 'Not specified')}
+        </div>`;
+
+        // People section
+        html += `<div class="detail-section">
+            <h4 class="detail-section-title"><i class="bi bi-person"></i> People</h4>
+            ${detailField('Staff', details.staff || 'Not specified')}
+        </div>`;
+
+        // Metadata section
+        html += `<div class="detail-section">
+            <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> Metadata</h4>
+            ${detailField('Course ID', details.courseId)}
+            ${detailField('Stream ID', details.streamId)}
+            ${detailField('Type Key', details.typeKey)}
+            ${detailField('Source File', details.sourceFile || 'Not specified')}
+        </div>`;
+
+        // Collapsible raw data section
+        const rawData = buildRawData(details);
+        html += `<button class="detail-raw-toggle"
+            onclick="toggleRawData(this)"
+            aria-expanded="false"
+            aria-controls="rawDataContent">
+            <span><i class="bi bi-chevron-right me-1"></i> Raw Extracted Data</span>
+        </button>
+        <div id="rawDataContent" class="detail-raw-content" role="region">
+            <div class="detail-raw-inner">
+                <pre>${escapeHtml(rawData)}</pre>
+            </div>
+        </div>`;
+
+        $detailContent.innerHTML = html;
+
+        // Announce to screen readers
+        $detailContent.setAttribute('aria-label', `Details for ${details.courseTitle} ${details.streamType}`);
+    };
+
+    function formatTime12(time24) {
+        if (!time24) return '';
+        const mins = timeToMins(time24);
+        return timeLabel(mins);
+    }
+
+    function detailField(label, value) {
+        const isEmpty = !value || value === 'Not specified';
+        return `<div class="detail-field">
+            <span class="detail-field-label">${escapeHtml(label)}</span>
+            <span class="detail-field-value${isEmpty ? ' empty' : ''}">${escapeHtml(value)}</span>
+        </div>`;
+    }
+
+    function getTypeIcon(type) {
+        const icons = {
+            'Lecture': 'bi-easel',
+            'Lab': 'bi-cpu',
+            'Tutorial': 'bi-chat-dots',
+            'Seminar': 'bi-people',
+            'Workshop': 'bi-tools',
+        };
+        return icons[type] || 'bi-calendar-event';
+    }
+
+    function buildRawData(details) {
+        const fields = [
+            ['courseId', details.courseId],
+            ['courseTitle', details.courseTitle],
+            ['streamType', details.streamType],
+            ['typeKey', details.typeKey],
+            ['streamId', details.streamId],
+            ['day', details.day],
+            ['startTime', details.startTime],
+            ['endTime', details.endTime],
+            ['room', details.room],
+            ['staff', details.staff],
+            ['groupLabel', details.groupLabel],
+            ['weeks', details.weeks],
+            ['weekCount', details.weekCount],
+            ['sourceFile', details.sourceFile],
+        ];
+        return fields
+            .filter(([, v]) => v !== null && v !== undefined)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('\n');
+    }
+
+    // Toggle collapsible raw data section
+    window.toggleRawData = function(btn) {
+        const content = document.getElementById('rawDataContent');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        content.classList.toggle('open');
+    };
+
+    // ===== Conflicts Rendering =====
     function renderConflicts(events) {
         const conflictsPanel = document.getElementById('conflictsPanel');
         const conflictsContent = document.getElementById('conflictsContent');
         const conflictsCount = document.getElementById('conflictsCount');
-        
+
         const conflicts = findConflicts(events);
-        
+
         if (conflicts.length === 0) {
             conflictsPanel.style.display = 'none';
             return;
         }
-        
+
         conflictsPanel.style.display = 'block';
         conflictsCount.textContent = conflicts.length;
-        
+
         let html = '';
         conflicts.forEach(c => {
             html += `<div class="conflict-item">
@@ -505,14 +982,9 @@
                 <br>${c.day} ${c.timeA} vs ${c.timeB}
             </div>`;
         });
-        
+
         conflictsContent.innerHTML = html;
     }
-
-    window.highlightEventFromList = function(courseId, streamType) {
-        document.querySelectorAll('.event-list-item.selected').forEach(el => el.classList.remove('selected'));
-        document.querySelector(`.event-list-item[data-course-id="${courseId}"][data-stream-type="${streamType}"]`)?.classList.add('selected');
-    };
 
     // Toggle conflicts panel
     window.toggleConflicts = function() {
@@ -520,14 +992,15 @@
         content.classList.toggle('open');
     };
 
+    // ===== Main Render =====
     function renderEvents() {
         const events = state ? state.getPlacedEvents() : [];
-        
+
         currentEvents = events || [];
         const filter = $searchBox ? $searchBox.value : '';
-        
+
         document.querySelectorAll('.calendar-event').forEach(e => e.remove());
-        
+
         if (!events || events.length === 0) {
             if ($emptyState) $emptyState.style.display = 'block';
             const countEl = document.getElementById('eventCount');
@@ -536,23 +1009,27 @@
             if (cp) cp.style.display = 'none';
             const el = document.getElementById('eventsList');
             if (el) el.innerHTML = '';
+            // Reset detail panel
+            if ($detailPlaceholder) $detailPlaceholder.style.display = 'flex';
+            if ($detailContent) $detailContent.style.display = 'none';
+            selectedEventKey = null;
             return;
         }
-        
+
         events.forEach(event => {
             const dayIdx = DAYS.indexOf(event.day);
             if (dayIdx === -1) return;
-            
+
             const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
             if (!col) return;
-            
+
             const startSlot = timeToSlot(event.startTime);
             const endSlot = timeToSlot(event.endTime);
             const top = slotToTop(startSlot);
             const height = Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT);
-            
+
             const typeClass = (event.streamType || 'other').toLowerCase();
-            
+
             const el = document.createElement('div');
             el.className = `calendar-event ${typeClass}`;
             el.style.top = `${top}px`;
@@ -560,25 +1037,25 @@
             el.dataset.courseId = event.courseId;
             el.dataset.streamType = event.streamType;
             el.dataset.streamId = '';
-            
+
             el.innerHTML = `
                 <div class="event-course">${escapeHtml(event.courseTitle || '?')}</div>
                 <div class="event-type">${escapeHtml(event.streamType || 'Event')}</div>
                 <div class="event-time">${escapeHtml(event.startTime)}-${escapeHtml(event.endTime)}</div>
             `;
-            
+
             col.appendChild(el);
         });
-        
+
         renderEventsList(events, filter);
         renderConflicts(events);
-        
+
         if ($emptyState) $emptyState.style.display = 'none';
-        
+
         if (state) updateUndoRedoButtons();
     }
 
-    // Setup constraint-aware drag and drop with ghost zones
+    // ===== Drag & Drop =====
     function setupDragDrop() {
         function initInteract() {
             if (typeof interact === 'undefined') {
@@ -659,7 +1136,6 @@
         initInteract();
     }
 
-    // Show ghost zones at valid stream positions for the given course+type
     function showGhostZones(courseId, streamType) {
         clearGhostZones();
 
@@ -707,7 +1183,6 @@
         return null;
     }
 
-    // Reset element position if dropped in invalid area
     function resetDragPosition(target) {
         target.style.transition = 'transform 0.2s ease';
         target.dataset.dragX = 0;
@@ -722,7 +1197,7 @@
         $redoBtn.disabled = !state.canRedo();
     }
 
-    // Storage helpers
+    // ===== Storage =====
     function saveState() {
         if (!state) return;
         const snapshot = {
@@ -743,7 +1218,6 @@
     }
 
     function loadState() {
-        // Try v2 format first
         const v2raw = localStorage.getItem(STORAGE_KEY_V2);
         if (v2raw) {
             try {
@@ -756,7 +1230,6 @@
             }
         }
 
-        // Migrate from v1
         const v1raw = localStorage.getItem('celcat_timetable_data');
         if (v1raw) {
             try {
@@ -776,15 +1249,12 @@
     function migrateV1toV2(v1Data) {
         if (!v1Data) return null;
 
-        // Build sourceData from the v1 extraction results
         const sourceData = TimetableState.fromExtractResponse(v1Data);
         if (!sourceData.courses || sourceData.courses.length === 0) return null;
 
-        // Try to map existing calendar_events to placements
         const placements = [];
         const v1Events = v1Data.calendar_events || [];
 
-        // For each v1 event, try to find a matching course+type+stream
         for (const v1ev of v1Events) {
             const courseTitle = v1ev.course || '';
             const courseId = courseTitle.toUpperCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
@@ -792,14 +1262,11 @@
             const v1Start = v1ev.start_time || '';
             const v1End = v1ev.end_time || '';
 
-            // Find matching course
             const course = sourceData.courses.find(c => c.courseId === courseId);
             if (!course) continue;
 
-            // Check if we already have a placement for this course+type
             if (placements.some(p => p.courseId === courseId && p.streamType === type)) continue;
 
-            // Find the stream that matches the v1 event's day+time
             const match = course.streams.find(s =>
                 s.type === type &&
                 s.day === v1ev.day &&
@@ -828,36 +1295,13 @@
         };
     }
 
-    function loadExtracted() {
-        const saved = loadState();
-
-        if (saved) {
-            state = new TimetableState(saved.sourceData, saved.scheduleState);
-            onChangeUnsubscribe = state.onChange(() => {
-                renderEvents();
-                saveState();
-            });
-            renderEvents();
-            return;
-        }
-
-        alert('No extracted data found. Extract PDFs first.');
-    }
-
-    function showCalendar() {
-        calendarWrapper.style.display = state ? 'flex' : 'none';
-        emptyState.style.display = state ? 'none' : 'block';
-    }
-
-
-
-    // Search filter listener
+    // ===== Search =====
     searchBox.addEventListener('input', e => {
         const filter = e.target.value;
         renderEventsList(currentEvents, filter);
     });
 
-    // Listeners
+    // ===== Button Listeners =====
     $clearBtn.addEventListener('click', () => {
         if (confirm('Clear all events?')) {
             if (state) state.autoPlaceAll();
@@ -889,15 +1333,14 @@
         }
     });
 
-    // Auto-load saved events on page load
+    // ===== Init =====
     buildGrid();
-    
+
     (function autoLoadOnInit() {
         const saved = loadState();
 
         if (saved) {
             state = new TimetableState(saved.sourceData, saved.scheduleState);
-            // Auto-populate if coming from fresh extraction (no saved placements)
             if (state.placements.length === 0) {
                 state.autoPlaceAll();
             }
@@ -908,7 +1351,9 @@
             renderEvents();
         } else {
             console.log('No data - showing empty state');
-            showCalendar();
+            const calWrapper = document.getElementById('calendarWrapper');
+            if (calWrapper) calWrapper.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
         }
     })();
 
