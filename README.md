@@ -18,6 +18,42 @@ Once running, view the interactive documentation at:
 
 ---
 
+## Validating a New Semester
+
+CELCAT's layout and text conventions drift between semesters, and the failures
+are usually silent — a whole day of classes landing on the wrong row — rather
+than a crash. After each semester's PDFs are published, download them and run
+the corpus validator:
+
+```bash
+# Fetch every course PDF for the new semester
+uv run python -m timetable_extractor.download --all
+
+# Extract all of them and check the results
+uv run python validate_corpus.py
+```
+
+The validator cross-references extracted rooms and course codes against the
+authoritative lists in `finder.xml` (downloaded automatically) and reports:
+
+- files that crashed or produced no entries
+- per-field coverage, flagging `day` / `start_time` / `end_time` as required
+- sanity checks: invalid days, malformed or inverted times, blocks that merged
+  two sessions together, and courses whose code doesn't match the PDF's module
+- rooms that don't appear in the official room registry
+
+It exits non-zero when a required field drops below `--fail-under` (default
+99%) or any sanity check fails, so it can gate CI:
+
+```bash
+uv run python validate_corpus.py --fail-under 99 --json report.json
+```
+
+Run `uv run pytest` alongside it — the unit tests pin the PDF text conventions
+(week formats, day labels, room names, activity types) that tend to shift.
+
+---
+
 ## LLM Calibration Module
 
 The calibration module uses an LLM (NVIDIA NIM vision models) as an **admin calibration tool** to analyze CELCAT timetable PDFs and generate course-specific extraction configurations. These configs are stored in MongoDB and loaded by the deterministic extractor for improved accuracy on subsequent extractions.

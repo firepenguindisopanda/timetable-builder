@@ -19,3 +19,6 @@ docs/
 *_calibration_report.md
 
 .env
+
+# Registry snapshot fetched by validate_corpus.py
+finder.xml

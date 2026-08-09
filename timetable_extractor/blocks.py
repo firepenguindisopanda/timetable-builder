@@ -5,7 +5,11 @@ Class block detection functions for timetable extraction.
 from typing import Any
 
 from timetable_extractor.config.models import CourseConfig
-from timetable_extractor.constants import DAY_LABEL_X_MAX, MAX_BLOCK_HEIGHT
+from timetable_extractor.constants import (
+    DAY_LABEL_X_MAX,
+    MAX_BLOCK_HEIGHT,
+    MAX_HEADER_BAR_GAP,
+)
 
 
 def identify_class_blocks(
@@ -40,14 +44,17 @@ def identify_class_blocks(
     filled = [r for r in rects if r.get("fill") and r["x0"] > rect_left_bound and r["width"] > 20]
 
     # Cluster filled rects into blocks by BOTH x-range overlap AND y-proximity.
-    # Two rects belong to the same block only if they overlap in x AND are
-    # within ~30 pts vertically (stacked header lines within one block).
+    # Two rects belong to the same block only if they overlap in x AND sit
+    # flush against each other vertically. The gap must stay well under the
+    # spacing between separate blocks in the same column, or two classes on the
+    # same day merge into one entry and the second one's room overwrites the
+    # first's. See MAX_HEADER_BAR_GAP for the measured separation.
     clusters: list[dict[str, float]] = []
     for r in sorted(filled, key=lambda r: (r["top"], r["x0"])):
         merged = False
         for c in clusters:
             x_overlap = r["x0"] < c["x1"] + 5 and r["x1"] > c["x0"] - 5
-            y_close = abs(r["top"] - c["bottom"]) < 30  # <- new constraint
+            y_close = abs(r["top"] - c["bottom"]) < MAX_HEADER_BAR_GAP
             if x_overlap and y_close:
                 c["x0"] = min(c["x0"], r["x0"])
                 c["x1"] = max(c["x1"], r["x1"])
@@ -64,16 +71,20 @@ def identify_class_blocks(
     clusters_sorted = sorted(clusters, key=lambda c: (c["x0"], c["top"]))
 
     def get_y_bottom(c: dict[str, float]) -> float:
-        same_col_below = [
+        # Any block below whose x-range overlaps this one caps it: its words
+        # fall inside this block's x-window, so reading past it would pull the
+        # next class's course and room into this entry. Matching on identical
+        # x0 alone misses a shorter class starting inside a longer one's span.
+        overlapping_below = [
             other["top"]
             for other in clusters_sorted
             if other is not c
-            and abs(other["x0"] - c["x0"]) < 10
             and other["top"] > c["top"]
+            and min(other["x1"], c["x1"]) - max(other["x0"], c["x0"]) > 5
         ]
         return (
-            (min(same_col_below) - 2)
-            if same_col_below
+            (min(overlapping_below) - 2)
+            if overlapping_below
             else (c["top"] + MAX_BLOCK_HEIGHT)
         )
 

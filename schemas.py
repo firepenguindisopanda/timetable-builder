@@ -19,6 +19,7 @@ class TimetableEntry(BaseModel):
     staff: str | None = None
     room: str | None = None
     group_label: str | None = None
+    notes: str | None = None
     raw_text: str
 
 

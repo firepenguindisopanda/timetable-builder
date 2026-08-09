@@ -43,18 +43,19 @@ def extract_timetable(
           "start_time": "08:00 AM",
           "end_time": "10:00 AM",
           "type": "Lecture",
-          "weeks": "S2W7-S2W12",
-          "week_count": 6,
+          "weeks": "W1-W12",
+          "week_count": 12,
           "course": "COMP 2603",
           "staff": "MATHURIN,Sergio",
           "room": "Daaga Auditorium",
-          "group_label": null
+          "group_label": null,     # "L1" / "T2" / "G1" stream marker
+          "notes": null            # free text the timetabler appended
         }, ...
       ]
     }
     """
     entries: list[dict[str, Any]] = []
-    seen_keys: set[tuple[str | None, str | None, str | None, str | None]] = set()
+    seen_keys: set[tuple[str | None, ...]] = set()
     meta: dict[str, str | None] = {"semester": None, "course_title": None}
 
     config = None
@@ -83,7 +84,13 @@ def extract_timetable(
                         meta["course_title"] = " ".join(title_words)
 
             time_slots = build_time_x_map(words, config=config, page_width=page_width, page_height=page_height)
-            day_map = build_day_y_map(words, config=config, page_width=page_width, page_height=page_height)
+            day_map = build_day_y_map(
+                words,
+                config=config,
+                page_width=page_width,
+                page_height=page_height,
+                lines=page.lines,
+            )
 
             if not time_slots:
                 continue  # skip pages with no time header
@@ -102,8 +109,21 @@ def extract_timetable(
                     **parsed,
                 }
 
-                # Deduplicate: skip if same day + time + course already seen
-                dup_key = (day, start, end, parsed.get("course"))
+                # Drop only genuine repeats - the same block picked up twice.
+                # Room, weeks, type and group must be part of the key: a
+                # relocated or alternate session shares its day, time and
+                # course with the session it replaces, and collapsing those
+                # loses the room the student actually has to walk to.
+                dup_key = (
+                    day,
+                    start,
+                    end,
+                    parsed.get("course"),
+                    parsed.get("room"),
+                    parsed.get("weeks"),
+                    parsed.get("type"),
+                    parsed.get("group_label"),
+                )
                 if dup_key not in seen_keys:
                     seen_keys.add(dup_key)
                     entries.append(entry)

@@ -8,7 +8,7 @@ REVERSED_DAYS: dict[str, str] = {
     "noM": "Monday",  # abbreviated (reversed "Mon")
     "yadseuT": "Tuesday",
     "euT": "Tuesday",  # abbreviated (reversed "Tue")
-    "yadsendew": "Wednesday",  # full
+    "yadsendeW": "Wednesday",  # full ("Wednesday" reversed - note the capital W)
     "eW": "Wednesday",  # abbreviated (as seen on page)
     "yadsruhT": "Thursday",
     "uhT": "Thursday",  # abbreviated
@@ -53,4 +53,53 @@ DELAY_SEC: float = 1.5  # polite delay between requests
 
 # For blocks.py
 MAX_BLOCK_HEIGHT: int = 130
-Y_TOLERANCE: int = 50
+
+# Fallback proximity window used only when a page has no grid rules. Blocks
+# start at most ~7pt above their day label, so this stays small on purpose:
+# a large window lets a block low in a tall row reach into the next day.
+Y_TOLERANCE: int = 10
+
+# A grid rule spans the whole timetable; anything narrower is cell decoration.
+RULE_MIN_WIDTH_RATIO: float = 0.4
+
+# A block's highlight bar can sit a hair above its row's rule.
+ROW_TOP_TOLERANCE: float = 3.0
+
+# Highlight bars are a uniform 8.8pt tall. Stacked bars belonging to one class
+# block sit flush against each other (measured gap 0.2pt across the corpus);
+# the smallest gap between two *different* blocks is 20pt. Anything in between
+# is unobserved, so 5pt splits the two populations with a wide margin.
+MAX_HEADER_BAR_GAP: float = 5.0
+
+# For text_parser.py
+# Within a block, wrapped continuation lines are 9-11pt apart while a new
+# logical group (the header, "Course:", or a free-text note) starts 12-13pt
+# below the previous line. Splitting at 12 separates field values from notes.
+PARAGRAPH_GAP: float = 12.0
+
+# Activity types CELCAT emits, as the comma-delimited prefix of a block's first
+# line ("Lecture, Wks W1-W12 [=12]"). Matching is done on the de-spaced,
+# case-folded form so that words split across narrow lines still resolve
+# ("Postgradua te" -> "Postgraduate").
+ACTIVITY_TYPES: tuple[str, ...] = (
+    "Lecture",
+    "Lecture Relocated",
+    "Lecture & Tutorial",
+    "Tutorial",
+    "Tutorial (make-up/relocated)",
+    "Lab",
+    "Practical",
+    "Postgraduate",
+    "Seminar",
+    "Workshop",
+    "Field Trip",
+    "Project Work",
+    "Meeting",
+    "Examination",
+    "Help Desk",
+    "Special Booking",
+    "Video Presentation / Screening",
+    "Chemistry Review Centre",
+    "CLL Certificate Language Courses",
+    "Reserved",
+)
