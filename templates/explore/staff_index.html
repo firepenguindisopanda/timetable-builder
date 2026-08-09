@@ -1,0 +1,48 @@
+{% extends "explore_base.html" %}
+{% import "explore/_macros.html" as ui %}
+
+{% block title %}Lecturers{% endblock %}
+{% block description %}Lecturers timetabled to teach this semester at UWI St. Augustine, with their weekly contact hours.{% endblock %}
+
+{% block content %}
+<div class="shell">
+
+  <header class="detail-head">
+    <p class="eyebrow">Lecturers</p>
+    <h1>{{ people | length }} lecturers teaching</h1>
+    <p class="detail-sub">
+      Names come mostly from the room and lecturer timetables, because course
+      timetables usually leave them out. A course with no lecturer here simply
+      has none published.
+    </p>
+    <label class="search" style="margin-top:1.25rem; max-width:26rem;">
+      <input type="search" id="listFilter" autocomplete="off"
+             placeholder="Filter by name or faculty"
+             aria-label="Filter lecturers by name or faculty" aria-controls="list">
+    </label>
+  </header>
+
+  <p class="result-count" id="listCount" role="status" aria-live="polite"
+     style="margin:0 0 0.6rem;"></p>
+
+  <ul class="rows" id="list" aria-label="Lecturers">
+    {% for person in people %}
+    <li data-search="{{ (person.name ~ ' ' ~ (person.faculties | join(' '))) | lower }}">
+      <a class="row" href="/explore/staff/{{ person.name | urlpath }}">
+        <div>
+          <div class="row-code">{{ person.hours_per_week }}h</div>
+          <span class="row-days">{% for day in person.days %}{{ day[:3] }} {% endfor %}</span>
+        </div>
+        <div>
+          <div class="row-title">{{ person.name }}</div>
+          <div class="row-meta">{{ person.faculties | join(' · ') or 'Faculty not published' }}</div>
+        </div>
+        <div class="row-right">
+          {{ person.courses }} course{{ 's' if person.courses != 1 }}
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -23,6 +23,27 @@ class TimetableEntry(BaseModel):
     raw_text: str
 
 
+class ExtractionDiagnostics(BaseModel):
+    """
+    What went quietly wrong while reading a PDF.
+
+    A layout change does not make extraction fail, it makes it wrong, so the
+    response carries the near-misses rather than only the entries.
+    """
+
+    findings: dict[str, int] = Field(
+        default_factory=dict,
+        description="Count per finding, e.g. {'day_label_unmatched': 1}",
+    )
+    samples: dict[str, list[dict]] = Field(
+        default_factory=dict, description="Up to five examples per finding"
+    )
+    corrupting: int = Field(
+        default=0,
+        description="Findings that mean a class may be on the wrong day",
+    )
+
+
 class TimetableResult(BaseModel):
     """Extraction output for a single PDF file."""
 
@@ -30,6 +51,7 @@ class TimetableResult(BaseModel):
     semester: str | None = None
     course_title: str | None = None
     entries: list[TimetableEntry]
+    diagnostics: ExtractionDiagnostics | None = None
 
 
 class ExtractResponse(BaseModel):
@@ -38,6 +60,14 @@ class ExtractResponse(BaseModel):
     results: list[TimetableResult]
     total_files: int
     total_entries: int
+    findings: dict[str, int] = Field(
+        default_factory=dict,
+        description="Findings summed across every file in this request",
+    )
+    corrupting: int = Field(
+        default=0,
+        description="Total findings that may have misplaced a class",
+    )
 
 
 class HealthResponse(BaseModel):

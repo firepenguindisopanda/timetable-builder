@@ -136,26 +136,26 @@ class ReportGenerator:
 
         if confidence < 0.5:
             recs.append(
-                "- ⚠️ **Low confidence** - review the generated config "
+                "- **Low confidence** - review the generated config "
                 "carefully against the source PDF before activating."
             )
         elif confidence < 0.8:
             recs.append(
-                "- ℹ️ **Moderate confidence** - spot-check against a "
+                "- **Moderate confidence** - spot-check against a "
                 "handful of entries before activating."
             )
         else:
-            recs.append("- ✅ **High confidence** - config is ready for staging.")
+            recs.append("- **High confidence** - config is ready for staging.")
 
         if not present_days:
             recs.append(
-                "- ⚠️ **No day columns** were detected - verify the PDF "
+                "- **No day columns** were detected - verify the PDF "
                 "contains a recognisable timetable layout."
             )
 
         if not time_slots:
             recs.append(
-                "- ⚠️ **No time slots** were mapped - extraction will "
+                "- **No time slots** were mapped - extraction will "
                 "not identify session times."
             )
 
@@ -234,19 +234,19 @@ class ReportGenerator:
                     f"| {day.capitalize()} | "
                     f"L={ca['left']:.4f} R={ca['right']:.4f} | "
                     f"L={cb['left']:.4f} R={cb['right']:.4f} | "
-                    f"{'⚠️ Yes' if changed else '-'} |"
+                    f"{'Yes' if changed else 'No'} |"
                 )
             elif ca and not cb:
                 lines.append(
                     f"| {day.capitalize()} | "
                     f"L={ca['left']:.4f} R={ca['right']:.4f} | _absent_ | "
-                    f"⚠️ Removed |"
+                    f"Removed |"
                 )
             elif not ca and cb:
                 lines.append(
                     f"| {day.capitalize()} | _absent_ | "
                     f"L={cb['left']:.4f} R={cb['right']:.4f} | "
-                    f"➕ Added |"
+                    f"Added |"
                 )
             else:
                 lines.append(f"| {day.capitalize()} | _absent_ | _absent_ | - |")
@@ -260,7 +260,7 @@ class ReportGenerator:
         lines.append(f"- **{label_a}**: {n_a} slots")
         lines.append(f"- **{label_b}**: {n_b} slots")
         if n_a != n_b:
-            lines.append(f"- ⚠️ **Difference**: {abs(n_a - n_b)} slots "
+            lines.append(f"- **Difference**: {abs(n_a - n_b)} slots "
                           f"{'added' if n_a > n_b else 'removed'}")
         lines.append("")
 
@@ -302,9 +302,9 @@ class ReportGenerator:
             changed_items.append("text patterns")
 
         if changed_items:
-            lines.append("⚠️ **Changes detected in:** " + ", ".join(changed_items))
+            lines.append("**Changes detected in:** " + ", ".join(changed_items))
         else:
-            lines.append("✅ **No differences - configs are identical.**")
+            lines.append("**No differences - configs are identical.**")
         lines.append("")
 
         return "\n".join(lines)
@@ -334,9 +334,9 @@ class ReportGenerator:
         lines.append("## Timeline")
         lines.append("")
         lines.append(f"- **Phase 1 (Extraction):** "
-                      f"{'✅ Complete' if session.phase1_response else '⏳ Pending'}")
+                      f"{'Complete' if session.phase1_response else 'Pending'}")
         lines.append(f"- **Phase 2 (Config):** "
-                      f"{'✅ Complete' if session.phase2_response else '⏳ Pending'}")
+                      f"{'Complete' if session.phase2_response else 'Pending'}")
         lines.append("")
 
         # ── Results ──────────────────────────────────────────────────
@@ -344,9 +344,9 @@ class ReportGenerator:
         lines.append("")
         config_generated = session.generated_config_id is not None
         if config_generated:
-            lines.append(f"- **Config generated:** ✅  `{session.generated_config_id}`")
+            lines.append(f"- **Config generated:** yes, `{session.generated_config_id}`")
         else:
-            lines.append("- **Config generated:** ❌ No")
+            lines.append("- **Config generated:** no")
 
         acc = session.accuracy_score
         if acc is not None:

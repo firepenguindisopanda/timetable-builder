@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="{% block description %}The UWI St. Augustine class timetable: every course, room and lecturer, with the teaching weeks each class runs.{% endblock %}">
+<title>{% block title %}Timetable{% endblock %} · UWI St. Augustine</title>
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/explore.css">
+{% block head %}{% endblock %}
+</head>
+<body class="explore">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="/explore">
+      Timetable <span class="campus">UWI St. Augustine</span>
+    </a>
+    <nav class="masthead-nav" aria-label="Sections">
+      <a href="/explore" {% if active == 'explore' %}aria-current="page"{% endif %}>Courses</a>
+      <a href="/explore/rooms" {% if active == 'rooms' %}aria-current="page"{% endif %}>Rooms</a>
+      <a href="/explore/staff" {% if active == 'staff' %}aria-current="page"{% endif %}>Lecturers</a>
+    </nav>
+    <a class="masthead-tool" href="/calendar">Build a timetable</a>
+  </div>
+</header>
+
+{% if freshness %}
+<div class="rail">
+  <div class="rail-inner">
+    <span class="status" data-status="{{ freshness.status }}">{{ freshness.status_label }}</span>
+    <div class="rail-facts">
+      {% if freshness.published_at %}
+      <span>UWI published <b><time data-ts="{{ freshness.published_at }}" data-format="date">{{ freshness.published_at }}</time></b></span>
+      {% endif %}
+      {% if freshness.imported_at %}
+      <span>Imported <time data-ts="{{ freshness.imported_at }}" data-format="rel">{{ freshness.imported_at }}</time></span>
+      {% endif %}
+      {% if freshness.checked_at %}
+      <span>Checked <time data-ts="{{ freshness.checked_at }}" data-format="rel">{{ freshness.checked_at }}</time></span>
+      {% endif %}
+    </div>
+
+    <details>
+      <summary>What these dates mean</summary>
+      <dl class="rail-explain">
+        <dt>UWI published</dt>
+        <dd>When the university last republished its timetable. This is the date printed on the source itself.</dd>
+        <dt>Imported</dt>
+        <dd>When that publication was read into this database. Anything you see here comes from that import, which covered {{ "{:,}".format(freshness.resource_count) }} published timetables.</dd>
+        <dt>Checked</dt>
+        <dd>When we last asked UWI's server whether anything had changed. A recent check with no new publication means the timetable genuinely has not moved.{% if freshness.status == 'pending' %} <b>A change was detected and has not been imported yet, so some classes below may be out of date.</b>{% endif %}</dd>
+      </dl>
+    </details>
+  </div>
+</div>
+{% endif %}
+
+<main id="main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="foot">
+  <div class="shell">
+    <p>Read-only view of the published UWI St. Augustine timetable. Classes are merged from the course, room and lecturer timetables the university publishes, so a session named in more than one of them is shown as confirmed more than once.</p>
+    <p>Always check with your department before relying on a class time. <a href="/calendar">Build your own timetable</a> · <a href="/">Extraction tools</a></p>
+  </div>
+</footer>
+
+<script src="/assets/js/explore.js" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

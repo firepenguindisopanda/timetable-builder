@@ -392,7 +392,7 @@ if __name__ == "__main__":
         for e in result["entries"]:
             label = f"[{e['group_label']}]" if e["group_label"] else ""
             print(
-                f"  {e['day']:<12} {e['start_time']} – {e['end_time']}"
+                f"  {e['day']:<12} {e['start_time']} - {e['end_time']}"
                 f"  |  {e['type'] or '?':<8} {label:<5}"
                 f"  |  {e['course'] or '?'}"
                 f"  |  Staff: {e['staff'] or '?'}"

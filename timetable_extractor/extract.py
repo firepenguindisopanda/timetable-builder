@@ -23,8 +23,11 @@ import pdfplumber
 from timetable_extractor.blocks import identify_class_blocks
 from timetable_extractor.config.loader import load_active_config
 from timetable_extractor.day_map import build_day_y_map, y_to_day
+from timetable_extractor.observability import Diagnostics, get_logger
 from timetable_extractor.text_parser import parse_block_text
 from timetable_extractor.time_parser import build_time_x_map, x_range_to_times
+
+logger = get_logger(__name__)
 
 
 def extract_timetable(
@@ -58,6 +61,8 @@ def extract_timetable(
     seen_keys: set[tuple[str | None, ...]] = set()
     meta: dict[str, str | None] = {"semester": None, "course_title": None}
 
+    diagnostics = Diagnostics(source=Path(pdf_path).name)
+
     config = None
     if course_code:
         config = load_active_config(course_code)
@@ -90,15 +95,19 @@ def extract_timetable(
                 page_width=page_width,
                 page_height=page_height,
                 lines=page.lines,
+                diagnostics=diagnostics,
             )
 
             if not time_slots:
-                continue  # skip pages with no time header
+                # Every class on the page is unreadable without the header, so
+                # this is a dropped page, not a quiet skip.
+                diagnostics.add("time_header_missing", page=page.page_number)
+                continue
 
             blocks = identify_class_blocks(words, rects, config=config, page_width=page_width, page_height=page_height)
 
             for block in blocks:
-                day = y_to_day(block["y_top"], day_map)
+                day = y_to_day(block["y_top"], day_map, diagnostics=diagnostics)
                 start, end = x_range_to_times(block["x0"], block["x1"], time_slots)
                 parsed = parse_block_text(block["words"], config=config)
 
@@ -128,11 +137,19 @@ def extract_timetable(
                     seen_keys.add(dup_key)
                     entries.append(entry)
 
+    if not entries:
+        diagnostics.add("no_entries")
+
+    diagnostics.emit(logger)
+
     return {
         "source_file": str(Path(pdf_path).name),
         "semester": meta["semester"],
         "course_title": meta["course_title"],
         "entries": entries,
+        # Returned as well as logged so a batch caller can aggregate across
+        # the corpus instead of grepping a thousand log lines.
+        "diagnostics": diagnostics.as_dict(),
     }
 
 
@@ -180,7 +197,7 @@ def main() -> None:
     out_path = out_dir / "timetable_extracted.json"
     with open(out_path, "w") as f:
         json.dump(all_results, f, indent=2)
-    print(f"\n' JSON saved to: {out_path}")
+    print(f"\nJSON saved to: {out_path}")
 
 
 if __name__ == "__main__":

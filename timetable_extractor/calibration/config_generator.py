@@ -211,9 +211,7 @@ class ConfigGenerator:
         config_id = self.save(cfg, course_code=course_code, session_id=session_id)
         return cfg, config_id
 
-    # ------------------------------------------------------------------
     # Internal helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _parse_page_regions(

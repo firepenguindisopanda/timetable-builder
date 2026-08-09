@@ -42,6 +42,10 @@ class TestReversedDayLabels:
             ("noM", "Monday"),
             ("euT", "Tuesday"),
             ("eW", "Wednesday"),
+            # Regression: "Wed" reversed was absent from the table. About one
+            # PDF in five uses it, and in every one of those no Wednesday row
+            # was built, so that day's classes were reported on Tuesday.
+            ("deW", "Wednesday"),
             ("uhT", "Thursday"),
             ("irF", "Friday"),
             ("taS", "Saturday"),

@@ -1,0 +1,137 @@
+{% extends "explore_base.html" %}
+{% import "explore/_macros.html" as ui %}
+{% block title %}Find your classes{% endblock %}
+
+{% block content %}
+<div class="shell">
+
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Semester timetable &middot; {{ total_weeks }} teaching weeks</p>
+      <h1>Find your classes.</h1>
+      <p class="hero-lede">
+        Search <b>{{ "{:,}".format(course_count) }} courses</b> by code, title, room or
+        lecturer. Every class shows the weeks it actually runs, not just the
+        day and time.
+      </p>
+
+      <label class="search">
+        <input type="search" id="q" autocomplete="off" spellcheck="false"
+               placeholder="Course code, title, room or lecturer"
+               aria-label="Search by course code, title, room or lecturer"
+               aria-describedby="search-hint" aria-controls="results">
+        <button type="button" class="search-clear" id="qClear" hidden aria-label="Clear search">&times;</button>
+      </label>
+      <p class="search-hint" id="search-hint">
+        Try <code class="mono">COMP 2601</code>, a room like
+        <code class="mono">Daaga Auditorium</code>, or a lecturer's surname.
+      </p>
+    </div>
+
+    <div class="card heat-card">
+      <div class="heat-head">
+        <div>
+          <h2>When the campus is busy</h2>
+          <p>Classes running in each hour, all faculties. Pick a slot to see what is on.</p>
+        </div>
+      </div>
+
+      <div class="heat-grid">
+        <div></div>
+        {%- for hour in heat.hours %}
+        <div class="heat-hour">{{ '%02d' | format(hour) }}</div>
+        {%- endfor %}
+
+        {%- for row in heat.rows %}
+        <div class="heat-day">{{ row.day[:3] }}</div>
+          {%- for cell in row.cells %}
+          <button type="button" class="heat-cell"
+                  data-level="{{ cell.level }}"
+                  data-day="{{ row.day }}"
+                  data-hour="{{ cell.hour }}"
+                  aria-pressed="false"
+                  aria-label="{{ row.day }} {{ '%02d' | format(cell.hour) }}:00, {{ cell.count }} class{{ 'es' if cell.count != 1 }}"
+                  title="{{ row.day }} {{ '%02d' | format(cell.hour) }}:00 - {{ cell.count }} class{{ 'es' if cell.count != 1 }}"></button>
+          {%- endfor %}
+        {%- endfor %}
+      </div>
+
+      <p class="heat-legend">
+        Quiet
+        <span data-level="1"></span><span data-level="2"></span>
+        <span data-level="3"></span><span data-level="4"></span>
+        <span data-level="5"></span>
+        Busy &middot; peak {{ heat.peak }} at once
+      </p>
+    </div>
+  </section>
+
+  <div class="figures">
+    <div class="figure"><b>{{ "{:,}".format(stats.courses) }}</b><span>Courses</span></div>
+    <div class="figure"><b>{{ "{:,}".format(stats.sessions) }}</b><span>Weekly classes</span></div>
+    <div class="figure"><b>{{ "{:,}".format(stats.rooms) }}</b><span>Rooms in use</span></div>
+    <div class="figure"><b>{{ "{:,}".format(stats.staff) }}</b><span>Lecturers named</span></div>
+    <div class="figure"><b>{{ "{:,}".format(stats.cross_confirmed) }}</b><span>Confirmed by 2+ timetables</span></div>
+  </div>
+
+  <div class="filters">
+    <div class="filters-inner">
+      <select id="fFaculty" aria-label="Filter by faculty">
+        <option value="">All faculties</option>
+        {%- for faculty in faculties %}
+        <option value="{{ faculty }}">{{ faculty }}</option>
+        {%- endfor %}
+      </select>
+
+      <select id="fDay" aria-label="Filter by day">
+        <option value="">Any day</option>
+        {%- for day in day_order %}
+        <option value="{{ day }}">{{ day }}</option>
+        {%- endfor %}
+      </select>
+
+      <select id="fType" aria-label="Filter by class type">
+        <option value="">Any type</option>
+        {%- for type in activity_types %}
+        <option value="{{ type }}">{{ type }}</option>
+        {%- endfor %}
+      </select>
+
+      <div class="week-pick">
+        <span>Week</span>
+        <div id="weekPick" role="group" aria-label="Filter by teaching week">
+          {%- for w in range(1, total_weeks + 1) %}
+          <button type="button" data-week="{{ w }}" aria-pressed="false"
+                  aria-label="Week {{ w }}">{{ w }}</button>
+          {%- endfor %}
+        </div>
+      </div>
+
+      <button type="button" class="btn-reset" id="reset">Clear</button>
+      <p class="result-count" id="count" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <p class="meter-key">
+    {{ ui.week_meter(1365, total_weeks) }}
+    The bars under each course code are its {{ total_weeks }} teaching weeks.
+    A gap means no class that week. This one runs fortnightly.
+  </p>
+
+  <ul class="rows" id="results" aria-label="Courses"></ul>
+
+  <div id="more" hidden style="text-align:center; margin:-2rem 0 3rem;">
+    <button type="button" class="btn-reset" id="moreBtn">Show more courses</button>
+  </div>
+
+  <noscript>
+    <div class="notice">
+      <h1>Search needs JavaScript</h1>
+      <p>The course list is filtered in your browser. With JavaScript off you can
+         still open a course directly, for example
+         <code>/explore/course/COMP2601</code>, or browse
+         <a href="/explore/rooms">rooms</a> and <a href="/explore/staff">lecturers</a>.</p>
+    </div>
+  </noscript>
+</div>
+{% endblock %}

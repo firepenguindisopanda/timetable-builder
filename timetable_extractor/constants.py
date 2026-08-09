@@ -9,6 +9,10 @@ REVERSED_DAYS: dict[str, str] = {
     "yadseuT": "Tuesday",
     "euT": "Tuesday",  # abbreviated (reversed "Tue")
     "yadsendeW": "Wednesday",  # full ("Wednesday" reversed - note the capital W)
+    # "Wed" reversed. Its absence was silent and expensive: with no Wednesday
+    # band, y_to_day fell back to the nearest band above and filed that day's
+    # classes under Tuesday, in roughly one PDF in five.
+    "deW": "Wednesday",
     "eW": "Wednesday",  # abbreviated (as seen on page)
     "yadsruhT": "Thursday",
     "uhT": "Thursday",  # abbreviated

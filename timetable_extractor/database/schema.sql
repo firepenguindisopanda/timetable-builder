@@ -1,4 +1,3 @@
--- =====================================================================
 -- CELCAT timetable warehouse
 --
 -- Design notes
@@ -20,9 +19,8 @@
 --   week 8" is an array containment query rather than string parsing.
 --
 -- Safe to re-run: every statement is idempotent.
--- =====================================================================
 
--- ---------- Enum types ----------
+-- Enum types
 -- Declaration order is sort order, so ORDER BY day gives Monday-first.
 DO $$ BEGIN
     CREATE TYPE day_of_week AS ENUM (
@@ -38,7 +36,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 
--- ---------- Publication history ----------
+-- Publication history
 
 CREATE TABLE IF NOT EXISTS publications (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -77,7 +75,7 @@ COMMENT ON TABLE sync_runs IS
 CREATE INDEX IF NOT EXISTS sync_runs_started_idx ON sync_runs (started_at DESC);
 
 
--- ---------- Organisational units ----------
+-- Organisational units
 
 CREATE TABLE IF NOT EXISTS faculties (
     id      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -92,7 +90,7 @@ CREATE TABLE IF NOT EXISTS departments (
 );
 
 
--- ---------- The finder.xml index ----------
+-- The finder.xml index
 
 CREATE TABLE IF NOT EXISTS resources (
     id                      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -111,7 +109,7 @@ CREATE TABLE IF NOT EXISTS resources (
 CREATE INDEX IF NOT EXISTS resources_kind_idx ON resources (kind);
 
 
--- ---------- Entities ----------
+-- Entities
 
 CREATE TABLE IF NOT EXISTS courses (
     id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -140,7 +138,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 );
 
 
--- ---------- Per-file change tracking ----------
+-- Per-file change tracking
 
 CREATE TABLE IF NOT EXISTS pdf_files (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -161,7 +159,7 @@ COMMENT ON COLUMN pdf_files.content_changed_at IS
     'that returns 304 updates last_checked_at only.';
 
 
--- ---------- The fact table ----------
+-- The fact table
 
 CREATE TABLE IF NOT EXISTS sessions (
     id              BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -236,7 +234,7 @@ COMMENT ON TABLE session_sources IS
     'and staff timetables is more trustworthy than one seen in a single PDF.';
 
 
--- ---------- Convenience views ----------
+-- Convenience views
 
 CREATE OR REPLACE VIEW latest_publication AS
     SELECT * FROM publications ORDER BY COALESCE(published_at, discovered_at) DESC LIMIT 1;

@@ -18,6 +18,21 @@ from timetable_extractor.constants import (
 # case-folding cannot collide.
 _REVERSED_DAYS_CI = {k.lower(): v for k, v in REVERSED_DAYS.items()}
 
+# Two consecutive day rows share a rule, so any daylight between them means a
+# row nobody claimed. Small positive values are just rounding.
+BAND_GAP_TOLERANCE = 1.0
+
+
+def _looks_like_a_label(text: str) -> bool:
+    """
+    Is this left-column word plausibly a day label we failed to recognise?
+
+    The day column holds nothing else, so the bar is deliberately low: two or
+    more characters, at least one of them a letter. Better a rare false
+    positive in a warning than another silently dropped day.
+    """
+    return len(text) >= 2 and any(c.isalpha() for c in text)
+
 
 def horizontal_rules(lines: list[dict[str, Any]], page_width: float) -> list[float]:
     """
@@ -58,12 +73,35 @@ def _rows_from_rules(
     return rows
 
 
+def _report_gaps(
+    rows: list[tuple[float, float, str]], diagnostics: Any
+) -> None:
+    """
+    Flag vertical space between day rows that no label claimed.
+
+    A day whose label the table does not recognise leaves exactly this shape:
+    a row-sized hole between two bands. The classes in it do not vanish, they
+    get filed under the band above, which is how a whole day's teaching ends
+    up on the wrong day. Silent before; a warning now.
+    """
+    for (_, upper_bottom, upper_day), (lower_top, _, lower_day) in zip(rows, rows[1:]):
+        gap = lower_top - upper_bottom
+        if gap > BAND_GAP_TOLERANCE:
+            diagnostics.add(
+                "day_band_missing",
+                after=upper_day,
+                before=lower_day,
+                gap=round(gap, 1),
+            )
+
+
 def build_day_y_map(
     words: list[dict[str, Any]],
     config: Any | None = None,
     page_width: float | None = None,
     page_height: float | None = None,
     lines: list[dict[str, Any]] | None = None,
+    diagnostics: Any | None = None,
 ) -> list[tuple[float, float, str]]:
     """
     Return a sorted list of (y_top, y_bottom, day_name) day bands.
@@ -72,6 +110,9 @@ def build_day_y_map(
     grid `lines` are supplied, each band is widened to the full grid row, which
     is what a class block actually occupies; otherwise the label's own extent
     is returned and y_to_day falls back to proximity matching.
+
+    Pass `diagnostics` to record labels that could not be matched and rows that
+    went missing as a result.
     """
     day_label_x_max = DAY_LABEL_X_MAX
     if config is not None and page_width is not None and isinstance(config, CourseConfig):
@@ -89,16 +130,32 @@ def build_day_y_map(
             day = _REVERSED_DAYS_CI.get(w["text"].lower())
             if day:
                 day_entries.append((w["top"], w["bottom"], day))
+            elif diagnostics is not None and _looks_like_a_label(w["text"]):
+                # The one signal that would have caught "deW" on the first run
+                # rather than after three semesters of misfiled Wednesdays.
+                diagnostics.add("day_label_unmatched", text=w["text"], y=round(w["top"], 1))
     day_entries.sort(key=lambda e: e[0])
 
     if lines and page_width:
         rules = horizontal_rules(lines, page_width)
         if rules:
-            return _rows_from_rules(day_entries, rules)
+            rows = _rows_from_rules(day_entries, rules)
+            if diagnostics is not None:
+                _report_gaps(rows, diagnostics)
+            return rows
+
+    if diagnostics is not None and day_entries:
+        # Without grid rules every block is placed by proximity, which is a
+        # guess. Worth knowing how much of the corpus relies on it.
+        diagnostics.add("day_bands_without_rules", bands=len(day_entries))
     return day_entries
 
 
-def y_to_day(y: float, day_map: list[tuple[float, float, str]]) -> str:
+def y_to_day(
+    y: float,
+    day_map: list[tuple[float, float, str]],
+    diagnostics: Any | None = None,
+) -> str:
     """
     Map a block y coordinate to a day.
 
@@ -106,6 +163,8 @@ def y_to_day(y: float, day_map: list[tuple[float, float, str]]) -> str:
     tolerance covers a highlight bar drawn a hair above its row's rule.
     """
     if not day_map:
+        if diagnostics is not None:
+            diagnostics.add("day_unknown", y=round(y, 1))
         return "Unknown"
 
     for y_top, y_bottom, day in day_map:
@@ -121,4 +180,10 @@ def y_to_day(y: float, day_map: list[tuple[float, float, str]]) -> str:
             best_day = day
         else:
             break
+
+    if diagnostics is not None:
+        # The block sat in no row at all. It still gets a day, but by
+        # proximity rather than by the grid - the exact path that swallowed
+        # Wednesday. Record it so the guess is countable.
+        diagnostics.add("day_fallback_used", y=round(y, 1), assigned=best_day)
     return best_day

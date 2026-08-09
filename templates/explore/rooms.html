@@ -1,0 +1,47 @@
+{% extends "explore_base.html" %}
+{% import "explore/_macros.html" as ui %}
+
+{% block title %}Rooms{% endblock %}
+{% block description %}Every teaching room in use on the UWI St. Augustine timetable, with how heavily each one is booked.{% endblock %}
+
+{% block content %}
+<div class="shell">
+
+  <header class="detail-head">
+    <p class="eyebrow">Rooms</p>
+    <h1>{{ rooms | length }} rooms in use</h1>
+    <p class="detail-sub">
+      Rooms named in the published timetable, ordered by code. Booked hours
+      count one teaching week, not the whole semester.
+    </p>
+    <label class="search" style="margin-top:1.25rem; max-width:26rem;">
+      <input type="search" id="listFilter" autocomplete="off"
+             placeholder="Filter rooms" aria-label="Filter rooms"
+             aria-controls="list">
+    </label>
+  </header>
+
+  <p class="result-count" id="listCount" role="status" aria-live="polite"
+     style="margin:0 0 0.6rem;"></p>
+
+  <ul class="rows" id="list" aria-label="Rooms">
+    {% for room in rooms %}
+    <li data-search="{{ room.code | lower }}">
+      <a class="row" href="/explore/room/{{ room.code | urlpath }}">
+        <div>
+          <div class="row-code">{{ room.hours_per_week }}h</div>
+          <span class="row-days">{% for day in room.days %}{{ day[:3] }} {% endfor %}</span>
+        </div>
+        <div>
+          <div class="row-title">{{ room.code }}</div>
+          <div class="row-meta">{{ room.courses }} course{{ 's' if room.courses != 1 }}</div>
+        </div>
+        <div class="row-right">
+          {{ room.sessions }} class{{ 'es' if room.sessions != 1 }}
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "explore_base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+<div class="shell">
+  <div class="notice">
+    <h1>{{ heading }}</h1>
+    <p>{{ detail }}</p>
+    <p>
+      Course codes work with or without the space, so
+      <code>/explore/course/comp2601</code> and
+      <code>/explore/course/COMP 2601</code> both open the same page.
+    </p>
+    <p>
+      <a href="/explore">Search every course</a> ·
+      <a href="/explore/rooms">Browse rooms</a> ·
+      <a href="/explore/staff">Browse lecturers</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

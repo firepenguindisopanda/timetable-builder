@@ -1,0 +1,85 @@
+{% extends "explore_base.html" %}
+{% import "explore/_macros.html" as ui %}
+
+{% block title %}{{ room.code }}{% endblock %}
+{% block description %}What is timetabled in {{ room.code }} at UWI St. Augustine, across every course that uses it.{% endblock %}
+
+{% block content %}
+<div class="shell">
+
+  <header class="detail-head">
+    <a class="crumb" href="/explore/rooms">Back to all rooms</a>
+    <p class="detail-code">Room</p>
+    <h1>{{ room.code }}</h1>
+    <p class="detail-sub">
+      Used by {{ room.courses | length }} course{{ 's' if room.courses | length != 1 }}
+      across {{ room.sessions | length }} class{{ 'es' if room.sessions | length != 1 }} a week.
+    </p>
+
+    <div class="detail-facts">
+      <div class="detail-fact">
+        <b>{{ room.hours_per_week }}</b>
+        <span>Booked hours a week</span>
+      </div>
+      <div class="detail-fact">
+        <b>{{ room.courses | length }}</b>
+        <span>Courses</span>
+      </div>
+      <div class="detail-fact">
+        <b>{{ ui.week_meter(room.weeks_mask, total_weeks, 'wk--lg') }}</b>
+        <span>Weeks in use</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>The week</h2>
+    <p class="section-note">
+      Everything booked in this room. A gap here is not a guarantee the room is
+      free, only that nothing in the published timetable claims it.
+    </p>
+    {{ ui.week_grid(room.sessions, code_field='course_code') }}
+  </section>
+
+  <section class="section">
+    <h2>Every booking</h2>
+    <div class="table-wrap">
+      <table class="sessions">
+        <thead>
+          <tr>
+            <th scope="col">Day</th>
+            <th scope="col">Time</th>
+            <th scope="col">Course</th>
+            <th scope="col">Type</th>
+            <th scope="col">Lecturer</th>
+            {{ ui.th_weeks() }}
+            {{ ui.th_sources() }}
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in room.sessions %}
+          <tr>
+            <td class="cell-day">{{ s.day }}</td>
+            <td class="cell-time">{{ s.start_time }}-{{ s.end_time }}</td>
+            <td>
+              <a class="link-teal mono" href="/explore/course/{{ s.course_code | urlpath }}">{{ s.course_code }}</a>
+              <div class="muted" style="font-size:0.74rem;">{{ s.course_title or '' }}</div>
+            </td>
+            <td>
+              {{ s.activity_type or '-' }}
+              {% if s.stream_label %}<span class="chip chip--stream">{{ s.stream_label }}</span>{% endif %}
+            </td>
+            <td>{{ ui.staff_links(s.staff) }}</td>
+            <td class="cell-weeks">
+              {{ ui.week_meter(s.weeks_mask, total_weeks) }}
+              <small>{{ s.weeks_raw or 'not published' }}</small>
+            </td>
+            <td>{{ ui.source_dots(s.source_count) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

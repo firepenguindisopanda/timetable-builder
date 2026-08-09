@@ -1,0 +1,90 @@
+{% extends "explore_base.html" %}
+{% import "explore/_macros.html" as ui %}
+
+{% block title %}{{ person.name }}{% endblock %}
+{% block description %}Teaching schedule for {{ person.name }} at UWI St. Augustine this semester.{% endblock %}
+
+{% block content %}
+<div class="shell">
+
+  <header class="detail-head">
+    <a class="crumb" href="/explore/staff">Back to all lecturers</a>
+    <p class="detail-code">Lecturer</p>
+    <h1>{{ person.name }}</h1>
+    <p class="detail-sub">
+      Teaching {{ person.courses | length }} course{{ 's' if person.courses | length != 1 }}
+      across {{ person.sessions | length }} class{{ 'es' if person.sessions | length != 1 }} a week.
+    </p>
+
+    <div class="detail-facts">
+      <div class="detail-fact">
+        <b>{{ person.hours_per_week }}</b>
+        <span>Timetabled hours a week</span>
+      </div>
+      <div class="detail-fact">
+        <b>{{ person.courses | length }}</b>
+        <span>Courses</span>
+      </div>
+      <div class="detail-fact">
+        <b>{{ person.rooms | length }}</b>
+        <span>Rooms</span>
+      </div>
+      <div class="detail-fact">
+        <b>{{ ui.week_meter(person.weeks_mask, total_weeks, 'wk--lg') }}</b>
+        <span>Teaching weeks</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>The week</h2>
+    <p class="section-note">
+      Every class this lecturer is named on. Parallel lab and tutorial streams
+      are each listed, so the hours above count the timetable, not one person's
+      teaching load.
+    </p>
+    {{ ui.week_grid(person.sessions, code_field='course_code') }}
+  </section>
+
+  <section class="section">
+    <h2>Every class</h2>
+    <div class="table-wrap">
+      <table class="sessions">
+        <thead>
+          <tr>
+            <th scope="col">Day</th>
+            <th scope="col">Time</th>
+            <th scope="col">Course</th>
+            <th scope="col">Type</th>
+            <th scope="col">Room</th>
+            {{ ui.th_weeks() }}
+            {{ ui.th_sources() }}
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in person.sessions %}
+          <tr>
+            <td class="cell-day">{{ s.day }}</td>
+            <td class="cell-time">{{ s.start_time }}-{{ s.end_time }}</td>
+            <td>
+              <a class="link-teal mono" href="/explore/course/{{ s.course_code | urlpath }}">{{ s.course_code }}</a>
+              <div class="muted" style="font-size:0.74rem;">{{ s.course_title or '' }}</div>
+            </td>
+            <td>
+              {{ s.activity_type or '-' }}
+              {% if s.stream_label %}<span class="chip chip--stream">{{ s.stream_label }}</span>{% endif %}
+            </td>
+            <td>{{ ui.room_link(s.room) }}</td>
+            <td class="cell-weeks">
+              {{ ui.week_meter(s.weeks_mask, total_weeks) }}
+              <small>{{ s.weeks_raw or 'not published' }}</small>
+            </td>
+            <td>{{ ui.source_dots(s.source_count) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

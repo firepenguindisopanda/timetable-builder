@@ -1,0 +1,26 @@
+{% extends "explore_base.html" %}
+{% block title %}Timetable unavailable{% endblock %}
+
+{% block content %}
+<div class="shell">
+  <div class="notice">
+    <h1>The timetable is not available right now</h1>
+    <p>{{ unavailable }}</p>
+    <p>
+      Nothing is wrong with your search. The page reads from the timetable
+      warehouse, and that database could not be reached.
+    </p>
+    {% if request_id %}
+    <p class="muted">
+      If you report this, quote <code>{{ request_id }}</code>. It finds the
+      exact cause in the server log.
+    </p>
+    {% endif %}
+    <p class="muted">
+      If you run this server: check <code>DATABASE_URL</code> in <code>.env</code>,
+      then load the warehouse with
+      <code>uv run python -m timetable_extractor.database.cli load</code>.
+    </p>
+  </div>
+</div>
+{% endblock %}

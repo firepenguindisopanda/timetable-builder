@@ -64,6 +64,15 @@ def main() -> int:
     load_parser = sub.add_parser("load", help="extract every PDF into the database")
     load_parser.add_argument("--pdf-dir", default="downloaded_pdfs")
     load_parser.add_argument("--registry", default="finder.xml")
+    load_parser.add_argument(
+        "--replace",
+        action="store_true",
+        help=(
+            "clear this publication's existing sessions first; use after "
+            "changing the extractor, so corrected rows replace the old ones "
+            "instead of sitting alongside them"
+        ),
+    )
 
     sub.add_parser("stats", help="row counts and field coverage")
 
@@ -103,6 +112,7 @@ def main() -> int:
                     conn,
                     finder_xml=Path(args.registry),
                     pdf_dirs=[root, root / "staff", root / "rooms"],
+                    replace=args.replace,
                 )
                 print()
                 print(f"Publication  : {stats.publication_id}"

@@ -1,0 +1,147 @@
+{# Shared display components for the explorer. #}
+
+{#
+  The week meter: twelve segments, one per teaching week, filled when the
+  class runs that week. Rendered from the bitmask the query layer packs, so
+  the markup stays small even on a page with 200 sessions.
+#}
+{% macro week_meter(mask, total_weeks=12, size='') %}
+{%- set weeks = [] -%}
+{%- for w in range(1, total_weeks + 1) -%}
+  {%- if mask and (mask // (2 ** (w - 1))) % 2 == 1 -%}{{ weeks.append(w) or '' }}{%- endif -%}
+{%- endfor -%}
+<span class="wk {{ size }}" role="img"
+      aria-label="{% if weeks %}Runs in week{{ 's' if weeks|length > 1 }} {{ weeks|join(', ') }} of {{ total_weeks }}{% else %}No teaching weeks recorded{% endif %}">
+  {%- for w in range(1, total_weeks + 1) -%}
+  <i class="{{ 'on' if w in weeks }}"></i>
+  {%- endfor -%}
+</span>
+{% endmacro %}
+
+{# Which of the three published views (course, room, staff PDF) named this class. #}
+{% macro source_dots(count) %}
+<span class="sources" role="img"
+      aria-label="Confirmed by {{ count }} of 3 published timetables">
+  {%- for i in range(1, 4) -%}
+  <i class="{{ 'on' if i <= count }}"></i>
+  {%- endfor -%}
+</span>
+{% endmacro %}
+
+{% macro day_short(day) %}{{ day[:3] }}{% endmacro %}
+
+{#
+  A column header that explains itself.
+
+  The trigger is a real button so the explanation is reachable by keyboard and
+  by tap, not just by hovering a mouse. The tooltip opens downward and is
+  anchored to the right edge, because the columns that need explaining sit at
+  the end of a table that scrolls horizontally, and any other direction would
+  be clipped by that scroll box.
+#}
+{% macro th_help(label, tip_id, text) %}
+<th scope="col" class="th-help">
+  <button type="button" class="th-help-trigger" aria-describedby="{{ tip_id }}">
+    {{ label }}<span class="th-help-mark" aria-hidden="true">?</span>
+  </button>
+  <span role="tooltip" id="{{ tip_id }}" class="th-tip">{{ text }}</span>
+</th>
+{% endmacro %}
+
+{#
+  Used on every table with a Weeks column. The meter is the least familiar
+  thing on the page, so it is the one most worth explaining.
+#}
+{% macro th_weeks() %}
+{{ th_help(
+     'Weeks',
+     'tip-weeks',
+     'The semester\'s 12 teaching weeks, in order. A filled bar means the class
+      runs that week and a gap means it does not, so a fortnightly lab reads as
+      a comb. The line underneath is exactly how UWI published it.'
+) }}
+{% endmacro %}
+
+{# Used on every table with a Sources column, so the wording stays identical. #}
+{% macro th_sources() %}
+{{ th_help(
+     'Sources',
+     'tip-sources',
+     'Each class can appear in three published timetables: the course\'s, the
+      room\'s and the lecturer\'s. A filled dot means that timetable listed
+      this class, so three dots is a class all three agree on.'
+) }}
+{% endmacro %}
+
+{# A course, room or lecturer chip that links to its own page. #}
+{% macro room_link(room) %}
+  {%- if room -%}
+  <a class="link-teal" href="/explore/room/{{ room | urlpath }}">{{ room }}</a>
+  {%- else -%}
+  <span class="muted">Not published</span>
+  {%- endif -%}
+{% endmacro %}
+
+{% macro staff_links(names) %}
+  {%- if names -%}
+    {%- for name in names -%}
+    <a class="link-teal" href="/explore/staff/{{ name | urlpath }}">{{ name }}</a>{{ ", " if not loop.last }}
+    {%- endfor -%}
+  {%- else -%}
+  <span class="muted">Not published</span>
+  {%- endif -%}
+{% endmacro %}
+
+{#
+  A read-only week grid. Blocks are positioned by the minute rather than
+  snapped to an hour cell, so a four-hour lab reads as four hours, and
+  parallel streams sit side by side in lanes instead of hiding each other.
+  Only the days that actually have classes get a column.
+#}
+{% macro week_grid(sessions, code_field=None) %}
+{%- set layout = week_layout(sessions) -%}
+{%- set span = layout.hours | length -%}
+<div class="grid-wrap">
+  <div class="tt">
+    <div class="tt-gutter">
+      <div class="tt-colhead"></div>
+      <div class="tt-track" style="height: calc(var(--hour-h) * {{ span }});">
+        {%- for hour in layout.hours %}
+        <span class="tt-hour" style="top: calc(var(--hour-h) * {{ loop.index0 }});">{{ '%02d:00' | format(hour) }}</span>
+        {%- endfor %}
+      </div>
+    </div>
+
+    {%- for column in layout.days %}
+    <div class="tt-col">
+      <div class="tt-colhead">{{ column.day[:3] }}</div>
+      <div class="tt-track" style="height: calc(var(--hour-h) * {{ span }});">
+        {%- for hour in layout.hours %}
+        <span class="tt-line" style="top: calc(var(--hour-h) * {{ loop.index0 }});"></span>
+        {%- endfor %}
+
+        {%- for block in column.blocks %}
+        {%- set s = block.session %}
+        {%- set style -%}
+          top: calc(var(--hour-h) * {{ block.top_min }} / 60);
+          height: calc(var(--hour-h) * {{ block.height_min }} / 60);
+          left: {{ block.left_pct }}%; width: {{ block.width_pct }}%;
+        {%- endset -%}
+        {%- if code_field %}
+        <a class="tt-block" style="{{ style }}" href="/explore/course/{{ s[code_field] | urlpath }}">
+          <b>{{ s[code_field] }}</b>
+          <span>{{ s.start_time }}-{{ s.end_time }}{% if s.activity_type %} &middot; {{ s.activity_type }}{% endif %}</span>
+        </a>
+        {%- else %}
+        <span class="tt-block" style="{{ style }}">
+          <b>{{ s.activity_type or 'Class' }}{% if s.stream_label %} {{ s.stream_label }}{% endif %}</b>
+          <span>{{ s.start_time }}-{{ s.end_time }}{% if s.room %} &middot; {{ s.room }}{% endif %}</span>
+        </span>
+        {%- endif %}
+        {%- endfor %}
+      </div>
+    </div>
+    {%- endfor %}
+  </div>
+</div>
+{% endmacro %}

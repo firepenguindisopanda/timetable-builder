@@ -18,6 +18,7 @@ from typing import Any, Iterable
 
 import psycopg
 
+from timetable_extractor.database.courses import build_code_index, resolve_course_code
 from timetable_extractor.database.people import build_name_index, resolve_name
 from timetable_extractor.database.records import (
     SessionRecord,
@@ -450,8 +451,17 @@ def load_all(
     http_last_modified: datetime | None = None,
     http_etag: str | None = None,
     progress: bool = True,
+    replace: bool = False,
 ) -> LoadStats:
-    """Extract every PDF and load one publication's worth of data."""
+    """
+    Extract every PDF and load one publication's worth of data.
+
+    Set `replace` when re-loading a publication the database already has after
+    changing the extractor. Sessions are keyed on their content, so a fix that
+    moves a class to a different day inserts a corrected row without removing
+    the wrong one, leaving the class on both days. Replacing clears the
+    publication's sessions first so the reload is a true re-extraction.
+    """
     xml_bytes = finder_xml.read_bytes()
     resource_count = len(ET.fromstring(xml_bytes).findall("resource"))
 
@@ -462,6 +472,18 @@ def load_all(
         http_etag=http_etag,
         resource_count=resource_count,
     )
+
+    if replace and reused:
+        with conn.cursor() as cur:
+            # session_staff and session_sources cascade from sessions.
+            cur.execute(
+                "DELETE FROM sessions WHERE publication_id = %s", (publication_id,)
+            )
+            removed = cur.rowcount
+        conn.commit()
+        if progress:
+            print(f"  replaced: cleared {removed} existing sessions", flush=True)
+
     index_counts = load_index(conn, xml_bytes, publication_id)
 
     paths = iter_pdfs(pdf_dirs)
@@ -482,12 +504,17 @@ def load_all(
 
     pdf_ids = register_pdfs(conn, paths)
 
-    # Resolve staff spellings against the index before merging, so two views
-    # of one class that spell a teacher differently still collapse together.
+    # Snap course codes and staff spellings back onto the published index
+    # before merging. A wrapped or junk-suffixed code would otherwise become
+    # its own course row, splitting one course's timetable across two.
     with conn.cursor() as cur:
         cur.execute("SELECT name FROM staff WHERE resource_id IS NOT NULL")
         name_index = build_name_index([row[0] for row in cur.fetchall()])
+        cur.execute("SELECT code FROM courses WHERE resource_id IS NOT NULL")
+        code_index = build_code_index([row[0] for row in cur.fetchall()])
+
     for record in raw:
+        record.course_code = resolve_course_code(record.course_code, code_index)
         record.staff = list(
             dict.fromkeys(resolve_name(name, name_index) for name in record.staff)
         )

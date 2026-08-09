@@ -33,6 +33,9 @@ from typing import Any
 
 from timetable_extractor import extract_timetable
 from timetable_extractor.constants import FINDER_XML
+from timetable_extractor.database.courses import build_code_index, resolve_course_code
+from timetable_extractor.database.records import split_courses
+from timetable_extractor.observability import CORRUPTING_FINDINGS
 
 VALID_DAYS = {
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
@@ -76,9 +79,44 @@ def to_minutes(t: str | None) -> int | None:
     return hours * 60 + mins
 
 
-def validate(pdf_dir: Path, registry: Path) -> dict[str, Any]:
+WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+# A weekday carrying this much more than the median weekday is not a busy
+# Tuesday. When "Wed" reversed was missing from the day table, Wednesday's
+# classes were filed under Tuesday and the ratio hit 2.3.
+DAY_SKEW_THRESHOLD = 1.8
+
+
+def day_skew(days: Counter[str]) -> dict[str, Any]:
+    """
+    Compare weekday totals against the median weekday.
+
+    The corpus-level histogram is the only place this failure is visible: each
+    individual PDF looks fine, because the classes are all present and merely
+    on the wrong row.
+    """
+    counts = sorted(days.get(d, 0) for d in WEEKDAYS)
+    median = counts[len(counts) // 2] if counts else 0
+    busiest = max(WEEKDAYS, key=lambda d: days.get(d, 0))
+    ratio = round(days.get(busiest, 0) / median, 2) if median else None
+
+    return {
+        "busiest": busiest,
+        "median": median,
+        "ratio": ratio,
+        "skewed": bool(ratio and ratio > DAY_SKEW_THRESHOLD),
+    }
+
+
+def validate(
+    pdf_dir: Path, registry: Path, include_subdirs: bool = False
+) -> dict[str, Any]:
     rooms, modules = load_registry(registry)
-    pdfs = sorted(pdf_dir.glob("*.pdf"))
+    # Staff and room PDFs live in subdirectories. They describe the same
+    # classes from another angle, so a course code invented in one of them
+    # corrupts the warehouse just as much - but they are off by default so the
+    # coverage percentages stay comparable between runs.
+    pdfs = sorted(pdf_dir.rglob("*.pdf") if include_subdirs else pdf_dir.glob("*.pdf"))
     if not pdfs:
         raise SystemExit(f"No PDFs found in {pdf_dir}. Run download first.")
 
@@ -94,6 +132,29 @@ def validate(pdf_dir: Path, registry: Path) -> dict[str, Any]:
     bad_times: list[str] = []
     course_mismatch: list[dict[str, str]] = []
     multi_session: list[str] = []
+    unknown_codes: Counter[str] = Counter()
+    repaired_codes: Counter[str] = Counter()
+    # Near-misses the extractor noticed but handled. These are the ones that
+    # do not show up as a crash or a missing field: an unrecognised day label
+    # produces a full, plausible-looking extraction on the wrong day.
+    findings: Counter[str] = Counter()
+    finding_samples: dict[str, list[dict[str, Any]]] = {}
+
+    # Every code a block names should be one the university actually
+    # publishes. A code that resolves only after repair means extraction
+    # mangled it - usually a name wrapped mid-word in a narrow column. A code
+    # that resolves to nothing is a course invented out of stray text, and
+    # splits a real course's timetable in two once loaded.
+    # Upper-cased to match how the loader stores codes, so a code that differs
+    # from the registry only in capitalisation is not reported as a defect.
+    code_index = build_code_index(
+        [
+            " ".join(name.split(",")[0].upper().split())
+            for name in modules.values()
+            if name
+        ]
+    )
+    canonical_codes = set(code_index.values())
 
     started = time.time()
     for pdf in pdfs:
@@ -104,6 +165,15 @@ def validate(pdf_dir: Path, registry: Path) -> dict[str, Any]:
             continue
 
         stats["files"] += 1
+
+        diagnostics = result.get("diagnostics") or {}
+        for finding, count in (diagnostics.get("findings") or {}).items():
+            findings[finding] += count
+            bucket = finding_samples.setdefault(finding, [])
+            for sample in (diagnostics.get("samples") or {}).get(finding, []):
+                if len(bucket) < 8:
+                    bucket.append({"file": pdf.name, **sample})
+
         semesters[result["semester"] or "(none)"] += 1
         entries = result["entries"]
         stats["entries"] += len(entries)
@@ -159,6 +229,17 @@ def validate(pdf_dir: Path, registry: Path) -> dict[str, Any]:
                             {"file": pdf.name, "expected": expected_code, "got": e["course"]}
                         )
 
+            # Every code named must be one the registry publishes.
+            for code in split_courses(e.get("course")):
+                stats["course_codes_seen"] += 1
+                resolved = resolve_course_code(code, code_index)
+                if resolved not in canonical_codes:
+                    stats["unknown_course_code"] += 1
+                    unknown_codes[f"{code}  ({pdf.name})"] += 1
+                elif resolved != code:
+                    stats["repaired_course_code"] += 1
+                    repaired_codes[f"{code}  ->  {resolved}"] += 1
+
     return {
         "elapsed_sec": round(time.time() - started, 1),
         "pdf_count": len(pdfs),
@@ -166,11 +247,16 @@ def validate(pdf_dir: Path, registry: Path) -> dict[str, Any]:
         "semesters": dict(semesters),
         "types": dict(types),
         "days": dict(days),
+        "day_skew": day_skew(days),
+        "findings": dict(findings),
+        "finding_samples": finding_samples,
         "crashes": crashes,
         "empty": empty,
         "bad_times": bad_times,
         "course_mismatch": course_mismatch,
         "multi_session": multi_session,
+        "unknown_codes": unknown_codes.most_common(20),
+        "repaired_codes": repaired_codes.most_common(20),
         "unknown_rooms": unknown_rooms.most_common(20),
         "room_registry_size": len(rooms),
     }
@@ -180,6 +266,12 @@ def report(r: dict[str, Any], fail_under: float) -> int:
     stats = r["stats"]
     total = stats.get("entries", 0)
     n = total or 1
+
+    # Tolerated rather than required: a report may be replayed from an older
+    # --json file written before these checks existed.
+    skew = r.get("day_skew") or day_skew(Counter(r.get("days") or {}))
+    findings: dict[str, int] = r.get("findings") or {}
+    finding_samples: dict[str, list] = r.get("finding_samples") or {}
 
     print("=" * 64)
     print(f"Files parsed         : {stats.get('files', 0)} / {r['pdf_count']}   ({r['elapsed_sec']}s)")
@@ -202,16 +294,41 @@ def report(r: dict[str, Any], fail_under: float) -> int:
     print(f"   merged multi-session    : {stats.get('multi_session_block', 0)}")
     print(f"   course missing PDF's code: {stats.get('course_mismatch', 0)}"
           f"   (multi-course blocks: {stats.get('multi_course_block', 0)})")
+    print(f"   course codes not published: {stats.get('unknown_course_code', 0)}"
+          f" of {stats.get('course_codes_seen', 0)}")
+    print(f"   course codes needing repair: {stats.get('repaired_course_code', 0)}"
+          f"   (wrapped or with text glued on)")
     if r["room_registry_size"]:
         with_room = stats.get("has_room", 0)
         unknown = sum(c for _, c in r["unknown_rooms"])
         known = with_room - unknown
         print(f"   rooms in official list  : {known} / {with_room}"
               f"  ({100 * known / max(with_room, 1):.1f}%)")
+    if skew["ratio"] is None:
+        print("   weekday skew            : no weekday classes to compare")
+    else:
+        print(f"   weekday skew            : {skew['busiest']} is {skew['ratio']}x "
+              f"the median weekday ({skew['median']})"
+              f"{'   <- SKEWED' if skew['skewed'] else ''}")
     print()
+
+    if findings:
+        print("Extraction findings (handled, but worth reading):")
+        for finding, count in sorted(findings.items(), key=lambda kv: -kv[1]):
+            marker = "  <- may misplace classes" if finding in CORRUPTING_FINDINGS else ""
+            print(f"   {finding:<26} {count:>6}{marker}")
+        print()
+
     print(f"Semesters : {r['semesters']}")
     print(f"Days      : {r['days']}")
     print(f"Types     : {r['types']}")
+
+    for finding in sorted(findings):
+        samples = finding_samples.get(finding)
+        if samples and finding in CORRUPTING_FINDINGS:
+            print(f"\n{finding} (sample):")
+            for sample in samples:
+                print(f"   {sample}")
 
     if r["crashes"]:
         print("\nCRASHES:")
@@ -229,6 +346,14 @@ def report(r: dict[str, Any], fail_under: float) -> int:
         print("\nCourse-code mismatches (sample):")
         for m in r["course_mismatch"]:
             print(f"   {m['file']}: expected {m['expected']!r}, got {m['got']!r}")
+    if r["unknown_codes"]:
+        print("\nCourse codes with no entry in the registry:")
+        for code, cnt in r["unknown_codes"]:
+            print(f"   {cnt:>4}  {code}")
+    if r["repaired_codes"]:
+        print("\nCourse codes that only resolve after repair:")
+        for change, cnt in r["repaired_codes"]:
+            print(f"   {cnt:>4}  {change}")
     if r["unknown_rooms"]:
         print("\nRooms not in the official registry (top 20):")
         for room, cnt in r["unknown_rooms"]:
@@ -240,10 +365,24 @@ def report(r: dict[str, Any], fail_under: float) -> int:
         failures.append(f"{len(r['crashes'])} PDF(s) crashed")
     if r["empty"]:
         failures.append(f"{len(r['empty'])} PDF(s) produced no entries")
+    # An unrecognised day label is the highest-value thing this script can
+    # catch: it never crashes, never leaves a field empty, and moves a whole
+    # day of teaching onto the day above.
+    for finding in sorted(CORRUPTING_FINDINGS):
+        count = findings.get(finding, 0)
+        if count:
+            failures.append(f"{count} x {finding}")
+    if skew["skewed"]:
+        failures.append(
+            f"{skew['busiest']} carries {skew['ratio']}x the "
+            "median weekday's classes"
+        )
+
     for check, label in (
         ("bad_day", "invalid day values"),
         ("bad_start", "malformed start times"),
         ("end_before_start", "inverted time ranges"),
+        ("unknown_course_code", "course code(s) absent from the registry"),
     ):
         if stats.get(check):
             failures.append(f"{stats[check]} {label}")
@@ -268,6 +407,11 @@ def main() -> int:
         default="finder.xml",
         help="Path to finder.xml (downloaded automatically if absent)",
     )
+    parser.add_argument(
+        "--include-subdirs",
+        action="store_true",
+        help="Also validate the staff/ and rooms/ PDFs, not just the courses",
+    )
     parser.add_argument("--json", help="Also write the full report to this JSON file")
     parser.add_argument(
         "--fail-under",
@@ -277,7 +421,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    result = validate(Path(args.pdf_dir), Path(args.registry))
+    result = validate(Path(args.pdf_dir), Path(args.registry), args.include_subdirs)
     code = report(result, args.fail_under)
 
     if args.json:

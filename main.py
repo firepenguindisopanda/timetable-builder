@@ -21,9 +21,19 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
+import logging
+import os
+import time
+from collections import Counter
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -45,7 +55,9 @@ from schemas import (
     SessionSummary,
     TimetableResult,
 )
-from timetable_extractor import extract_timetable
+from timetable_extractor import extract_timetable, observability
+
+import explore_router
 
 # --- Admin Auth ---
 
@@ -63,9 +75,23 @@ async def require_admin_key(
     x_api_key: str | None = Header(None),
     settings = Depends(get_admin_settings),
 ):
-    """Dependency that checks X-API-Key header against configured ADMIN_API_KEY."""
+    """
+    Check the X-API-Key header against ADMIN_API_KEY.
+
+    With no key configured the admin surface is closed rather than open: a
+    deployment that never sets one simply cannot reach these endpoints. That
+    is reported as 503 and not 500, because an intentionally disabled feature
+    is not a server fault, and a deployment serving only the public timetable
+    is expected to leave the key unset.
+    """
     if not settings.admin_api_key:
-        raise HTTPException(status_code=500, detail="Admin API key not configured on server")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Admin endpoints are disabled on this deployment. "
+                "Set ADMIN_API_KEY to enable them."
+            ),
+        )
     if not x_api_key:
         raise HTTPException(
             status_code=401,
@@ -76,6 +102,23 @@ async def require_admin_key(
     return x_api_key
 
 
+observability.configure_logging()
+logger = observability.get_logger("timetable.http")
+
+# Static assets are logged at debug: they are numerous, uninteresting when
+# healthy, and would bury the request events that matter.
+QUIET_PATH_PREFIXES = ("/assets", "/favicon")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Hold the explorer's read-only connection pool for the process lifetime."""
+    logger.info("server_start", extra={"event": "server_start", "version": "1.0.0"})
+    yield
+    explore_router.close_pool()
+    logger.info("server_stop", extra={"event": "server_stop"})
+
+
 app = FastAPI(
     title="CELCAT Timetable Extraction API",
     description=(
@@ -83,15 +126,96 @@ app = FastAPI(
         "from CELCAT-generated timetable PDFs."
     ),
     version="1.0.0",
+    lifespan=lifespan,
 )
+
+# The timetable is public data, so cross-origin reads are allowed by default,
+# but `allow_credentials=True` alongside them was both unsafe and inert:
+# browsers reject a wildcard origin on a credentialed request. Nothing here
+# authenticates with cookies - the admin key travels in a header - so
+# credentialed cross-origin requests are not needed at all.
+# Set CORS_ALLOW_ORIGINS to a comma-separated list to narrow it further.
+CORS_ALLOW_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOW_ORIGINS", "*").split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
+
+# The explorer's course index is ~380 KB of JSON that compresses to a fraction
+# of that, and it is fetched on every visit to /explore.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+@app.middleware("http")
+async def request_telemetry(request: Request, call_next):
+    """
+    Give every request an id, time it, and log the outcome.
+
+    The id goes out on the response so a student reporting "this page was
+    slow" can quote something that finds the exact request in the logs.
+    """
+    incoming = request.headers.get("x-request-id")
+    with observability.correlated(incoming) as request_id:
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception(
+                "request_failed",
+                extra={
+                    "event": "request_failed",
+                    "method": request.method,
+                    "path": request.url.path,
+                    "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+                },
+            )
+            raise
+
+        duration_ms = round((time.perf_counter() - started) * 1000, 1)
+        response.headers["x-request-id"] = request_id
+
+        quiet = request.url.path.startswith(QUIET_PATH_PREFIXES)
+        # Route template, not the raw path: a per-course path would make
+        # aggregation useless and, in a metrics backend, unbounded.
+        route = request.scope.get("route")
+        level = (
+            logging.DEBUG
+            if quiet and response.status_code < 400
+            else logging.WARNING
+            if response.status_code >= 500
+            else logging.INFO
+        )
+        logger.log(
+            level,
+            "request",
+            extra={
+                "event": "request",
+                "method": request.method,
+                "path": request.url.path,
+                "route": getattr(route, "path", request.url.path),
+                "status": response.status_code,
+                "duration_ms": duration_ms,
+            },
+        )
+        return response
+
+
+app.include_router(explore_router.router)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def explorer_aware_http_exception(request: Request, exc: StarletteHTTPException):
+    """Render explorer errors as pages; everything else keeps the JSON default."""
+    if request.url.path.startswith("/explore"):
+        return explore_router.error_page(request, exc.status_code, str(exc.detail))
+    return await http_exception_handler(request, exc)
 
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 
@@ -101,14 +225,42 @@ if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """
+    Browsers ask for this at the root whatever the page says, so serve it there
+    rather than letting every visit log a 404.
+    """
+    icon = assets_dir / "favicon.ico"
+    if not icon.exists():
+        raise HTTPException(status_code=404, detail="No favicon")
+    return FileResponse(
+        icon,
+        media_type="image/x-icon",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 def _build_extract_response(results: list[dict]) -> ExtractResponse:
     """Convert raw extraction dicts into a typed ExtractResponse."""
     typed_results = [TimetableResult(**r) for r in results]
     total_entries = sum(len(r.entries) for r in typed_results)
+
+    # Roll the per-file findings up, so a caller can tell at a glance whether
+    # this batch parsed cleanly without walking every result.
+    findings: Counter[str] = Counter()
+    corrupting = 0
+    for result in typed_results:
+        if result.diagnostics:
+            findings.update(result.diagnostics.findings)
+            corrupting += result.diagnostics.corrupting
+
     return ExtractResponse(
         results=typed_results,
         total_files=len(typed_results),
         total_entries=total_entries,
+        findings=dict(findings),
+        corrupting=corrupting,
     )
 
 
@@ -207,10 +359,17 @@ async def extract_from_upload(files: List[UploadFile] = File(...)):
 
 
 @app.post("/extract/batch", response_model=ExtractResponse)
-async def extract_from_disk(request: BatchExtractRequest):
+async def extract_from_disk(
+    request: BatchExtractRequest,
+    _: str = Depends(require_admin_key),
+):
     """
     Extract timetables from PDF files already present on disk.
     Provide the directory path containing the PDFs.
+
+    Admin only: the caller names a directory on the server and learns whether
+    it exists and what parses out of it, which is not something a public
+    deployment should answer for arbitrary paths.
     """
     pdf_dir = Path(request.pdf_dir)
     if not pdf_dir.exists():
@@ -294,10 +453,17 @@ async def calendar_page(request: Request):
 
 
 @app.post("/download", response_model=DownloadResponse)
-async def download_timetables_endpoint(request: DownloadRequest):
+async def download_timetables_endpoint(
+    request: DownloadRequest,
+    _: str = Depends(require_admin_key),
+):
     """
     Download timetable PDFs from UWI's CELCAT server.
     Supports filtering by faculty, department, or course codes.
+
+    Admin only: this makes the server fetch up to 1,600 files from UWI and
+    write them to disk, which is not a thing a stranger should be able to
+    trigger.
     """
     from timetable_extractor import download_timetables
 
@@ -319,10 +485,16 @@ async def download_timetables_endpoint(request: DownloadRequest):
 
 
 @app.post("/evaluate", response_model=EvaluateResponse)
-async def evaluate_headers_endpoint(request: EvaluateRequest):
+async def evaluate_headers_endpoint(
+    request: EvaluateRequest,
+    _: str = Depends(require_admin_key),
+):
     """
     Evaluate time-header consistency across all PDFs in a directory.
     Reports discrepancies, missing headers, and read errors.
+
+    Admin only: like batch extraction, it reads a caller-supplied path on the
+    server.
     """
     from timetable_extractor import evaluate_headers
 
