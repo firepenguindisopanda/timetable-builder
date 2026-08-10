@@ -16,6 +16,7 @@ import pytest
 from timetable_extractor.database.courses import (
     build_code_index,
     code_key,
+    find_published_code,
     resolve_course_code,
 )
 
@@ -78,3 +79,95 @@ class TestResolveCourseCode:
 
     def test_code_key_ignores_spacing_and_case(self):
         assert code_key("CLL PORTUGU ESE 1A") == code_key("cllportuguese1a")
+
+
+class FakeCursor:
+    """
+    Answers `find_published_code`'s lookup out of a list of published codes.
+
+    It also records the keys it was asked for, because the order of the two
+    attempts is the behaviour under test rather than an implementation detail.
+    """
+
+    def __init__(self, published: list[str]) -> None:
+        self._published = published
+        self._row: tuple[str] | None = None
+        self.keys_tried: list[str] = []
+
+    def execute(self, sql: str, params: tuple) -> None:
+        (key,) = params
+        self.keys_tried.append(key)
+        self._row = next(
+            ((code,) for code in self._published if code_key(code) == key), None
+        )
+
+    def fetchone(self) -> tuple[str] | None:
+        return self._row
+
+
+class TestFindPublishedCode:
+    """
+    Matching a code a student typed against what the university published.
+
+    Normalising alone answered 404 for two real shapes: it splits "WW101" at
+    the digit, and it eats the hyphen inside
+    "FOUN 1001 (FULL & PART-TIME)". Both are published courses, and the second
+    is one most of the campus takes.
+    """
+
+    @pytest.fixture
+    def cursor(self) -> FakeCursor:
+        return FakeCursor(CANONICAL)
+
+    @pytest.mark.parametrize("code", CANONICAL)
+    def test_a_published_code_finds_itself(self, code, cursor):
+        assert find_published_code(cursor, code) == code
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("comp2601", "COMP 2601"),
+            ("COMP2601", "COMP 2601"),
+            ("  comp   2601  ", "COMP 2601"),
+            # The hyphen-separated form the explorer's URLs accept.
+            ("comp-2601", "COMP 2601"),
+        ],
+    )
+    def test_spacing_and_case_do_not_matter(self, raw, expected, cursor):
+        assert find_published_code(cursor, raw) == expected
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("WW101", "WW101"),
+            ("ww101", "WW101"),
+            ("WW 101", "WW101"),
+            ("FOUN 1001 (FULL & PART-TIME)", "FOUN 1001 (FULL & PART-TIME)"),
+            ("foun 1001 (full & part-time)", "FOUN 1001 (FULL & PART-TIME)"),
+        ],
+    )
+    def test_the_shapes_normalising_alone_would_lose(self, raw, expected, cursor):
+        assert find_published_code(cursor, raw) == expected
+
+    def test_what_the_caller_wrote_is_tried_before_the_normalised_form(self, cursor):
+        """
+        The hyphen in "FOUN 1001 (FULL & PART-TIME)" is only survivable this
+        way round: once normalising has turned it into a space, no amount of
+        ignoring spacing gets it back.
+        """
+        find_published_code(cursor, "FOUN 1001 (FULL & PART-TIME)")
+
+        assert cursor.keys_tried == [code_key("FOUN 1001 (FULL & PART-TIME)")]
+
+    def test_a_code_already_in_its_published_form_costs_one_query(self, cursor):
+        find_published_code(cursor, "COMP 2601")
+
+        assert len(cursor.keys_tried) == 1
+
+    def test_an_unknown_code_is_not_found(self, cursor):
+        assert find_published_code(cursor, "ZZZZ 9999") is None
+
+    @pytest.mark.parametrize("raw", ["", "   "])
+    def test_an_empty_code_is_not_found_and_costs_no_query(self, raw, cursor):
+        assert find_published_code(cursor, raw) is None
+        assert cursor.keys_tried == []

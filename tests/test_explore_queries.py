@@ -1,9 +1,9 @@
 """
 Tests for the explorer's pure display logic.
 
-The query functions themselves need a database, but the three pieces that
-decide what a student actually sees - the week bitmask, course-code
-normalisation, and week-grid positioning - are pure and are pinned here.
+The query functions themselves need a database, but the pieces that decide what
+a student actually sees - the week bitmask, course-code normalisation and
+resolution, and week-grid positioning - are pure and are pinned here.
 """
 
 from __future__ import annotations
@@ -11,7 +11,9 @@ from __future__ import annotations
 import pytest
 
 from timetable_extractor.database.explore_queries import (
+    build_code_index,
     normalise_course_code,
+    resolve_published_code,
     week_layout,
     weeks_to_mask,
 )
@@ -61,6 +63,83 @@ def test_normalise_course_code(raw, expected):
 
 def test_normalise_course_code_without_digits_is_left_alone():
     assert normalise_course_code("elective") == "ELECTIVE"
+
+
+# Resolving a code onto the spelling the warehouse holds
+
+
+#: Real codes from the publication of 6 August 2026, picked for the shapes that
+#: break a normaliser assuming every code is "SUBJ 1234". The last three are
+#: the whole reason `resolve_published_code` exists.
+PUBLISHED = [
+    "COMP 1601",
+    "COMP 2601",
+    "BIOL 1262",
+    "FOUN 1001 (ALJGSB)",
+    "FOUN 1001 (FULL & PART-TIME)",
+    "GRSM 7000 (CHEMISTRY)",
+    "CAPE BIOL",
+    "MHC",
+    "WW101",
+    "GW101",
+]
+
+
+@pytest.fixture
+def published() -> dict[str, str]:
+    return build_code_index(PUBLISHED)
+
+
+@pytest.mark.parametrize("code", PUBLISHED)
+def test_a_published_code_resolves_to_itself(code, published):
+    assert resolve_published_code(code, published) == code
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("comp1601", "COMP 1601"),
+        ("COMP1601", "COMP 1601"),
+        ("  comp   1601 ", "COMP 1601"),
+        # The hyphen-separated form the explorer's URLs accept.
+        ("comp-2601", "COMP 2601"),
+    ],
+)
+def test_spacing_and_case_do_not_matter(raw, expected, published):
+    assert resolve_published_code(raw, published) == expected
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        # normalise_course_code turns the hyphen into a space, giving
+        # "FOUN 1001 (FULL & PART TIME)", which nobody publishes.
+        ("FOUN 1001 (FULL & PART-TIME)", "FOUN 1001 (FULL & PART-TIME)"),
+        ("foun 1001 (full & part-time)", "FOUN 1001 (FULL & PART-TIME)"),
+        # ...and splits these at the first digit, giving "WW 101".
+        ("WW101", "WW101"),
+        ("ww101", "WW101"),
+        ("WW 101", "WW101"),
+        ("GW101", "GW101"),
+    ],
+)
+def test_codes_the_normaliser_would_corrupt_still_resolve(raw, expected, published):
+    assert resolve_published_code(raw, published) == expected
+
+
+@pytest.mark.parametrize("raw", ["BOGUS 1000", "", "   ", "1601"])
+def test_an_unknown_code_resolves_to_nothing(raw, published):
+    assert resolve_published_code(raw, published) is None
+
+
+def test_trailing_junk_is_not_silently_repaired(published):
+    """
+    The PDF resolver walks back a token at a time to strip swallowed text. A
+    student's pasted list gets no such benefit of the doubt: an unparseable
+    line has to reach them as "not published" rather than quietly becoming a
+    course they did not ask for.
+    """
+    assert resolve_published_code("COMP 1601 LALLA,TERRENCE", published) is None
 
 
 # Week grid layout

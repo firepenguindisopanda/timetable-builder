@@ -69,22 +69,15 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // The meter's markup belongs to this stylesheet, but which weeks it lights
+  // and what it announces are shared with the calendar's picker.
   function weekMeter(mask) {
     var out = '<span class="wk wk--sm" role="img" aria-label="'
-            + escapeHtml(weekLabel(mask)) + '">';
+            + escapeHtml(weekMaskLabel(mask)) + '">';
     for (var w = 1; w <= TOTAL_WEEKS; w++) {
       out += (mask >> (w - 1)) & 1 ? '<i class="on"></i>' : '<i></i>';
     }
     return out + '</span>';
-  }
-
-  function weekLabel(mask) {
-    var weeks = [];
-    for (var w = 1; w <= TOTAL_WEEKS; w++) {
-      if ((mask >> (w - 1)) & 1) { weeks.push(w); }
-    }
-    if (!weeks.length) { return 'No teaching weeks recorded'; }
-    return 'Runs in week' + (weeks.length > 1 ? 's ' : ' ') + weeks.join(', ');
   }
 
   // static list filtering
@@ -161,21 +154,6 @@
 
   // filtering
 
-  function haystack(course) {
-    if (course._hay === undefined) {
-      course._hay = [
-        course.code,
-        course.code.replace(/\s+/g, ''),
-        course.title,
-        course.department,
-        course.faculty,
-        (course.rooms || []).join(' '),
-        (course.staff || []).join(' ')
-      ].join(' ').toLowerCase();
-    }
-    return course._hay;
-  }
-
   function matchesState(course) {
     if (state.faculty && course.faculty !== state.faculty) { return false; }
     if (state.day && (course.days || []).indexOf(state.day) === -1) { return false; }
@@ -194,13 +172,9 @@
       return false;
     }
 
-    if (state.q) {
-      var terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
-      var hay = haystack(course);
-      for (var t = 0; t < terms.length; t++) {
-        if (hay.indexOf(terms[t]) === -1) { return false; }
-      }
-    }
+    // Shared with the calendar's picker, so the same words find the same
+    // courses on both pages.
+    if (state.q && !courseMatchesQuery(course, state.q)) { return false; }
     return true;
   }
 

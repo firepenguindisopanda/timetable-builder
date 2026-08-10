@@ -352,7 +352,7 @@
     padding: 10px 12px;
     font-weight: 600;
     font-size: 0.8rem;
-    color: var(--accent-danger);
+    color: var(--accent-red);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -368,13 +368,64 @@
     display: block;
 }
 
+.conflict-heading {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-amber);
+    margin: 10px 0 5px;
+}
+
+.conflict-heading:first-child { margin-top: 2px; }
+
+/* The ones nothing can be done about, so they do not read as a to-do list. */
+.conflict-heading.stuck { color: var(--text-tertiary); }
+
 .conflict-item {
-    padding: 6px 8px;
-    background: rgba(255, 61, 113, 0.15);
-    border-radius: 4px;
-    margin-bottom: 4px;
-    font-size: 0.7rem;
+    padding: 8px 10px;
+    background: rgba(255, 61, 113, 0.12);
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-size: 0.72rem;
+    color: var(--text-primary);
+}
+
+.conflict-when,
+.conflict-weeks {
     color: var(--text-secondary);
+    font-size: 0.68rem;
+    margin-top: 2px;
+}
+
+.conflict-weeks { color: var(--text-tertiary); }
+
+.conflict-action { margin-top: 6px; }
+
+.conflict-action .btn {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+}
+
+.conflict-stuck {
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* The student's correction to what counts as one class (spec section 4) */
+.group-override {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.group-override .why {
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+    line-height: 1.5;
 }
 
 .calendar-wrapper {
@@ -524,6 +575,20 @@
     opacity: 0.7;
 }
 
+/* A class that starts before the grid does, or runs past its end. Clamped so
+   it stays visible, and hatched so it does not look like the real duration. */
+.calendar-event.clipped {
+    background-image: repeating-linear-gradient(
+        135deg, transparent, transparent 5px,
+        rgba(255, 255, 255, 0.07) 5px, rgba(255, 255, 255, 0.07) 10px);
+}
+
+.calendar-event .event-clipped {
+    font-size: 0.5rem;
+    font-style: italic;
+    opacity: 0.85;
+}
+
 .legend-dot {
     width: 8px;
     height: 8px;
@@ -551,6 +616,354 @@
 .drop-zone.same-slot {
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.04);
+}
+
+/* ===== Course picker =====
+   The rows borrow the explorer's shape, not its stylesheet: explore.css has
+   its own palette and its own light and dark handling, and this page is dark
+   throughout. Same facts, same order, this page's colours. */
+
+.mode-chooser {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.mode-card {
+    display: block;
+    text-align: left;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 18px;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.mode-card:hover,
+.mode-card:focus-visible {
+    border-color: var(--border-medium);
+    background: var(--bg-elevated);
+    outline: none;
+}
+
+.mode-card h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--accent-cyan);
+}
+
+/* Two equal choices, told apart by hue rather than by one looking louder. */
+.mode-card.upload h3 { color: var(--accent-green); }
+
+.mode-card p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.picker-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.picker-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-head input {
+    flex: 1;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.picker-head input:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: -1px;
+}
+
+.picker-status {
+    padding: 8px 14px;
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 340px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.picker-results::-webkit-scrollbar { width: 6px; }
+.picker-results::-webkit-scrollbar-track { background: transparent; }
+.picker-results::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+
+.picker-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-check {
+    margin: 0 0 0 14px;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-cyan);
+    cursor: pointer;
+}
+
+.picker-check:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+
+.picker-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 130px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 14px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    transition: background 0.12s ease;
+}
+
+.picker-row:hover { background: var(--bg-interactive); }
+
+/* The running count and the button that commits a whole batch */
+.picker-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.picker-actions span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+/* Paste a list */
+.picker-paste {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-paste textarea {
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    resize: vertical;
+    min-height: 76px;
+}
+
+.picker-paste textarea:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: -1px;
+}
+
+.paste-preview {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.paste-preview .chip {
+    display: inline-block;
+    padding: 1px 7px;
+    margin: 2px 3px 2px 0;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    background: var(--accent-cyan-dim);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+.paste-preview .chip.dim {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-tertiary);
+    border-color: var(--border-subtle);
+}
+
+.paste-preview .chip.bad {
+    background: rgba(255, 61, 113, 0.12);
+    color: var(--accent-red);
+    border-color: rgba(255, 61, 113, 0.35);
+}
+
+.paste-preview h4 {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    margin: 8px 0 2px;
+}
+
+.picker-row:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: -2px;
+}
+
+.picker-row[disabled] {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.picker-row[disabled]:hover { background: none; }
+
+.picker-code {
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: var(--accent-cyan);
+    font-variant-numeric: tabular-nums;
+}
+
+.picker-title {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.picker-meta {
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.picker-right {
+    text-align: right;
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+/* The explorer's week meter, in this page's colours. Twelve marks, one per
+   teaching week, so a fortnightly lab reads as a comb at a glance. */
+.wk-meter {
+    display: inline-flex;
+    gap: 1px;
+    margin-top: 3px;
+}
+
+.wk-meter i {
+    width: 3px;
+    height: 10px;
+    background: var(--border-subtle);
+    border-radius: 1px;
+}
+
+.wk-meter i.on { background: var(--accent-cyan); }
+
+.picker-empty {
+    padding: 22px 14px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+/* Toasts report what an add actually did, since it happens with no apply step */
+.toast-stack {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: min(360px, calc(100vw - 32px));
+}
+
+.toast-note {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    animation: toast-in 0.18s ease;
+}
+
+/* What happened is carried by the icon and the headline, not by a stripe
+   down the side, which is easier to read at a glance and survives the note
+   being narrow on a phone. */
+.toast-line {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+}
+
+.toast-note.warn .toast-line { color: var(--accent-amber); }
+.toast-note.bad .toast-line { color: var(--accent-red); }
+
+.toast-note small {
+    display: block;
+    margin-top: 4px;
+    padding-left: 21px;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast-note { animation: none; }
+}
+
+@media (max-width: 560px) {
+    .picker-row {
+        grid-template-columns: 1fr auto;
+        row-gap: 2px;
+    }
+    .picker-code { grid-column: 1; }
+    .picker-right { grid-column: 2; grid-row: 1 / span 2; }
+    .picker-name { grid-column: 1 / -1; }
 }
 
 /* ===== Responsive: stack on small screens ===== */
@@ -600,6 +1013,86 @@
         </p>
     </div>
 
+    <!-- Storage failure, which used to be logged and never shown (E14) -->
+    <div id="storageWarning" class="alert alert-warning py-2 px-3 mb-3" role="alert"
+         style="display: none; font-size: 0.8rem;">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <span id="storageWarningText"></span>
+    </div>
+
+    <!-- The warehouse was reloaded under a saved timetable (E16) -->
+    <div id="staleWarning" class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2"
+         role="status" style="display: none; font-size: 0.8rem;">
+        <i class="bi bi-arrow-repeat"></i>
+        <span class="flex-grow-1" id="staleWarningText"></span>
+        <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
+            Update my courses
+        </button>
+        <button type="button" class="btn btn-sm btn-link text-decoration-none" id="staleDismiss">
+            Not now
+        </button>
+    </div>
+
+    <!-- Two ways in, offered only while the calendar is empty (9.1) -->
+    <div id="modeChooser" style="display: none; margin-bottom: 16px;">
+        <h2 style="font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 12px;">
+            Build your timetable
+        </h2>
+        <div class="mode-chooser">
+            <button type="button" class="mode-card" id="choosePicker">
+                <h3><i class="bi bi-search me-1"></i> Pick your courses</h3>
+                <p>Search every published course and we will fill in the days,
+                   times and rooms.</p>
+            </button>
+            <a class="mode-card upload" href="/extract">
+                <h3><i class="bi bi-upload me-1"></i> Upload timetable PDFs</h3>
+                <p>For a course the university has not published, or a draft
+                   you were sent.</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Course picker -->
+    <div id="pickerPanel" class="picker-panel" style="display: none;">
+        <div class="picker-head">
+            <input type="search" id="pickerQuery" autocomplete="off"
+                   placeholder="Search by code, title, lecturer or room"
+                   aria-label="Search courses to add">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="pasteToggle"
+                    aria-expanded="false" aria-controls="pickerPaste" style="white-space: nowrap;">
+                <i class="bi bi-clipboard me-1"></i> Paste a list
+            </button>
+            <a href="/extract" class="btn btn-outline-secondary btn-sm" style="white-space: nowrap;">
+                <i class="bi bi-upload me-1"></i> Add a PDF
+            </a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose"
+                    aria-label="Close the course picker">Done</button>
+        </div>
+
+        <div class="picker-paste" id="pickerPaste" style="display: none;">
+            <label for="pasteBox" class="visually-hidden">Paste your course codes</label>
+            <textarea id="pasteBox" rows="4" spellcheck="false"
+                placeholder="Paste your codes, however you have them:&#10;COMP 1601, COMP 1602, MATH 1115&#10;or one to a line"></textarea>
+            <div class="paste-preview" id="pastePreview"></div>
+            <button type="button" class="btn btn-accent btn-sm mt-2" id="pasteAdd" disabled>
+                Add courses
+            </button>
+        </div>
+
+        <div class="picker-status" id="pickerStatus">Loading courses...</div>
+        <ul class="picker-results" id="pickerResults" aria-label="Search results"></ul>
+
+        <div class="picker-actions" id="pickerActions" style="display: none;">
+            <span id="pickerSelectedCount">Nothing selected</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClearSelection">
+                Clear
+            </button>
+            <button type="button" class="btn btn-accent btn-sm" id="pickerAddSelected">
+                Add courses
+            </button>
+        </div>
+    </div>
+
     <!-- Conflicts Warning -->
     <div id="conflictsPanel" class="conflicts-panel" style="display: none;">
         <div class="conflicts-header" onclick="toggleConflicts()">
@@ -646,10 +1139,18 @@
             <div class="col-auto">
                 <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">&larrhk; Undo</button>
                 <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">&larrhk; Redo</button>
-                <button id="clearBtn" class="btn btn-outline-warning btn-sm">&crarr; Clear &amp; Auto-Place</button>
+                <button id="addCoursesBtn" class="btn btn-accent btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Add courses
+                </button>
+                <button id="clearBtn" class="btn btn-outline-warning btn-sm"
+                        title="May move classes you did not place yourself">&crarr; Re-optimise</button>
+                <button id="shareBtn" class="btn btn-outline-info btn-sm"
+                        title="Copy a link that rebuilds this timetable">
+                    <i class="bi bi-link-45deg"></i> Share
+                </button>
             </div>
             <div class="col">
-                <small class="text-muted">Drag events to available stream slots. Same course+type events can swap.</small>
+                <small class="text-muted">Drag a class to any of its alternatives. Anything you move yourself stays put.</small>
             </div>
         </div>
     </div>
@@ -664,14 +1165,15 @@
     </div>
 
     <!-- Empty -->
-    <div id="emptyState" class="text-center py-5" style="display: none; max-width: 400px; margin: 0 auto;">
-        <i class="bi bi-calendar-x" style="font-size: 2.5rem; color: var(--text-tertiary);"></i>
-        <p class="mt-3" style="color: var(--text-secondary); font-size: 0.95rem;">No timetable data yet.</p>
-        <p style="color: var(--text-tertiary); font-size: 0.8rem; margin-bottom: 1.5rem;">Upload and extract your PDF timetables to build your calendar.</p>
-        <a href="/extract" class="btn btn-accent" style="border-radius: 8px;">
-            <i class="bi bi-upload me-1"></i> Go to Extract
-        </a>
+    <div id="emptyState" class="text-center py-4" style="display: none; max-width: 420px; margin: 0 auto;">
+        <i class="bi bi-calendar-x" style="font-size: 2rem; color: var(--text-tertiary);"></i>
+        <p class="mt-3" style="color: var(--text-secondary); font-size: 0.9rem;">
+            Nothing on your timetable yet.
+        </p>
     </div>
+
+    <!-- Toasts -->
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 
     <!-- Legend -->
     <div class="mt-3 text-center">
@@ -686,35 +1188,39 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/assets/js/calendar-utils.js?v=2"></script>
-<script src="/assets/js/timetable-state.js?v=2"></script>
+<script src="/assets/js/calendar-utils.js?v=3"></script>
+<script src="/assets/js/course-search.js?v=3"></script>
+<script src="/assets/js/option-groups.js?v=3"></script>
+<script src="/assets/js/placement.js?v=3"></script>
+<script src="/assets/js/timetable-state.js?v=3"></script>
 <script>
 (function() {
     'use strict';
 
-    // Calendar State
-    const STORAGE_KEY_V2 = 'celcat_timetable_v2';
     const $undoBtn = document.getElementById('undoBtn');
     const $redoBtn = document.getElementById('redoBtn');
     const $clearBtn = document.getElementById('clearBtn');
     const $searchBox = document.getElementById('searchBox');
-    const $eventList = document.getElementById('eventsList');
-    const $conflictPanel = document.getElementById('conflictPanel');
     const $emptyState = document.getElementById('emptyState');
     const $detailPlaceholder = document.getElementById('detailPlaceholder');
     const $detailContent = document.getElementById('detailContent');
+    const $storageWarning = document.getElementById('storageWarning');
+    const $storageWarningText = document.getElementById('storageWarningText');
+
     let currentEvents = [];
     let state = null;
-    let onChangeUnsubscribe = null;
-    let selectedEventKey = null; // tracks currently selected event
+    // One placement per option group, so the group id is what identifies a
+    // block on the grid. It used to be course id plus type, which cannot tell
+    // a course's Monday lecture from its Wednesday one.
+    let selectedGroupId = null;
 
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const START_HOUR = 8;
     const SLOTS_PER_HOUR = 2;
     const TOTAL_HOURS = 14;
+    const TOTAL_SLOTS = TOTAL_HOURS * SLOTS_PER_HOUR;
 
     const calendarWrapper = document.getElementById('calendarWrapper');
-    const emptyState = document.getElementById('emptyState');
     const searchBox = document.getElementById('searchBox');
 
     // Build calendar grid
@@ -748,6 +1254,10 @@
         return slot * 30;
     }
 
+    function shortLabel(event) {
+        return event.code || event.courseKey || event.courseTitle || '?';
+    }
+
     // ===== Event List Rendering =====
     function renderEventsList(events, filter = '') {
         const listEl = document.getElementById('eventsList');
@@ -764,8 +1274,9 @@
             const term = filter.toLowerCase();
             filtered = events.filter(e =>
                 (e.courseTitle || '').toLowerCase().includes(term) ||
+                (e.courseKey || '').toLowerCase().includes(term) ||
                 (e.day || '').toLowerCase().includes(term) ||
-                (e.streamType || '').toLowerCase().includes(term) ||
+                (e.type || '').toLowerCase().includes(term) ||
                 (e.room || '').toLowerCase().includes(term)
             );
         }
@@ -781,109 +1292,120 @@
 
         let html = '';
         sorted.forEach(event => {
-            const typeClass = (event.streamType || 'other').toLowerCase();
-            const eventKey = event.courseId + '|' + event.streamType;
-            const isSelected = eventKey === selectedEventKey;
+            const typeClass = typeClassOf(event.type);
+            const isSelected = event.groupId === selectedGroupId;
             html += `<div class="event-list-item${isSelected ? ' selected' : ''}"
-                data-course-id="${escapeHtml(event.courseId)}"
-                data-stream-type="${escapeHtml(event.streamType)}"
-                data-event-key="${escapeHtml(eventKey)}"
+                data-group-id="${escapeHtml(event.groupId)}"
                 role="option"
                 aria-selected="${isSelected}"
                 tabindex="0"
-                ondblclick="showEventDetail('${escapeHtml(event.courseId)}', '${escapeHtml(event.streamType)}')"
-                onkeydown="handleListKeydown(event, '${escapeHtml(event.courseId)}', '${escapeHtml(event.streamType)}')">
+                ondblclick="showEventDetail('${escapeHtml(event.groupId)}')"
+                onkeydown="handleListKeydown(event, '${escapeHtml(event.groupId)}')">
                 <span class="event-dot ${typeClass}"></span>
                 <span class="event-list-time">${event.day.substring(0,3)} ${event.startTime}</span>
                 <span class="event-list-course">${escapeHtml(event.courseTitle || '?')}</span>
-                <span class="event-list-type">${escapeHtml(event.streamType || 'Event')}</span>
+                <span class="event-list-type">${escapeHtml(event.type || 'Event')}${event.pinned ? ' &#9679;' : ''}</span>
             </div>`;
         });
 
         listEl.innerHTML = html;
     }
 
-    // Keyboard handler for list items: Enter/Space triggers detail view
-    window.handleListKeydown = function(e, courseId, streamType) {
+    /**
+     * The grid has four colours and the warehouse publishes 22 activity types,
+     * so anything unfamiliar is coloured as "other" rather than renamed. The
+     * type itself is always shown in full beside it.
+     */
+    function typeClassOf(type) {
+        const known = ['lecture', 'lab', 'tutorial'];
+        const lower = String(type || '').toLowerCase();
+        return known.includes(lower) ? lower : 'other';
+    }
+
+    window.handleListKeydown = function(e, groupId) {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            showEventDetail(courseId, streamType);
+            showEventDetail(groupId);
         }
     };
 
     // ===== Detail Panel Rendering =====
-    window.showEventDetail = function(courseId, streamType) {
+    window.showEventDetail = function(groupId) {
         if (!state) return;
 
-        // Update selection state
-        selectedEventKey = courseId + '|' + streamType;
+        selectedGroupId = groupId;
 
-        // Highlight the selected list item
         document.querySelectorAll('.event-list-item.selected').forEach(el => {
             el.classList.remove('selected');
             el.setAttribute('aria-selected', 'false');
         });
-        const selectedItem = document.querySelector(`.event-list-item[data-event-key="${selectedEventKey}"]`);
+        const selectedItem = document.querySelector(`.event-list-item[data-group-id="${CSS.escape(groupId)}"]`);
         if (selectedItem) {
             selectedItem.classList.add('selected');
             selectedItem.setAttribute('aria-selected', 'true');
             selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
 
-        // Get enriched event data
-        const details = state.getPlacedEventDetails(courseId, streamType);
+        const details = state.getPlacedEventDetails(groupId);
         if (!details) return;
 
-        // Hide placeholder, show detail content
         $detailPlaceholder.style.display = 'none';
         $detailContent.style.display = 'block';
 
-        const typeClass = (details.streamType || 'other').toLowerCase();
-        const typeIcon = getTypeIcon(details.streamType);
+        const typeClass = typeClassOf(details.type);
+        const typeIcon = getTypeIcon(details.type);
 
         let html = '';
 
-        // Header with course title and type badge
         html += `<div class="detail-header">
             <h3 class="detail-course-title">${escapeHtml(details.courseTitle)}</h3>
             <span class="detail-type-badge ${typeClass}">
                 <i class="bi ${typeIcon}"></i>
-                ${escapeHtml(details.streamType)}${details.groupLabel ? ' \u2014 ' + escapeHtml(details.groupLabel) : ''}
+                ${escapeHtml(details.type || 'Class')}${details.streamLabel ? ' ' + escapeHtml(details.streamLabel) : ''}
             </span>
         </div>`;
 
-        // Schedule section
         html += `<div class="detail-section">
             <h4 class="detail-section-title"><i class="bi bi-clock"></i> Schedule</h4>
             ${detailField('Day', details.day)}
             ${detailField('Start Time', formatTime12(details.startTime))}
             ${detailField('End Time', formatTime12(details.endTime))}
-            ${details.weeks ? detailField('Weeks', details.weeks) : ''}
-            ${details.weekCount ? detailField('Week Count', details.weekCount + ' weeks') : ''}
+            ${detailField('Weeks', describeWeeks(details))}
         </div>`;
 
-        // Location section
         html += `<div class="detail-section">
             <h4 class="detail-section-title"><i class="bi bi-geo-alt"></i> Location</h4>
-            ${detailField('Room', details.room || 'Not specified')}
+            ${detailField('Room', details.room)}
         </div>`;
 
-        // People section
         html += `<div class="detail-section">
             <h4 class="detail-section-title"><i class="bi bi-person"></i> People</h4>
-            ${detailField('Staff', details.staff || 'Not specified')}
+            ${detailField('Staff', (details.staff || []).join(', '))}
         </div>`;
 
-        // Metadata section
+        const alternatives = details.optionCount > 1
+            ? `${details.optionCount} alternatives, drag to change`
+            : 'No alternative published';
         html += `<div class="detail-section">
-            <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> Metadata</h4>
-            ${detailField('Course ID', details.courseId)}
-            ${detailField('Stream ID', details.streamId)}
-            ${detailField('Type Key', details.typeKey)}
-            ${detailField('Source File', details.sourceFile || 'Not specified')}
+            <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
+            ${detailField('Course', details.courseKey)}
+            ${detailField('Options', alternatives)}
+            ${detailField('Chosen by', details.pinned ? 'You' : 'Auto-placement')}
+            ${detailField('Source', details.origin === 'upload'
+                ? 'Your upload: ' + (details.sourceFile || 'PDF')
+                : 'Published timetable')}
+            ${groupOverrideHtml(details)}
         </div>`;
 
-        // Collapsible raw data section
+        // Removing takes the whole course, not this one class: a lecture
+        // without its labs is not something a student wants to be left with.
+        html += `<div class="detail-section">
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                onclick="removeCourseFromCalendar('${escapeHtml(details.courseKey)}')">
+                <i class="bi bi-trash me-1"></i> Remove ${escapeHtml(details.courseKey)}
+            </button>
+        </div>`;
+
         const rawData = buildRawData(details);
         html += `<button class="detail-raw-toggle"
             onclick="toggleRawData(this)"
@@ -898,22 +1420,89 @@
         </div>`;
 
         $detailContent.innerHTML = html;
-
-        // Announce to screen readers
-        $detailContent.setAttribute('aria-label', `Details for ${details.courseTitle} ${details.streamType}`);
+        $detailContent.setAttribute('aria-label', `Details for ${details.courseTitle} ${details.type}`);
     };
+
+    /**
+     * How the grouping rules read this course's classes, and how to disagree.
+     *
+     * No rule gets all 457 ambiguous course-and-type groups in the warehouse
+     * right, so the correction is part of the design rather than an escape
+     * hatch. Section 4 of the spec calls for it explicitly.
+     */
+    const GROUP_REASON = {
+        ceiling: 'These add up to more than a person could attend in a week, ' +
+                 'so we read them as a choice.',
+        labelled: 'These carry stream labels, which usually means pick one.',
+        overlap: 'These run at the same time, so you can only be at one.',
+        override: 'You said these are alternatives.',
+        single: 'Nothing else of this type runs opposite it.',
+    };
+
+    function groupOverrideHtml(details) {
+        if (!state) return '';
+        const siblings = state.getSiblingGroups(details.groupId);
+        const isMenu = details.optionCount > 1;
+        const overridden = details.groupReason === 'override';
+
+        let control = '';
+        if (isMenu) {
+            control = `<button type="button" class="btn btn-outline-secondary btn-sm group-split"
+                    data-course-key="${escapeHtml(details.courseKey)}"
+                    data-type="${escapeHtml(details.type || '')}">
+                    No, I attend all of these
+               </button>`;
+        } else if (siblings.length) {
+            control = `<button type="button" class="btn btn-outline-secondary btn-sm group-merge"
+                    data-course-key="${escapeHtml(details.courseKey)}"
+                    data-type="${escapeHtml(details.type || '')}">
+                    I only attend one of these ${siblings.length + 1}
+               </button>`;
+        }
+        if (!control && !overridden) return '';
+
+        const undo = overridden || details.groupReason === 'split'
+            ? `<button type="button" class="btn btn-outline-secondary btn-sm group-reset"
+                    data-course-key="${escapeHtml(details.courseKey)}"
+                    data-type="${escapeHtml(details.type || '')}">
+                    Use the published grouping again
+               </button>`
+            : '';
+
+        return `<div class="group-override">
+            <span class="why">${escapeHtml(GROUP_REASON[details.groupReason] || '')}</span>
+            ${control}${undo}
+        </div>`;
+    }
+
+    /**
+     * Uploaded PDFs carry the printed week text and nothing else, so there is
+     * no expanded array to count. Saying "Not published" for those would be a
+     * lie: the weeks are right there, just not as data.
+     */
+    function describeWeeks(details) {
+        if (details.weeksRaw) {
+            const count = details.weeks ? ` (${details.weeks.length} weeks)` : '';
+            return details.weeksRaw + count;
+        }
+        if (details.weeks && details.weeks.length) {
+            return 'W' + details.weeks.join(', W');
+        }
+        return '';
+    }
 
     function formatTime12(time24) {
         if (!time24) return '';
-        const mins = timeToMins(time24);
-        return timeLabel(mins);
+        return timeLabel(timeToMins(time24));
     }
 
+    /** Empty fields say "Not published", never nothing at all (E9). */
     function detailField(label, value) {
-        const isEmpty = !value || value === 'Not specified';
+        const isEmpty = value === null || value === undefined || value === '';
+        const shown = isEmpty ? 'Not published' : value;
         return `<div class="detail-field">
             <span class="detail-field-label">${escapeHtml(label)}</span>
-            <span class="detail-field-value${isEmpty ? ' empty' : ''}">${escapeHtml(value)}</span>
+            <span class="detail-field-value${isEmpty ? ' empty' : ''}">${escapeHtml(String(shown))}</span>
         </div>`;
     }
 
@@ -930,28 +1519,49 @@
 
     function buildRawData(details) {
         const fields = [
-            ['courseId', details.courseId],
+            ['courseKey', details.courseKey],
             ['courseTitle', details.courseTitle],
-            ['streamType', details.streamType],
-            ['typeKey', details.typeKey],
+            ['origin', details.origin],
+            ['type', details.type],
+            ['groupId', details.groupId],
+            ['groupReason', details.groupReason],
+            ['optionCount', details.optionCount],
+            ['pinned', details.pinned],
+            ['sessionId', details.sessionId],
             ['streamId', details.streamId],
             ['day', details.day],
             ['startTime', details.startTime],
             ['endTime', details.endTime],
             ['room', details.room],
-            ['staff', details.staff],
-            ['groupLabel', details.groupLabel],
-            ['weeks', details.weeks],
-            ['weekCount', details.weekCount],
+            ['staff', (details.staff || []).join(', ')],
+            ['streamLabel', details.streamLabel],
+            ['weeks', details.weeks ? details.weeks.join(', ') : null],
+            ['weeksRaw', details.weeksRaw],
+            ['sourceCount', details.sourceCount],
             ['sourceFile', details.sourceFile],
         ];
         return fields
-            .filter(([, v]) => v !== null && v !== undefined)
+            .filter(([, v]) => v !== null && v !== undefined && v !== '')
             .map(([k, v]) => `${k}: ${v}`)
             .join('\n');
     }
 
-    // Toggle collapsible raw data section
+    $detailContent.addEventListener('click', event => {
+        const button = event.target.closest('.group-split, .group-merge, .group-reset');
+        if (!button || !state) return;
+        const { courseKey, type } = button.dataset;
+        const mode = button.classList.contains('group-split') ? 'split'
+                   : button.classList.contains('group-merge') ? 'menu'
+                   : null;
+        state.setOptionGroupOverride(courseKey, type, mode);
+        toast(`Regrouped ${courseKey} ${String(type).toLowerCase()}.`,
+              'Saved with your timetable. Ctrl+Z to undo.');
+        // The old group ids are gone, so the panel has nothing left to show.
+        selectedGroupId = null;
+        $detailPlaceholder.style.display = 'flex';
+        $detailContent.style.display = 'none';
+    });
+
     window.toggleRawData = function(btn) {
         const content = document.getElementById('rawDataContent');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
@@ -960,37 +1570,92 @@
     };
 
     // ===== Conflicts Rendering =====
-    function renderConflicts(events) {
+
+    /**
+     * Why a clash has no Fix button, in words rather than by omission.
+     */
+    const NO_FIX_REASON = {
+        'no-alternative': 'Neither class has another sitting published.',
+        'pinned': 'Both of these are where you put them. Move one to free it up.',
+        'no-improvement': 'Every alternative runs into something else.',
+    };
+
+    function conflictItemHtml(c) {
+        // A null week list means neither side publishes weeks, which is every
+        // uploaded PDF, so it reads as "whenever they both run".
+        const weeks = c.weeks === null
+            ? ''
+            : `<div class="conflict-weeks">Clashes in ${c.weeks.length === 1 ? 'week' : 'weeks'} ${c.weeks.join(', ')}</div>`;
+
+        const action = c.resolvable
+            ? `<button type="button" class="btn btn-sm btn-outline-info conflict-fix"
+                    data-group-id="${escapeHtml(c.fix.groupId)}"
+                    data-session-id="${escapeHtml(String(c.fix.sessionId))}">
+                    Move ${escapeHtml(c.fix.courseKey)} ${escapeHtml(String(c.fix.type || '').toLowerCase())}
+                    to ${escapeHtml(c.fix.day)} ${escapeHtml(c.fix.startTime)}
+               </button>`
+            : `<span class="conflict-stuck">${escapeHtml(NO_FIX_REASON[c.reason] || '')}</span>`;
+
+        return `<div class="conflict-item">
+            <div><strong>${escapeHtml(c.courseA)}</strong> clashes with <strong>${escapeHtml(c.courseB)}</strong></div>
+            <div class="conflict-when">${escapeHtml(c.day)} ${escapeHtml(c.timeA)} vs ${escapeHtml(c.timeB)}</div>
+            ${weeks}
+            <div class="conflict-action">${action}</div>
+        </div>`;
+    }
+
+    function renderConflicts() {
         const conflictsPanel = document.getElementById('conflictsPanel');
         const conflictsContent = document.getElementById('conflictsContent');
         const conflictsCount = document.getElementById('conflictsCount');
 
-        const conflicts = findConflicts(events);
+        const conflicts = state ? state.getClassifiedConflicts() : [];
 
         if (conflicts.length === 0) {
             conflictsPanel.style.display = 'none';
+            // Cleared as well as hidden, so a stale clash cannot reappear if
+            // the panel is ever shown by something other than this function.
+            conflictsContent.innerHTML = '';
+            conflictsCount.textContent = '0';
             return;
         }
 
         conflictsPanel.style.display = 'block';
         conflictsCount.textContent = conflicts.length;
 
-        let html = '';
-        conflicts.forEach(c => {
-            html += `<div class="conflict-item">
-                <strong>${escapeHtml(c.courseA)}</strong> clashes with <strong>${escapeHtml(c.courseB)}</strong>
-                <br>${c.day} ${c.timeA} vs ${c.timeB}
-            </div>`;
-        });
+        // Split rather than sorted, because the two kinds ask different things
+        // of a student: one is a button, the other is a decision about which
+        // course to keep.
+        const fixable = conflicts.filter(c => c.resolvable);
+        const stuck = conflicts.filter(c => !c.resolvable);
 
+        let html = '';
+        if (fixable.length) {
+            html += `<h4 class="conflict-heading">${fixable.length} can be fixed</h4>`;
+            html += fixable.map(conflictItemHtml).join('');
+        }
+        if (stuck.length) {
+            html += `<h4 class="conflict-heading stuck">${stuck.length} cannot be avoided</h4>`;
+            html += stuck.map(conflictItemHtml).join('');
+        }
         conflictsContent.innerHTML = html;
     }
 
-    // Toggle conflicts panel
     window.toggleConflicts = function() {
-        const content = document.getElementById('conflictsContent');
-        content.classList.toggle('open');
+        document.getElementById('conflictsContent').classList.toggle('open');
     };
+
+    document.getElementById('conflictsContent').addEventListener('click', event => {
+        const button = event.target.closest('.conflict-fix');
+        if (!button || !state) return;
+        const group = state.getGroup(button.dataset.groupId);
+        const raw = button.dataset.sessionId;
+        const sessionId = group && group.sessions.some(s => s.sessionId === Number(raw))
+            ? Number(raw)
+            : raw;
+        state.applyFix({ groupId: button.dataset.groupId, sessionId });
+        toast('Moved it out of the way.', 'It stays there now. Ctrl+Z to undo.');
+    });
 
     // ===== Main Render =====
     function renderEvents() {
@@ -1003,18 +1668,20 @@
 
         if (!events || events.length === 0) {
             if ($emptyState) $emptyState.style.display = 'block';
+            if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
             if (countEl) countEl.textContent = '0';
             const cp = document.getElementById('conflictsPanel');
             if (cp) cp.style.display = 'none';
             const el = document.getElementById('eventsList');
             if (el) el.innerHTML = '';
-            // Reset detail panel
             if ($detailPlaceholder) $detailPlaceholder.style.display = 'flex';
             if ($detailContent) $detailContent.style.display = 'none';
-            selectedEventKey = null;
+            selectedGroupId = null;
             return;
         }
+
+        if (calendarWrapper) calendarWrapper.style.display = '';
 
         events.forEach(event => {
             const dayIdx = DAYS.indexOf(event.day);
@@ -1023,35 +1690,47 @@
             const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
             if (!col) return;
 
-            const startSlot = timeToSlot(event.startTime);
-            const endSlot = timeToSlot(event.endTime);
-            const top = slotToTop(startSlot);
-            const height = Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT);
-
-            const typeClass = (event.streamType || 'other').toLowerCase();
+            // Nothing in the current publication starts before 08:00 or runs
+            // past 21:00, but an uploaded PDF or a future semester can, and an
+            // unclamped block is positioned off the grid and simply disappears
+            // (E7). Clamping keeps it visible and says what was cut.
+            const rawStart = timeToSlot(event.startTime);
+            const rawEnd = timeToSlot(event.endTime);
+            const startSlot = Math.max(0, rawStart);
+            const endSlot = Math.min(TOTAL_SLOTS, Math.max(rawEnd, startSlot + 1));
+            const clipped = rawStart < 0 || rawEnd > TOTAL_SLOTS;
 
             const el = document.createElement('div');
-            el.className = `calendar-event ${typeClass}`;
-            el.style.top = `${top}px`;
-            el.style.height = `${height}px`;
-            el.dataset.courseId = event.courseId;
-            el.dataset.streamType = event.streamType;
-            el.dataset.streamId = '';
+            el.className = `calendar-event ${typeClassOf(event.type)}`
+                + (clipped ? ' clipped' : '');
+            el.style.top = `${slotToTop(startSlot)}px`;
+            el.style.height = `${Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT)}px`;
+            el.dataset.groupId = event.groupId;
+            if (clipped) {
+                // A short block has no room for the note below, so the reason
+                // is on the block itself too.
+                el.title = `${event.startTime}-${event.endTime}, which runs outside `
+                    + 'the hours this grid shows';
+            }
+
+            const course = state.getCourse(event.courseKey);
+            const stale = course && course.stale;
 
             el.innerHTML = `
-                <div class="event-course">${escapeHtml(event.courseTitle || '?')}</div>
-                <div class="event-type">${escapeHtml(event.streamType || 'Event')}</div>
+                <div class="event-course">${escapeHtml(shortLabel(event))}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
+                <div class="event-type">${escapeHtml(event.type || 'Event')}</div>
                 <div class="event-time">${escapeHtml(event.startTime)}-${escapeHtml(event.endTime)}</div>
+                ${event.room ? `<div class="event-room">${escapeHtml(event.room)}</div>` : ''}
+                ${clipped ? '<div class="event-clipped">Runs outside these hours</div>' : ''}
             `;
 
             col.appendChild(el);
         });
 
         renderEventsList(events, filter);
-        renderConflicts(events);
+        renderConflicts();
 
         if ($emptyState) $emptyState.style.display = 'none';
-
         if (state) updateUndoRedoButtons();
     }
 
@@ -1069,12 +1748,7 @@
                     start(event) {
                         const target = event.target;
                         target.classList.add('dragging');
-
-                        const courseId = target.dataset.courseId;
-                        const streamType = target.dataset.streamType;
-                        if (courseId && streamType) {
-                            showGhostZones(courseId, streamType);
-                        }
+                        if (target.dataset.groupId) showGhostZones(target.dataset.groupId);
                     },
                     move(event) {
                         const target = event.target;
@@ -1093,19 +1767,20 @@
                         const target = event.target;
                         target.classList.remove('dragging');
 
-                        const courseId = target.dataset.courseId;
-                        const streamType = target.dataset.streamType;
-
+                        const groupId = target.dataset.groupId;
                         const rect = target.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-
-                        const ghostZone = getGhostZoneAt(centerX, centerY);
+                        const ghostZone = getGhostZoneAt(
+                            rect.left + rect.width / 2,
+                            rect.top + rect.height / 2
+                        );
 
                         if (ghostZone) {
-                            const newStreamId = ghostZone.dataset.streamId;
-                            if (courseId && streamType && newStreamId && state) {
-                                state.moveEvent(courseId, streamType, newStreamId);
+                            const sessionId = ghostZone.dataset.sessionId;
+                            if (groupId && sessionId && state) {
+                                // Dragging is the student choosing, so this
+                                // pins the placement and nothing will move it
+                                // again on its own.
+                                state.moveEvent(groupId, parseSessionId(sessionId));
                             }
                             clearGhostZones();
                             target.dataset.dragX = 0;
@@ -1124,44 +1799,40 @@
                         elementRect: { left: 0, right: 0, top: 0, bottom: 0 }
                     })
                 ],
-                inertia: {
-                    enabled: true,
-                    resistance: 30,
-                    minSpeed: 100,
-                    endSpeed: 50
-                }
+                inertia: { enabled: true, resistance: 30, minSpeed: 100, endSpeed: 50 }
             });
         }
 
         initInteract();
     }
 
-    function showGhostZones(courseId, streamType) {
+    /**
+     * Warehouse sessions have numeric ids and uploaded ones use their stream
+     * id, so a dataset value has to come back as whichever it went in as.
+     */
+    function parseSessionId(raw) {
+        return /^-?\d+$/.test(raw) ? Number(raw) : raw;
+    }
+
+    function showGhostZones(groupId) {
         clearGhostZones();
-
         if (!state) return;
-        const streams = state.getAvailableStreams(courseId, streamType);
 
-        streams.forEach(stream => {
-            const dayIdx = DAYS.indexOf(stream.day);
+        state.getOptions(groupId).forEach(session => {
+            const dayIdx = DAYS.indexOf(session.day);
             if (dayIdx === -1) return;
 
             const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
             if (!col) return;
 
-            const startSlot = timeToSlot(stream.startTime);
-            const endSlot = timeToSlot(stream.endTime);
-            const top = slotToTop(startSlot);
-            const height = Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT);
+            const startSlot = timeToSlot(session.startTime);
+            const endSlot = timeToSlot(session.endTime);
 
             const zone = document.createElement('div');
             zone.className = 'drop-zone';
-            zone.style.top = `${top}px`;
-            zone.style.height = `${height}px`;
-            zone.dataset.day = stream.day;
-            zone.dataset.startTime = stream.startTime;
-            zone.dataset.endTime = stream.endTime;
-            zone.dataset.streamId = stream.streamId;
+            zone.style.top = `${slotToTop(startSlot)}px`;
+            zone.style.height = `${Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT)}px`;
+            zone.dataset.sessionId = session.sessionId;
 
             col.appendChild(zone);
         });
@@ -1172,8 +1843,7 @@
     }
 
     function getGhostZoneAt(clientX, clientY) {
-        const zones = document.querySelectorAll('.drop-zone');
-        for (const zone of zones) {
+        for (const zone of document.querySelectorAll('.drop-zone')) {
             const rect = zone.getBoundingClientRect();
             if (clientX >= rect.left && clientX <= rect.right &&
                 clientY >= rect.top && clientY <= rect.bottom) {
@@ -1197,164 +1867,664 @@
         $redoBtn.disabled = !state.canRedo();
     }
 
+    // ===== Toasts =====
+
+    /**
+     * Adding a course happens with no apply step, so the outcome has to be
+     * said out loud: how many classes went down, and whether any of them
+     * clashed with what was already there.
+     */
+    function toast(message, detail, tone) {
+        const $stack = document.getElementById('toastStack');
+        const note = document.createElement('div');
+        note.className = 'toast-note' + (tone ? ' ' + tone : '');
+        note.setAttribute('role', 'status');
+        const icon = { warn: 'bi-exclamation-triangle', bad: 'bi-x-circle' }[tone]
+            || 'bi-check-circle';
+        note.innerHTML =
+            `<div class="toast-line"><i class="bi ${icon}"></i>` +
+            `<span>${escapeHtml(message)}</span></div>` +
+            (detail ? `<small>${escapeHtml(detail)}</small>` : '');
+        $stack.appendChild(note);
+        setTimeout(() => note.remove(), 6000);
+    }
+
+    // ===== Course picker =====
+
+    const $picker = document.getElementById('pickerPanel');
+    const $pickerQuery = document.getElementById('pickerQuery');
+    const $pickerResults = document.getElementById('pickerResults');
+    const $pickerStatus = document.getElementById('pickerStatus');
+    const $modeChooser = document.getElementById('modeChooser');
+
+    //: The whole course index, fetched once. 44 KB gzipped, so searching it
+    //: costs no requests after the first.
+    let courseIndex = null;
+    let indexPromise = null;
+    const PICKER_LIMIT = 40;
+
+    function loadCourseIndex() {
+        if (indexPromise) return indexPromise;
+        indexPromise = fetch('/explore/courses.json')
+            .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then(data => {
+                courseIndex = data.courses || [];
+                return courseIndex;
+            })
+            .catch(err => {
+                indexPromise = null;
+                throw err;
+            });
+        return indexPromise;
+    }
+
+    function weekMeterHtml(mask) {
+        let out = `<span class="wk-meter" role="img" aria-label="${escapeHtml(weekMaskLabel(mask))}">`;
+        for (let w = 1; w <= 12; w++) {
+            out += (mask >> (w - 1)) & 1 ? '<i class="on"></i>' : '<i></i>';
+        }
+        return out + '</span>';
+    }
+
+    function pickerRowHtml(course, alreadyAdded) {
+        const meta = [course.faculty, course.department].filter(Boolean).join(' · ');
+        const days = (course.days || []).map(d => d.slice(0, 3)).join(' ');
+        const code = escapeHtml(course.code);
+        return `<li class="picker-item">
+            <input type="checkbox" class="picker-check" data-code="${code}"
+                   aria-label="Select ${code} to add with others"
+                   ${alreadyAdded ? 'disabled' : ''}
+                   ${selectedCodes.has(course.code) ? 'checked' : ''}>
+            <button type="button" class="picker-row" data-code="${code}"
+                    ${alreadyAdded ? 'disabled' : ''}>
+                <span>
+                    <span class="picker-code">${code}</span><br>
+                    ${weekMeterHtml(course.weeks)}
+                </span>
+                <span class="picker-name">
+                    <span class="picker-title">${escapeHtml(course.title || 'Untitled course')}</span>
+                    <span class="picker-meta">${escapeHtml(meta || 'Department not published')}</span>
+                </span>
+                <span class="picker-right">
+                    ${alreadyAdded ? 'Added' : course.sessions + (course.sessions === 1 ? ' class' : ' classes')}
+                    <br>${escapeHtml(days)}
+                </span>
+            </button>
+        </li>`;
+    }
+
+    function renderPickerResults() {
+        if (!courseIndex) return;
+        const query = $pickerQuery.value.trim();
+        const added = new Set(state ? state.courseKeys : []);
+        const matches = searchCourses(courseIndex, query, PICKER_LIMIT);
+
+        if (!matches.length) {
+            $pickerResults.innerHTML =
+                '<li><div class="picker-empty">No course matches that. Try a shorter search.</div></li>';
+            $pickerStatus.textContent = `No matches in ${courseIndex.length.toLocaleString()} courses`;
+            return;
+        }
+
+        const total = query ? searchCourses(courseIndex, query).length : courseIndex.length;
+        $pickerStatus.textContent = query
+            ? `${total.toLocaleString()} match${total === 1 ? '' : 'es'}` +
+              (total > PICKER_LIMIT ? `, showing the first ${PICKER_LIMIT}` : '')
+            : `${courseIndex.length.toLocaleString()} published courses. Start typing a code.`;
+        $pickerResults.innerHTML = matches
+            .map(c => pickerRowHtml(c, added.has(c.code)))
+            .join('');
+    }
+
+    function openPicker() {
+        $picker.style.display = 'block';
+        $modeChooser.style.display = 'none';
+        $pickerQuery.focus();
+        $pickerStatus.textContent = 'Loading courses...';
+        loadCourseIndex()
+            .then(() => { renderPickerResults(); renderPastePreview(); })
+            .catch(() => {
+                // The picker is the one part of this page that needs the
+                // network. Saved timetables and uploads do not, so say which
+                // is broken rather than implying the page is (E17).
+                $pickerStatus.textContent = 'Could not reach the course list.';
+                $pickerResults.innerHTML =
+                    '<li><div class="picker-empty">You appear to be offline. ' +
+                    'Your saved timetable still works, and you can still add a PDF.</div></li>';
+            });
+    }
+
+    function closePicker() {
+        $picker.style.display = 'none';
+        showChooserIfEmpty();
+    }
+
+    function showChooserIfEmpty() {
+        const empty = !state || state.courseKeys.length === 0;
+        $modeChooser.style.display = empty && $picker.style.display === 'none' ? 'block' : 'none';
+    }
+
+    /**
+     * Add one course from the warehouse.
+     *
+     * The index row is not enough to place anything: it carries days and types
+     * but not individual sessions, so the sessions come from the API.
+     */
+    async function addCourseByCode(code) {
+        if (state && state.courseKeys.includes(code)) {
+            toast(`${code} is already on your timetable.`, null, 'warn');
+            return;
+        }
+        try {
+            const response = await fetch(
+                '/api/timetable/sessions?codes=' + encodeURIComponent(code));
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const data = await response.json();
+
+            if ((data.notFound || []).length || !(data.courses || []).length) {
+                toast(`${code} is not in the published timetable.`,
+                      'You can still add it from a PDF.', 'warn');
+                return;
+            }
+
+            const incoming = TimetableState.fromWarehouseResponse(data);
+            state.publicationId = state.publicationId || incoming.publicationId;
+            const result = state.addCourses(incoming.courses);
+            reportAdd(code, result);
+            renderPickerResults();
+        } catch (err) {
+            toast(`Could not add ${code}.`, 'The course list did not respond.', 'bad');
+        }
+    }
+
+    // ===== Bulk =====
+
+    //: Ticked in the results but not yet added. Kept across re-renders so a
+    //: student can search, tick one, search again and tick another.
+    const selectedCodes = new Set();
+
+    function renderSelection() {
+        const $actions = document.getElementById('pickerActions');
+        const $count = document.getElementById('pickerSelectedCount');
+        const $add = document.getElementById('pickerAddSelected');
+        const n = selectedCodes.size;
+        $actions.style.display = n ? 'flex' : 'none';
+        $count.textContent = `${n} course${n === 1 ? '' : 's'} selected`;
+        $add.textContent = `Add ${n} course${n === 1 ? '' : 's'}`;
+    }
+
+    /**
+     * Fetch sessions for many courses, in requests the endpoint will accept.
+     *
+     * The API takes 40 codes at a time. Everything is gathered before any of
+     * it is placed, so that a batch of sixty is still one operation and one
+     * press of Ctrl+Z takes the whole thing back (E19).
+     */
+    async function fetchCourses(codes, onProgress) {
+        const API_CAP = 40;
+        const courses = [];
+        const notFound = [];
+
+        for (let i = 0; i < codes.length; i += API_CAP) {
+            const chunk = codes.slice(i, i + API_CAP);
+            if (onProgress) onProgress(i, codes.length);
+            const response = await fetch(
+                '/api/timetable/sessions?codes=' +
+                encodeURIComponent(chunk.join(',')));
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const data = await response.json();
+            courses.push(...(data.courses || []));
+            notFound.push(...(data.notFound || []));
+            if (!state.publicationId) state.publicationId = data.publicationId;
+        }
+        return { courses, notFound };
+    }
+
+    /** Add many courses as one operation. Spec 8.2. */
+    async function addCoursesByCode(codes) {
+        const already = codes.filter(c => state.courseKeys.includes(c));
+        const wanted = codes.filter(c => !state.courseKeys.includes(c));
+        if (!wanted.length) {
+            toast('Nothing new to add.',
+                  already.length ? 'Those are already on your timetable.' : null, 'warn');
+            return;
+        }
+
+        const $status = document.getElementById('pickerStatus');
+        try {
+            const { courses, notFound } = await fetchCourses(wanted, (done, total) => {
+                if (total > 40) $status.textContent = `Fetching ${done + 1} to ${Math.min(done + 40, total)} of ${total}...`;
+            });
+
+            const incoming = TimetableState.fromWarehouseResponse({
+                publicationId: state.publicationId,
+                courses,
+            });
+            // One call, so one snapshot, so one undo step for the whole batch.
+            const result = state.addCourses(incoming.courses);
+            reportBulkAdd(result, notFound, already);
+
+            selectedCodes.clear();
+            renderSelection();
+        } catch (err) {
+            toast('Could not add those courses.',
+                  'The course list did not respond. Nothing was changed.', 'bad');
+        } finally {
+            renderPickerResults();
+        }
+    }
+
+    function reportBulkAdd(result, notFound, already) {
+        const n = result.added.length;
+        const detail = [];
+        if (already.length) {
+            detail.push(`${already.length} already on your timetable`);
+        }
+        if (notFound.length) {
+            const shown = notFound.slice(0, 3).join(', ');
+            detail.push(`not published: ${shown}${notFound.length > 3 ? ` and ${notFound.length - 3} more` : ''}`);
+        }
+        const clashes = state.getConflicts().length;
+        if (clashes) detail.push(`${clashes} clash${clashes === 1 ? '' : 'es'} to sort out`);
+
+        toast(`Added ${n} course${n === 1 ? '' : 's'}.`,
+              detail.length ? detail.join('. ') + '.' : 'Ctrl+Z takes the whole batch back.',
+              notFound.length || clashes ? 'warn' : undefined);
+    }
+
+    // ===== Paste a list =====
+
+    const $paste = document.getElementById('pickerPaste');
+    const $pasteBox = document.getElementById('pasteBox');
+    const $pastePreview = document.getElementById('pastePreview');
+    const $pasteAdd = document.getElementById('pasteAdd');
+    let pastePlan = { codes: [], unknown: [] };
+
+    /**
+     * Show what a paste will do before it does it.
+     *
+     * A list off a registration screenshot is expected to be of mixed quality,
+     * so what was not understood is named rather than quietly dropped (E13).
+     */
+    function renderPastePreview() {
+        const parsed = parseCourseCodeList($pasteBox.value, courseIndex || []);
+        const already = parsed.codes.filter(c => state.courseKeys.includes(c));
+        const fresh = parsed.codes.filter(c => !state.courseKeys.includes(c));
+        pastePlan = { codes: fresh, unknown: parsed.unknown };
+
+        if (!$pasteBox.value.trim()) {
+            $pastePreview.innerHTML = '';
+            $pasteAdd.disabled = true;
+            $pasteAdd.textContent = 'Add courses';
+            return;
+        }
+
+        const chips = (items, cls) => items
+            .map(c => `<span class="chip ${cls}">${escapeHtml(c)}</span>`).join('');
+        let html = '';
+        if (fresh.length) {
+            html += `<h4>Will add ${fresh.length}</h4>${chips(fresh, '')}`;
+        }
+        if (already.length) {
+            html += `<h4>Already on your timetable</h4>${chips(already, 'dim')}`;
+        }
+        if (parsed.unknown.length) {
+            html += `<h4>Not recognised</h4>${chips(parsed.unknown, 'bad')}`;
+        }
+        if (!fresh.length && !already.length && !parsed.unknown.length) {
+            html = 'Nothing to read in that yet.';
+        }
+        $pastePreview.innerHTML = html;
+        $pasteAdd.disabled = fresh.length === 0;
+        $pasteAdd.textContent = fresh.length
+            ? `Add ${fresh.length} course${fresh.length === 1 ? '' : 's'}`
+            : 'Add courses';
+    }
+
+    function togglePaste() {
+        const $toggle = document.getElementById('pasteToggle');
+        const open = $paste.style.display === 'none';
+        $paste.style.display = open ? 'block' : 'none';
+        $toggle.setAttribute('aria-expanded', String(open));
+        if (open) {
+            $pasteBox.focus();
+            renderPastePreview();
+        }
+    }
+
+    function reportAdd(code, result) {
+        if (!result.added.length) {
+            toast(`${code} is already on your timetable.`, null, 'warn');
+            return;
+        }
+        const placed = (result.placed || []).length;
+        const clashing = (result.placed || []).filter(p => p.clashing);
+        if (!clashing.length) {
+            toast(`${code} added, ${placed} ${placed === 1 ? 'class' : 'classes'}.`);
+            return;
+        }
+        const days = DAYS.filter(day => state.getConflicts().some(
+            c => c.day === day && (c.courseA === code || c.courseB === code)
+        ));
+        toast(`${code} added, ${placed} ${placed === 1 ? 'class' : 'classes'}.`,
+              days.length
+                  ? `Clashes on ${listOf(days)}. See the panel above.`
+                  : 'Some classes clash. See the panel above.',
+              'warn');
+    }
+
+    /** "Monday", "Monday and Tuesday", "Monday, Tuesday and Thursday". */
+    function listOf(items) {
+        if (items.length < 3) return items.join(' and ');
+        return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
+    }
+
+    function removeCourse(courseKey) {
+        if (!state || !state.removeCourse(courseKey)) return;
+        toast(`${courseKey} removed.`, 'Ctrl+Z puts it back.');
+        renderPickerResults();
+    }
+    window.removeCourseFromCalendar = removeCourse;
+
+    $pickerResults.addEventListener('click', event => {
+        const row = event.target.closest('.picker-row');
+        if (row && !row.disabled) addCourseByCode(row.dataset.code);
+    });
+
+    $pickerResults.addEventListener('change', event => {
+        const box = event.target.closest('.picker-check');
+        if (!box) return;
+        if (box.checked) selectedCodes.add(box.dataset.code);
+        else selectedCodes.delete(box.dataset.code);
+        renderSelection();
+    });
+
+    document.getElementById('pickerAddSelected').addEventListener('click', () => {
+        addCoursesByCode([...selectedCodes]);
+    });
+
+    document.getElementById('pickerClearSelection').addEventListener('click', () => {
+        selectedCodes.clear();
+        renderSelection();
+        renderPickerResults();
+    });
+
+    document.getElementById('pasteToggle').addEventListener('click', togglePaste);
+    $pasteBox.addEventListener('input', renderPastePreview);
+    $pasteAdd.addEventListener('click', () => {
+        const codes = pastePlan.codes;
+        $pasteBox.value = '';
+        renderPastePreview();
+        addCoursesByCode(codes);
+    });
+
+    $pickerQuery.addEventListener('input', renderPickerResults);
+    document.getElementById('choosePicker').addEventListener('click', openPicker);
+    document.getElementById('pickerClose').addEventListener('click', closePicker);
+    document.getElementById('addCoursesBtn').addEventListener('click', () => {
+        if ($picker.style.display === 'block') closePicker(); else openPicker();
+    });
+
+    // ===== Sharing =====
+
+    /**
+     * A link that rebuilds this timetable from the warehouse.
+     *
+     * Only the codes travel, not the arrangement: the recipient's copy is
+     * placed against whatever the warehouse says today, which is the right
+     * answer when the two people open the link a week apart. Uploaded courses
+     * cannot travel at all, because the PDF is on the sender's machine.
+     */
+    function shareUrl() {
+        const codes = state ? state.warehouseCourseKeys : [];
+        if (!codes.length) return null;
+        return location.origin + location.pathname +
+            '?codes=' + encodeURIComponent(codes.join(','));
+    }
+
+    async function copyShareLink() {
+        const url = shareUrl();
+        if (!url) {
+            toast('Nothing to share yet.',
+                  'Add a course from the published timetable first.', 'warn');
+            return;
+        }
+        const uploaded = state.activeCourses.filter(c => c.origin === 'upload');
+        const caveat = uploaded.length
+            ? `${uploaded.length} uploaded course${uploaded.length === 1 ? '' : 's'} cannot be shared this way.`
+            : 'They will get the same courses, placed against current data.';
+        try {
+            await navigator.clipboard.writeText(url);
+            toast('Link copied.', caveat);
+        } catch (err) {
+            // Clipboard access is refused outside a secure context, so the
+            // link has to be reachable some other way rather than lost.
+            window.prompt('Copy this link:', url);
+        }
+    }
+
+    /** Apply ?codes=... on load, once. */
+    async function applySharedCodes() {
+        const wanted = new URLSearchParams(location.search).get('codes');
+        if (!wanted) return;
+        // Cleared straight away, so removing a course and reloading does not
+        // silently bring it back.
+        history.replaceState(null, '', location.pathname);
+
+        const codes = wanted.split(',').map(c => c.trim()).filter(Boolean);
+        if (codes.length) await addCoursesByCode(codes);
+    }
+
+    // ===== A republished timetable (E16) =====
+
+    const $stale = document.getElementById('staleWarning');
+
+    /**
+     * Ask which publication is current, and offer to catch up.
+     *
+     * Deliberately quiet on failure: a student with no network has a working
+     * timetable and does not need to be told the freshness check did not run.
+     */
+    async function checkForRepublish() {
+        if (!state || !state.publicationId || !state.warehouseCourseKeys.length) return;
+        try {
+            const ops = await fetch('/explore/ops.json').then(r => r.json());
+            const current = ops.freshness && ops.freshness.publication_id;
+            if (!current || current === state.publicationId) return;
+
+            document.getElementById('staleWarningText').textContent =
+                'The university republished the timetable after you built this. ' +
+                'Your classes may have moved.';
+            $stale.style.display = 'flex';
+            $stale.dataset.publicationId = current;
+        } catch (err) {
+            /* offline, and it does not matter */
+        }
+    }
+
+    async function refreshFromWarehouse() {
+        const codes = state.warehouseCourseKeys;
+        try {
+            const { courses, notFound } = await fetchCourses(codes);
+            const incoming = TimetableState.fromWarehouseResponse({
+                publicationId: Number($stale.dataset.publicationId) || null,
+                courses,
+            });
+            const result = state.refreshFromWarehouse(
+                incoming.courses, notFound, incoming.publicationId);
+            $stale.style.display = 'none';
+
+            const detail = [];
+            if (result.moved) detail.push(`${result.moved} class${result.moved === 1 ? '' : 'es'} had moved`);
+            if (result.stale.length) detail.push(`${result.stale.join(', ')} is no longer published, and has been kept`);
+            toast('Your courses are up to date.',
+                  detail.join('. ') || 'Nothing had changed for your courses.',
+                  result.stale.length ? 'warn' : undefined);
+        } catch (err) {
+            toast('Could not update your courses.',
+                  'The timetable did not respond. Nothing was changed.', 'bad');
+        }
+    }
+
+    document.getElementById('staleRefresh').addEventListener('click', refreshFromWarehouse);
+    document.getElementById('staleDismiss').addEventListener('click', () => {
+        $stale.style.display = 'none';
+    });
+    document.getElementById('shareBtn').addEventListener('click', copyShareLink);
+
     // ===== Storage =====
     function saveState() {
         if (!state) return;
-        const snapshot = {
-            version: 2,
-            sourceData: state.sourceData,
-            scheduleState: {
-                placements: state.placements,
-                history: state.history.slice(0, 50),
-                future: state.future.slice(0, 50),
-            },
-            savedAt: new Date().toISOString()
-        };
-        try {
-            localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(snapshot));
-        } catch (e) {
-            console.warn('Failed to save calendar state:', e.message);
+        const result = writeSavedState(state.toSaved());
+        if (result.ok) {
+            $storageWarning.style.display = 'none';
+        } else {
+            // Previously a console warning, so a student could arrange a whole
+            // timetable and lose it without ever being told.
+            $storageWarningText.textContent =
+                result.error + ' Your timetable will be gone when you close this tab.';
+            $storageWarning.style.display = 'block';
         }
-    }
-
-    function loadState() {
-        const v2raw = localStorage.getItem(STORAGE_KEY_V2);
-        if (v2raw) {
-            try {
-                const data = JSON.parse(v2raw);
-                if (data && data.version === 2 && data.sourceData && data.scheduleState) {
-                    return data;
-                }
-            } catch (e) {
-                console.warn('Failed to parse v2 data:', e.message);
-            }
-        }
-
-        const v1raw = localStorage.getItem('celcat_timetable_data');
-        if (v1raw) {
-            try {
-                const v1Data = JSON.parse(v1raw);
-                const migrated = migrateV1toV2(v1Data);
-                if (migrated) {
-                    return migrated;
-                }
-            } catch (e) {
-                console.warn('Failed to migrate v1 data:', e.message);
-            }
-        }
-
-        return null;
-    }
-
-    function migrateV1toV2(v1Data) {
-        if (!v1Data) return null;
-
-        const sourceData = TimetableState.fromExtractResponse(v1Data);
-        if (!sourceData.courses || sourceData.courses.length === 0) return null;
-
-        const placements = [];
-        const v1Events = v1Data.calendar_events || [];
-
-        for (const v1ev of v1Events) {
-            const courseTitle = v1ev.course || '';
-            const courseId = courseTitle.toUpperCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
-            const type = normalizeType(v1ev.type || 'Other');
-            const v1Start = v1ev.start_time || '';
-            const v1End = v1ev.end_time || '';
-
-            const course = sourceData.courses.find(c => c.courseId === courseId);
-            if (!course) continue;
-
-            if (placements.some(p => p.courseId === courseId && p.streamType === type)) continue;
-
-            const match = course.streams.find(s =>
-                s.type === type &&
-                s.day === v1ev.day &&
-                timeToMins(s.startTime) === timeToMins(v1Start) &&
-                timeToMins(s.endTime) === timeToMins(v1End)
-            );
-
-            if (match) {
-                placements.push({
-                    courseId: course.courseId,
-                    streamType: type,
-                    selectedStreamId: match.streamId,
-                });
-            }
-        }
-
-        return {
-            version: 2,
-            sourceData: sourceData,
-            scheduleState: {
-                placements: placements,
-                history: [],
-                future: [],
-            },
-            savedAt: new Date().toISOString()
-        };
     }
 
     // ===== Search =====
     searchBox.addEventListener('input', e => {
-        const filter = e.target.value;
-        renderEventsList(currentEvents, filter);
+        renderEventsList(currentEvents, e.target.value);
     });
 
     // ===== Button Listeners =====
     $clearBtn.addEventListener('click', () => {
-        if (confirm('Clear all events?')) {
-            if (state) state.autoPlaceAll();
+        if (!state) return;
+        if (confirm('Re-place every class? Anything you moved by hand stays put.')) {
+            state.reoptimise();
             if ($searchBox) $searchBox.value = '';
         }
     });
 
-    $undoBtn.addEventListener('click', () => {
-        if (state) state.undo();
-    });
-
-    $redoBtn.addEventListener('click', () => {
-        if (state) state.redo();
-    });
+    $undoBtn.addEventListener('click', () => { if (state) state.undo(); });
+    $redoBtn.addEventListener('click', () => { if (state) state.redo(); });
 
     document.addEventListener('keydown', (e) => {
         const isCtrl = e.ctrlKey || e.metaKey;
-
         if (isCtrl && e.key === 'z' && !e.shiftKey) {
             e.preventDefault();
             if (state) state.undo();
             return;
         }
-
         if ((isCtrl && e.key === 'z' && e.shiftKey) || (isCtrl && e.key === 'y')) {
             e.preventDefault();
             if (state) state.redo();
-            return;
         }
     });
 
     // ===== Init =====
     buildGrid();
 
-    (function autoLoadOnInit() {
-        const saved = loadState();
+    /**
+     * Take in a PDF uploaded after this timetable already existed.
+     *
+     * `/extract` writes its result under the v1 key and knows nothing about
+     * the calendar's saved state. Loading prefers v3, so without this an
+     * upload onto a timetable built from the picker was written, never read,
+     * and silently lost. Mixing the two sources is the point of keeping both.
+     */
+    function absorbUpload() {
+        const raw = localStorage.getItem(STORAGE_KEY_V1);
+        if (!raw) return;
+        // Consumed either way: it has been folded in, or it was unreadable,
+        // and leaving it would re-ask on every load.
+        localStorage.removeItem(STORAGE_KEY_V1);
 
-        if (saved) {
-            state = new TimetableState(saved.sourceData, saved.scheduleState);
-            if (state.placements.length === 0) {
-                state.autoPlaceAll();
-            }
-            onChangeUnsubscribe = state.onChange(() => {
-                renderEvents();
-                saveState();
-            });
-            renderEvents();
-        } else {
-            console.log('No data - showing empty state');
-            const calWrapper = document.getElementById('calendarWrapper');
-            if (calWrapper) calWrapper.style.display = 'none';
-            if (emptyState) emptyState.style.display = 'block';
+        let parsed = null;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (e) {
+            return;
         }
+        const uploaded = TimetableState.fromExtractResponse(parsed);
+        if (!uploaded.courses.length) return;
+
+        const fresh = [];
+        for (const course of uploaded.courses) {
+            if (!state.courseKeys.includes(course.courseKey)) {
+                fresh.push(course);
+                continue;
+            }
+            // The same code from the two sources can legitimately differ,
+            // which is the whole reason the upload path exists, so the choice
+            // is the student's rather than a silent merge.
+            const existing = state.getCourse(course.courseKey);
+            const from = existing && existing.origin === 'upload'
+                ? 'a PDF you uploaded before'
+                : 'the published timetable';
+            if (window.confirm(
+                    `${course.courseKey} is already on your timetable, from ${from}.\n\n` +
+                    'Replace it with the version you just uploaded?')) {
+                state.removeCourse(course.courseKey);
+                fresh.push(course);
+            }
+        }
+
+        if (fresh.length) {
+            state.addCourses(fresh);
+            const n = fresh.length;
+            toast(`Added ${n} course${n === 1 ? '' : 's'} from your PDF.`,
+                  fresh.map(c => c.courseKey).join(', '));
+        }
+    }
+
+    function onStateChanged() {
+        renderEvents();
+        saveState();
+        renderPickerResults();
+        renderPastePreview();
+        showChooserIfEmpty();
+    }
+
+    (function autoLoadOnInit() {
+        // Whether a v3 timetable already existed decides what to do with an
+        // uploaded PDF: fold it in, or let the migration readers have it.
+        const hadSavedTimetable = Boolean(localStorage.getItem(STORAGE_KEY_V3));
+        const saved = readSavedState();
+
+        if (saved && (saved.courses || []).length) {
+            state = new TimetableState({
+                courses: saved.courses,
+                publicationId: saved.publicationId,
+            }, saved);
+            // Only fills groups that have no placement, so a saved timetable
+            // is never rearranged just by being opened. A timetable migrated
+            // from v2 does gain blocks here, because the old model could hold
+            // only one placement per course and type and so could not show a
+            // course's second lecture at all.
+            state.placeMissing();
+            state.onChange(onStateChanged);
+            renderEvents();
+            // Write v3 straight away, so an upgraded timetable is not
+            // re-migrated from v2 on every single load.
+            saveState();
+        } else {
+            // An empty timetable is still a timetable. The picker adds into
+            // it, so it exists from the start rather than being conjured on
+            // the first add.
+            state = new TimetableState({ courses: [] });
+            state.onChange(onStateChanged);
+            renderEvents();
+        }
+
+        if (hadSavedTimetable) {
+            absorbUpload();
+        } else {
+            // readSavedState already migrated it into what was just loaded,
+            // so absorbing again would only ask to replace it with itself.
+            localStorage.removeItem(STORAGE_KEY_V1);
+        }
+
+        showChooserIfEmpty();
+        applySharedCodes().then(checkForRepublish);
     })();
 
 })();

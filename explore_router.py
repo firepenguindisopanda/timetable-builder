@@ -21,7 +21,7 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 import psycopg
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -208,19 +208,43 @@ _cache_lock = threading.Lock()
 _cache_stats: Counter[str] = Counter()
 
 
-def cached(key: str, producer: Callable[[], Any]) -> Any:
-    """Memoise a query result for CACHE_TTL_SECONDS."""
+#: Sentinel for "not cached", so that a cached None still counts as a hit.
+MISSING = object()
+
+
+def cache_get(key: str, stat: str | None = None) -> Any:
+    """
+    A cached value, or MISSING if it is absent or stale.
+
+    `stat` names the bucket the hit or miss is counted under. It matters for
+    per-course keys: counted under their own names, 1,082 course codes would
+    bury the handful of aggregates the ops endpoint exists to report.
+    """
     now = time.monotonic()
     with _cache_lock:
         hit = _cache.get(key)
         if hit and now - hit[0] < CACHE_TTL_SECONDS:
-            _cache_stats[f"{key}.hit"] += 1
+            _cache_stats[f"{stat or key}.hit"] += 1
             return hit[1]
 
-    _cache_stats[f"{key}.miss"] += 1
-    value = producer()
+    _cache_stats[f"{stat or key}.miss"] += 1
+    return MISSING
+
+
+def cache_put(key: str, value: Any) -> None:
+    """Store a value against the current clock."""
     with _cache_lock:
-        _cache[key] = (now, value)
+        _cache[key] = (time.monotonic(), value)
+
+
+def cached(key: str, producer: Callable[[], Any]) -> Any:
+    """Memoise a query result for CACHE_TTL_SECONDS."""
+    value = cache_get(key)
+    if value is not MISSING:
+        return value
+
+    value = producer()
+    cache_put(key, value)
 
     logger.debug(
         "explore.cache_miss",
@@ -294,6 +318,10 @@ def freshness_context() -> dict[str, Any]:
     return {
         "status": status,
         "status_label": label,
+        # A saved timetable stores the publication it was built against, so it
+        # can notice the warehouse moving underneath it and offer to catch up.
+        # This is the cheapest way for it to ask which publication is current.
+        "publication_id": data.get("publication_id"),
         "published_at": _iso(data.get("published_at")),
         "imported_at": _iso(data.get("imported_at")),
         "checked_at": _iso(checked_at),
@@ -544,4 +572,112 @@ async def staff_detail_page(request: Request, name: str):
         request=request,
         name="explore/staff.html",
         context=page_context(request, "staff", person=person),
+    )
+
+
+# The timetable builder API
+#
+# Public and read-only like the pages above, and sharing their pool and cache,
+# but answering JSON to the calendar rather than rendering anything. It lives
+# here rather than in main.py so that there is one connection pool and one
+# cache over the warehouse instead of two.
+
+api_router = APIRouter(prefix="/api/timetable", tags=["timetable"])
+
+
+#: How many courses one request may ask about. A whole semester is six or
+#: seven, so this is not a limit a student meets by hand. It is here so that a
+#: pasted list of hundreds is batched by the caller instead of arriving as one
+#: query for most of the campus.
+MAX_CODES_PER_REQUEST = 40
+
+
+def _split_codes(raw: str) -> list[str]:
+    """
+    Split the `codes` parameter on commas only.
+
+    Not on whitespace: "FOUN 1001 (FULL & PART-TIME)" and "CAPE BIOL" are real
+    course codes with spaces in them, and splitting those apart would turn one
+    course into three unrecognised fragments.
+    """
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+@api_router.get("/sessions")
+async def timetable_sessions(
+    codes: str = Query(
+        ...,
+        description=(
+            "Comma-separated course codes, with or without the space: "
+            "COMP 1601,COMP2601. Unrecognised codes come back in notFound."
+        ),
+        examples=["COMP 1601,COMP 2601"],
+    ),
+):
+    """
+    Sessions for a set of courses, shaped for the timetable builder.
+
+    Unrecognised codes are reported in `notFound` rather than failing the
+    request, because a list pasted off a registration screenshot is expected to
+    be of mixed quality and the courses that did resolve are still worth
+    having.
+    """
+    wanted = _split_codes(codes)
+    if not wanted:
+        raise HTTPException(
+            status_code=400, detail="codes must name at least one course"
+        )
+    if len(wanted) > MAX_CODES_PER_REQUEST:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{len(wanted)} codes requested; this endpoint takes at most "
+                f"{MAX_CODES_PER_REQUEST} per request"
+            ),
+        )
+
+    try:
+        index = cached(
+            "code_index", lambda: eq.build_code_index(query(eq.course_codes))
+        )
+        publication_id = cached("freshness", lambda: query(eq.freshness)).get(
+            "publication_id"
+        )
+
+        # Resolved codes keep the caller's order and lose duplicates, so that
+        # asking for the same course twice is one entry rather than two.
+        resolved: dict[str, str] = {}
+        not_found: list[str] = []
+        for raw in wanted:
+            published = eq.resolve_published_code(raw, index)
+            if published is None:
+                not_found.append(raw)
+            else:
+                resolved.setdefault(published, raw)
+
+        # Sessions are cached per course, so overlapping requests share their
+        # work: adding a seventh course does not re-fetch the other six.
+        courses: dict[str, Any] = {}
+        misses = []
+        for code in resolved:
+            hit = cache_get(f"sessions:{code}", stat="sessions")
+            if hit is MISSING:
+                misses.append(code)
+            else:
+                courses[code] = hit
+
+        if misses:
+            for course in query(eq.sessions_for_courses, misses):
+                cache_put(f"sessions:{course['code']}", course)
+                courses[course["code"]] = course
+    except ExplorerUnavailable as exc:
+        return JSONResponse({"error": str(exc)}, status_code=503)
+
+    return JSONResponse(
+        {
+            "publicationId": publication_id,
+            "courses": [courses[code] for code in resolved if code in courses],
+            "notFound": not_found,
+        },
+        headers={"Cache-Control": "public, max-age=300"},
     )

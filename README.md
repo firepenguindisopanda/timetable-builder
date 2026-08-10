@@ -336,6 +336,163 @@ immediately.
 
 ---
 
+## The Timetable Builder
+
+`/calendar` builds a student's timetable, and there are two ways in. Both stay,
+because they answer different problems.
+
+| Mode | For | Source |
+|------|-----|--------|
+| **Pick your courses** | Anyone on the published timetable | The warehouse, via the API below |
+| **Upload timetable PDFs** | A course UWI has not published, a draft PDF, or no network at all | `POST /extract` |
+
+Both produce the same in-memory shape, so a student can pick five courses and
+upload a PDF for a sixth, and everything downstream (dragging to another
+stream, the conflict panel, undo and redo, persistence) treats them alike. The
+chooser appears only while the calendar is empty; after that the two become
+"Add courses" and "Add a PDF".
+
+The picker needs the network. Upload does not, and neither does a saved
+timetable: loading one issues no request to the warehouse at all.
+
+Courses can be added one at a time, by ticking several in the search results,
+or by pasting a list. However many arrive, a batch is **one operation**: one
+Ctrl+Z takes the whole thing back.
+
+### Reading a pasted list
+
+A student has their courses off a registration screenshot or a WhatsApp
+message, so the separators are whatever they were that day. Commas, semicolons
+and newlines split first. Whitespace cannot, because `CAPE BIOL` and
+`FOUN 1001 (FULL & PART-TIME)` are single published codes with spaces in them,
+so a line without separators is walked greedily against the published index,
+longest match first. The lookahead comes from the data: the longest published
+code is five words.
+
+Anything unrecognised is shown rather than dropped, with consecutive stray
+words reported as the run they came from, so a sentence at the top of a list is
+one complaint and not one per word.
+
+### What counts as one class
+
+A course's sessions are grouped into **option groups**, where a group is a set
+of mutually exclusive alternatives and each group puts exactly one class on the
+grid. The rules, in `assets/js/option-groups.js`:
+
+1. If one activity type of one course totals more than `MENU_CEILING_HOURS`
+   (6.0) a week, the whole lot is one menu and the student picks one. That
+   ceiling is twice the 90th percentile of the 978 unambiguous single-session
+   groups in the warehouse. Without it, `FOUN 1101` alone puts 33 tutorials and
+   39 hours on a 40-hour grid.
+2. Otherwise, sessions carrying a stream label (`L1`, `T2`, `G1`) are
+   alternatives to each other.
+3. Otherwise, sessions cluster by time overlap, and anything that does not
+   overlap is a class in its own right. This is what keeps a Monday and a
+   Wednesday lecture reading as two lectures rather than a choice.
+
+No rule gets every course right, so a group can be corrected and the correction
+is saved per course.
+
+A placement the student made by hand is **pinned**, and nothing moves a pinned
+placement afterwards: not adding a course, not the bulk pass, not
+"Re-optimise".
+
+### Clashes
+
+Two classes collide only if they overlap in time **and** share a teaching week,
+so a lecture in weeks 2 to 12 and its week 10 relocation are not a clash. The
+panel splits what it finds, because the two kinds ask different things:
+
+* **Can be fixed** offers a button naming where the class would go. A fix is
+  offered only when moving one side lowers the *total* number of clashes, and
+  never by moving something pinned. Applying one pins the result.
+* **Cannot be avoided** says why: nothing else is published, every alternative
+  runs into something else, or both sides are where the student put them.
+
+### Sharing, and a republished timetable
+
+"Share" copies `/calendar?codes=COMP%201601,BIOL%201262`. Only the codes
+travel, so the recipient's copy is placed against current data rather than
+against a snapshot of someone else's week. Uploaded courses cannot be shared
+this way, since the PDF is on the sender's machine.
+
+A saved timetable records the publication it was built against. On load it asks
+`/explore/ops.json` which publication is current, and offers to update if they
+differ. Updating keeps every placement that still resolves, refills any whose
+class has moved, and keeps a course the new publication no longer carries,
+marked stale rather than deleted.
+
+### The API it reads
+
+One public, read-only endpoint, which lives in `explore_router.py` alongside the
+explorer so that both share a single connection pool and cache.
+
+```
+GET /api/timetable/sessions?codes=COMP%201601,COMP%202601
+```
+
+```json
+{
+  "publicationId": 1,
+  "courses": [{
+    "code": "COMP 1601",
+    "title": "Computer Programming I",
+    "faculty": "Science & Technology",
+    "department": "DCIT",
+    "sessions": [{
+      "sessionId": 19171, "type": "Lab", "day": "Monday",
+      "startTime": "10:00", "endTime": "12:00", "room": "FST CSL1",
+      "staff": [], "streamLabel": "L1",
+      "weeks": [1,2,3,4,5,6,7,8,9,10,11,12], "weeksRaw": "W1-W12",
+      "sourceCount": 2
+    }]
+  }],
+  "notFound": []
+}
+```
+
+Session field names are camelCase, unlike the rest of the database layer,
+because these rows are handed to the browser's `computeStreamId` unchanged. A
+class picked from the warehouse and the same class extracted from a PDF have to
+compute the same stream id or they become two courses.
+
+| Behaviour | Why |
+|---|---|
+| Codes are separated by **commas only** | `CAPE BIOL` and `FOUN 1001 (FULL & PART-TIME)` contain spaces of their own |
+| An unknown code lands in `notFound`, not a 404 | A list pasted off a registration screenshot is expected to be mixed, and the codes that did resolve are still worth having |
+| At most **40 codes** per request | A semester is six or seven. The cap makes a pasted list of hundreds the caller's job to batch |
+| Sessions cached **per course** | Adding a seventh course issues one query for that course, not seven |
+| `weeks` is the expanded array | The conflict engine intersects teaching weeks, so a bitmask would not do |
+| `publicationId` is returned | A saved timetable can tell that the warehouse was reloaded underneath it |
+
+### Course codes are resolved, not normalised
+
+`normalise_course_code` assumes every code is the `SUBJ 1234` shape, and
+several published codes are not. It turns the hyphen in
+`FOUN 1001 (FULL & PART-TIME)` into a space, and splits `WW101` and `GW101` at
+the first digit. None of those results is a code the university publishes, so
+matching on that output alone reports real courses as missing.
+
+Resolution therefore tries what the caller wrote first, ignoring case and
+spacing, and only falls back to the normalised form, which is what still
+accepts the hyphen-separated `comp-2601` the explorer's URLs allow. All 1,082
+published codes round-trip.
+
+Both live in `timetable_extractor/database/courses.py`, next to the code
+repair that runs during extraction, in two forms:
+
+| Function | For |
+|----------|-----|
+| `resolve_published_code(raw, index)` | Bulk. Matches against an index built once, which is what the timetable API uses for up to 40 codes at a time |
+| `find_published_code(cursor, raw)` | One at a time. Matches in SQL, so a single course page does not pull all 1,082 codes across to build an index it uses once |
+
+`/explore/course/{code}` and the `cli course` command both go through the
+second one. Before they did, `/explore/course/WW101` answered 404 and
+`cli course COMP2601` printed nothing, which is the spelling this README
+uses.
+
+---
+
 ## Detecting Updates
 
 UWI republishes the whole site in one batch. The server sends `Last-Modified`

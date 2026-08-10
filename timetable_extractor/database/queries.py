@@ -12,12 +12,22 @@ from typing import Any
 
 import psycopg
 
+from timetable_extractor.database.courses import find_published_code
 from timetable_extractor.database.weeks import expand_weeks
 
 
 def course_timetable(conn: psycopg.Connection, code: str) -> list[dict[str, Any]]:
-    """Every session for a course, in week order."""
+    """
+    Every session for a course, in week order.
+
+    The code is resolved rather than upper-cased, because upper-casing alone
+    finds nothing for "COMP2601", which is how the README spells the command.
+    """
     with conn.cursor() as cur:
+        published = find_published_code(cur, code)
+        if published is None:
+            return []
+
         cur.execute(
             """
             SELECT day, start_time, end_time, activity_type, stream_label,
@@ -26,7 +36,7 @@ def course_timetable(conn: psycopg.Connection, code: str) -> list[dict[str, Any]
              WHERE course_code = %s
              ORDER BY day, start_min
             """,
-            (code.upper(),),
+            (published,),
         )
         return [
             dict(zip([c.name for c in cur.description], row)) for row in cur.fetchall()

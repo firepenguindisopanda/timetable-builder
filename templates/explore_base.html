@@ -74,7 +74,11 @@
   </div>
 </footer>
 
-<script src="/assets/js/explore.js" defer></script>
+<!-- Versioned together: explore.js now depends on course-search.js, so a
+     browser must not be able to pair a cached copy of one with a fresh
+     copy of the other. -->
+<script src="/assets/js/course-search.js?v=2" defer></script>
+<script src="/assets/js/explore.js?v=2" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

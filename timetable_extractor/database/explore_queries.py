@@ -19,6 +19,16 @@ from typing import Any
 
 import psycopg
 
+# Course-code matching lives with the rest of the course-code handling. It is
+# re-exported below because the explorer and the timetable API both reach for
+# it through this module.
+from timetable_extractor.database.courses import (
+    build_code_index,
+    normalise_course_code,
+    published_code_candidates,
+    resolve_published_code,
+)
+
 # The teaching semester CELCAT publishes: weeks 1 through 12.
 TOTAL_WEEKS = 12
 
@@ -131,22 +141,17 @@ def week_layout(sessions: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def normalise_course_code(code: str) -> str:
-    """
-    Accept "comp2601", "COMP 2601" or "comp-2601" and return "COMP 2601".
-
-    Codes are stored with a single space between the subject prefix and the
-    number, but a URL is just as likely to arrive without it.
-    """
-    cleaned = " ".join(code.replace("-", " ").replace("_", " ").split()).upper()
-    if " " in cleaned:
-        return cleaned
-
-    # Split a run-together code at the first digit: "COMP2601" -> "COMP 2601".
-    for i, char in enumerate(cleaned):
-        if char.isdigit():
-            return f"{cleaned[:i]} {cleaned[i:]}" if i else cleaned
-    return cleaned
+def course_codes(conn: psycopg.Connection) -> list[str]:
+    """Every course code in the current publication, as published."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT DISTINCT course_code
+              FROM current_sessions
+             ORDER BY course_code
+            """
+        )
+        return [row[0] for row in cur.fetchall()]
 
 
 def _rows(cur: psycopg.Cursor) -> list[dict[str, Any]]:
@@ -208,6 +213,10 @@ def freshness(conn: psycopg.Connection) -> dict[str, Any]:
     )
 
     return {
+        # The builder saves this alongside a student's timetable so it can tell
+        # them the warehouse moved underneath it rather than silently serving
+        # last semester's rooms.
+        "publication_id": publication.get("id"),
         "published_at": publication.get("published_at"),
         "http_last_modified": publication.get("http_last_modified"),
         "imported_at": publication.get("imported_at"),
@@ -435,21 +444,32 @@ def course_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
 
 def course_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
     """A course, its sessions, and who teaches them."""
-    code = normalise_course_code(code)
     with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT c.code, c.title, f.name AS faculty, d.name AS department
-              FROM courses c
-              LEFT JOIN departments d ON d.id = c.department_id
-              LEFT JOIN faculties f   ON f.id = c.faculty_id
-             WHERE c.code = %s
-            """,
-            (code,),
-        )
-        course = (_rows(cur) or [None])[0]
+        # Resolved rather than normalised: normalising alone 404s "WW101" and
+        # "FOUN 1001 (FULL & PART-TIME)", which are published courses. The
+        # match is folded into this query rather than done by
+        # `find_published_code` first, so a course page still costs two round
+        # trips and not three.
+        course = None
+        for key in published_code_candidates(code):
+            cur.execute(
+                """
+                SELECT c.code, c.title, f.name AS faculty, d.name AS department
+                  FROM courses c
+                  LEFT JOIN departments d ON d.id = c.department_id
+                  LEFT JOIN faculties f   ON f.id = c.faculty_id
+                 WHERE upper(regexp_replace(c.code, '\\s', '', 'g')) = %s
+                 ORDER BY c.code
+                 LIMIT 1
+                """,
+                (key,),
+            )
+            course = (_rows(cur) or [None])[0]
+            if course is not None:
+                break
         if course is None:
             return None
+        code = course["code"]
 
         cur.execute(
             """
@@ -478,6 +498,80 @@ def course_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
         sum((s["end_min"] - s["start_min"]) / 60 for s in sessions), 1
     )
     return course
+
+
+def sessions_for_courses(
+    conn: psycopg.Connection, codes: list[str]
+) -> list[dict[str, Any]]:
+    """
+    Sessions for many courses at once, shaped for the timetable builder.
+
+    Two queries regardless of how many codes are asked for. The builder's usual
+    request is a whole semester's worth of courses at once, and a per-course
+    round trip would make adding six courses six times slower than adding one
+    for no reason.
+
+    Field names are camelCase here and nowhere else in this module, because
+    these rows are handed to `computeStreamId` in the browser unchanged. A
+    class picked from the warehouse and the same class extracted from a PDF
+    have to compute the same stream id or they become two courses.
+
+    `codes` must already be resolved to published spellings by
+    `resolve_published_code`; anything unrecognised is the caller's to report.
+    """
+    if not codes:
+        return []
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT c.code, c.title, f.name AS faculty, d.name AS department
+              FROM courses c
+              LEFT JOIN departments d ON d.id = c.department_id
+              LEFT JOIN faculties f   ON f.id = c.faculty_id
+             WHERE c.code = ANY(%s)
+             ORDER BY c.code
+            """,
+            (codes,),
+        )
+        courses = _rows(cur)
+
+        cur.execute(
+            """
+            SELECT cs.id            AS "sessionId",
+                   cs.course_code,
+                   cs.activity_type AS type,
+                   cs.day::text     AS day,
+                   cs.start_time    AS "startTime",
+                   cs.end_time      AS "endTime",
+                   cs.room,
+                   cs.staff,
+                   cs.stream_label  AS "streamLabel",
+                   cs.weeks,
+                   cs.weeks_raw     AS "weeksRaw",
+                   cs.source_count  AS "sourceCount"
+              FROM current_sessions cs
+             WHERE cs.course_code = ANY(%s)
+             -- Qualified so it sorts on the day_of_week enum and lands Monday
+             -- first. A bare "day" would bind to the ::text output column
+             -- instead and order the week alphabetically, starting on Friday.
+             ORDER BY cs.course_code, cs.day, cs.start_min, cs.end_min, cs.id
+            """,
+            (codes,),
+        )
+        rows = _rows(cur)
+
+    by_code: dict[str, list[dict[str, Any]]] = {c["code"]: [] for c in courses}
+    for row in rows:
+        session = dict(row)
+        code = session.pop("course_code")
+        session["staff"] = list(session["staff"] or [])
+        session["weeks"] = list(session["weeks"] or [])
+        by_code.setdefault(code, []).append(session)
+
+    for course in courses:
+        course["sessions"] = by_code.get(course["code"], [])
+    return courses
 
 
 # Rooms
@@ -629,11 +723,15 @@ __all__ = [
     "DAY_END_HOUR",
     "weeks_to_mask",
     "normalise_course_code",
+    "resolve_published_code",
+    "build_code_index",
     "freshness",
     "overview",
     "campus_heat",
     "course_index",
+    "course_codes",
     "course_detail",
+    "sessions_for_courses",
     "room_index",
     "room_detail",
     "staff_index",

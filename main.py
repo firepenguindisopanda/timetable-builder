@@ -208,6 +208,9 @@ async def request_telemetry(request: Request, call_next):
 
 
 app.include_router(explore_router.router)
+# Public and read-only, and deliberately from the same module as /explore so
+# both share one connection pool and one cache over the warehouse.
+app.include_router(explore_router.api_router)
 
 
 @app.exception_handler(StarletteHTTPException)
