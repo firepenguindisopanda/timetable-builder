@@ -240,25 +240,43 @@ test('re-optimising still places everything', () => {
 
 test('an override regroups the course and replaces its placements', () => {
   const state = stateOf('AGBU 1005');
-  const lectures = () =>
-    state.optionGroups.filter((g) => g.type === 'Lecture');
-  assert.equal(lectures().length, 2);
+  const lectures = () => state.optionGroups.filter((g) => g.type === 'Lecture');
+  assert.equal(lectures().length, 1, 'one choice of two sittings by default');
 
-  state.setOptionGroupOverride('AGBU 1005', 'Lecture', 'menu');
+  state.setOptionGroupOverride('AGBU 1005', 'Lecture', 'split');
 
-  assert.equal(lectures().length, 1);
+  assert.equal(lectures().length, 2, 'now two classes to attend');
   const placed = state.placements.filter((p) =>
     p.groupId.startsWith('AGBU 1005|Lecture')
   );
-  assert.equal(placed.length, 1);
-  assert.ok(state.getPlacedEventDetails(placed[0].groupId));
+  assert.equal(placed.length, 2);
+  assert.ok(placed.every((p) => state.getPlacedEventDetails(p.groupId)));
 });
 
 test('an override leaves no placement pointing at a group that is gone', () => {
   const state = stateOf('AGBU 1005');
 
-  state.setOptionGroupOverride('AGBU 1005', 'Lecture', 'menu');
+  state.setOptionGroupOverride('AGBU 1005', 'Lecture', 'split');
 
+  const ids = new Set(state.optionGroups.map((g) => g.groupId));
+  assert.ok(state.placements.every((p) => ids.has(p.groupId)));
+});
+
+test('placements stranded by a rule change are dropped and refilled', () => {
+  /**
+   * Group ids come from the grouping rules, so changing those rules strands
+   * everything saved under the old ones. This is what stops a student's saved
+   * timetable keeping a class they can neither see nor move.
+   */
+  const state = stateOf('COMP 1601');
+  state.placements.push({
+    courseKey: 'COMP 1601',
+    groupId: 'COMP 1601|Lecture|Monday-12:00',
+    selectedSessionId: 1,
+    pinned: false,
+  });
+
+  assert.equal(state.pruneDanglingPlacements(), 1);
   const ids = new Set(state.optionGroups.map((g) => g.groupId));
   assert.ok(state.placements.every((p) => ids.has(p.groupId)));
 });
@@ -331,26 +349,6 @@ test('nothing to undo is answered honestly', () => {
 // Clashes, and what can be done about them
 
 
-test('the siblings of a group are the rest of its course and type', () => {
-  const state = stateOf('AGBU 1005');
-  const lectures = state.optionGroups.filter((g) => g.type === 'Lecture');
-  assert.equal(lectures.length, 2);
-
-  const siblings = state.getSiblingGroups(lectures[0].groupId);
-
-  assert.deepEqual(
-    siblings.map((g) => g.groupId),
-    [lectures[1].groupId]
-  );
-});
-
-test('a group with nothing beside it has no siblings to merge with', () => {
-  const state = stateOf('FOUN 1101');
-  const [menu] = state.optionGroups.filter((g) => g.type === 'Tutorial');
-
-  assert.deepEqual(state.getSiblingGroups(menu.groupId), []);
-});
-
 test('a clash-free timetable classifies to no clashes at all', () => {
   const state = stateOf('COMP 1601', 'COMP 1602');
 
@@ -405,13 +403,13 @@ test('a refresh keeps a placement that still resolves', () => {
 });
 
 test('a placement whose class is gone is refilled, not left dangling', () => {
-  const state = stateOf('COMP 1601');
+  const state = stateOf('COMP 3613');
   const lectureGroup = state.optionGroups.find(
     (g) => g.type === 'Lecture' && g.sessions.length === 1
   );
 
   // The new publication drops that one lecture.
-  const trimmed = TimetableState.fromWarehouseResponse(response('COMP 1601'));
+  const trimmed = TimetableState.fromWarehouseResponse(response('COMP 3613'));
   const goneId = lectureGroup.sessions[0].sessionId;
   trimmed.courses[0].sessions = trimmed.courses[0].sessions.filter(
     (s) => s.sessionId !== goneId

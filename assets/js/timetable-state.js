@@ -294,22 +294,6 @@ class TimetableState {
     return true;
   }
 
-  /**
-   * The other groups of the same course and activity type as this one.
-   *
-   * What "merge" would fold together, so the UI can say how many and offer it
-   * only when there is something to merge with.
-   */
-  getSiblingGroups(groupId) {
-    const group = this.getGroup(groupId);
-    if (!group) return [];
-    return this.optionGroups.filter(
-      g => g.courseKey === group.courseKey &&
-           g.type === group.type &&
-           g.groupId !== groupId
-    );
-  }
-
   // Changing the timetable
 
   /** Add courses already in the pool, or new ones. Spec 8.1 and 8.2. */
@@ -518,6 +502,25 @@ class TimetableState {
 
     this._notify();
     return { moved: dropped, stale: [...missing] };
+  }
+
+  /**
+   * Drop placements pointing at a group that no longer exists.
+   *
+   * Group ids are derived from the grouping rules, so changing those rules
+   * strands every placement saved under the old ones. Leaving them would keep
+   * a class the student can neither see nor move, so they go and the gap is
+   * refilled by `placeMissing`.
+   */
+  pruneDanglingPlacements() {
+    const live = new Set(this.optionGroups.map(g => g.groupId));
+    const kept = this.placements.filter(p => live.has(p.groupId));
+    const dropped = this.placements.length - kept.length;
+    if (dropped) {
+      this.placements = kept;
+      this._invalidate();
+    }
+    return dropped;
   }
 
   /** Place anything on the timetable that has no placement yet. */

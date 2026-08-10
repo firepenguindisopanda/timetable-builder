@@ -10,6 +10,9 @@
   "COMP 1601",
   "COMP 1602",
   "COMP 2601",
+  "COMP 2611",
+  "COMP 3607",
+  "COMP 3613",
   "FOUN 1001 (ALJGSB)",
   "FOUN 1001 (FULL & PART-TIME)",
   "FOUN 1101",
@@ -2148,6 +2151,394 @@
      ],
      "weeksRaw": "W1-W12",
      "sourceCount": 3
+    }
+   ]
+  },
+  {
+   "code": "COMP 2611",
+   "title": "Data Structures",
+   "faculty": "Science & Technology",
+   "department": "DCIT",
+   "sessions": [
+    {
+     "sessionId": 19214,
+     "type": "Lab",
+     "day": "Monday",
+     "startTime": "12:00",
+     "endTime": "14:00",
+     "room": "FST CSL1",
+     "staff": [
+      "MATHURA,Joshua"
+     ],
+     "streamLabel": "L1",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19215,
+     "type": "Lab",
+     "day": "Monday",
+     "startTime": "17:00",
+     "endTime": "19:00",
+     "room": "FST CSL2",
+     "staff": [
+      "MATHURA,Joshua"
+     ],
+     "streamLabel": "L2",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19216,
+     "type": "Lecture",
+     "day": "Tuesday",
+     "startTime": "09:00",
+     "endTime": "10:00",
+     "room": "TLC LT E",
+     "staff": [
+      "MOHAN,Permanand"
+     ],
+     "streamLabel": null,
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19217,
+     "type": "Lab",
+     "day": "Tuesday",
+     "startTime": "17:00",
+     "endTime": "19:00",
+     "room": "FST CSL1",
+     "staff": [
+      "MATHURA,Joshua"
+     ],
+     "streamLabel": "L3",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19218,
+     "type": "Lab",
+     "day": "Wednesday",
+     "startTime": "09:00",
+     "endTime": "11:00",
+     "room": "FST CSL2",
+     "staff": [
+      "MATHURA,Joshua"
+     ],
+     "streamLabel": "L4",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19219,
+     "type": "Lab",
+     "day": "Wednesday",
+     "startTime": "11:00",
+     "endTime": "13:00",
+     "room": "FST CSL1",
+     "staff": [
+      "MATHURA,Joshua"
+     ],
+     "streamLabel": "L5",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19220,
+     "type": "Lecture",
+     "day": "Wednesday",
+     "startTime": "13:00",
+     "endTime": "14:00",
+     "room": "TLC LT E",
+     "staff": [
+      "MOHAN,Permanand"
+     ],
+     "streamLabel": null,
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    }
+   ]
+  },
+  {
+   "code": "COMP 3607",
+   "title": "Object-Oriented Programming II",
+   "faculty": "Science & Technology",
+   "department": "DCIT",
+   "sessions": [
+    {
+     "sessionId": 19234,
+     "type": "Lecture",
+     "day": "Monday",
+     "startTime": "09:00",
+     "endTime": "10:00",
+     "room": "FST 114",
+     "staff": [
+      "MOHAMMED,Phaedra"
+     ],
+     "streamLabel": null,
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19235,
+     "type": "Lecture",
+     "day": "Wednesday",
+     "startTime": "09:00",
+     "endTime": "10:00",
+     "room": "FST C1",
+     "staff": [
+      "MOHAMMED,Phaedra"
+     ],
+     "streamLabel": null,
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19236,
+     "type": "Lab",
+     "day": "Friday",
+     "startTime": "12:00",
+     "endTime": "14:00",
+     "room": "FST CSL2",
+     "staff": [
+      "RASHEED,Daniel"
+     ],
+     "streamLabel": null,
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    }
+   ]
+  },
+  {
+   "code": "COMP 3613",
+   "title": "Software Engineering II",
+   "faculty": "Science & Technology",
+   "department": "DCIT",
+   "sessions": [
+    {
+     "sessionId": 19237,
+     "type": "Tutorial",
+     "day": "Tuesday",
+     "startTime": "15:00",
+     "endTime": "16:00",
+     "room": "FST CSL1",
+     "staff": [
+      "MENDEZ,Nicholas"
+     ],
+     "streamLabel": "T1",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19238,
+     "type": "Lecture",
+     "day": "Wednesday",
+     "startTime": "11:00",
+     "endTime": "13:00",
+     "room": "FST 113",
+     "staff": [
+      "MENDEZ,Nicholas"
+     ],
+     "streamLabel": null,
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 3
+    },
+    {
+     "sessionId": 19239,
+     "type": "Tutorial",
+     "day": "Thursday",
+     "startTime": "10:00",
+     "endTime": "11:00",
+     "room": "Remote Teaching",
+     "staff": [
+      "MENDEZ,Nicholas"
+     ],
+     "streamLabel": "T2",
+     "weeks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weeksRaw": "W1-W12",
+     "sourceCount": 2
     }
    ]
   },

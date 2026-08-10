@@ -161,7 +161,9 @@ test('a course does not clash with itself when it can avoid it', () => {
 
 
 test('a lone option that clashes is still placed, and named unavoidable', () => {
-  const { perCourse, index } = setUp(['COMP 1601', 'Lecture']);
+  // COMP 3613 publishes exactly one lecture, so there is nowhere else to put
+  // it. That is the difference between a clash and a decision.
+  const { perCourse, index } = setUp(['COMP 3613', 'Lecture']);
   const single = perCourse[0].groups.find((g) => g.sessions.length === 1);
   const clone = {
     groupId: 'OTHER|Lecture|all',
@@ -225,7 +227,8 @@ test('the most constrained course claims its slot first', () => {
 });
 
 test('a course with one arrangement counts as one', () => {
-  const groups = groupsOf('AGBU 1005', 'Lecture');
+  // COMP 3607 publishes a single lab and nothing to choose between.
+  const groups = groupsOf('COMP 3607', 'Lab');
 
   assert.equal(arrangementCount(groups), 1);
 });
@@ -544,7 +547,7 @@ test('a classified clash still carries its weeks and its events', () => {
 
 
 test('a placement pointing at a session that is gone is skipped, not fatal', () => {
-  const { perCourse, index } = setUp(['COMP 1601', 'Lecture']);
+  const { perCourse, index } = setUp(['COMP 3613', 'Lecture']);
   const groups = perCourse[0].groups;
   const placements = [
     { courseKey: 'COMP 1601', groupId: groups[0].groupId, selectedSessionId: 999999 },

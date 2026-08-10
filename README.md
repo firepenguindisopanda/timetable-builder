@@ -375,23 +375,20 @@ one complaint and not one per word.
 
 ### What counts as one class
 
-A course's sessions are grouped into **option groups**, where a group is a set
-of mutually exclusive alternatives and each group puts exactly one class on the
-grid. The rules, in `assets/js/option-groups.js`:
+**A student attends one lecture, one lab and one tutorial per course per
+week.** Every sitting CELCAT publishes under an activity type is therefore a
+choice, not an obligation, and a course puts one block per type on the grid.
 
-1. If one activity type of one course totals more than `MENU_CEILING_HOURS`
-   (6.0) a week, the whole lot is one menu and the student picks one. That
-   ceiling is twice the 90th percentile of the 978 unambiguous single-session
-   groups in the warehouse. Without it, `FOUN 1101` alone puts 33 tutorials and
-   39 hours on a 40-hour grid.
-2. Otherwise, sessions carrying a stream label (`L1`, `T2`, `G1`) are
-   alternatives to each other.
-3. Otherwise, sessions cluster by time overlap, and anything that does not
-   overlap is a class in its own right. This is what keeps a Monday and a
-   Wednesday lecture reading as two lectures rather than a choice.
+That rule is institutional and is not visible in the data. Nothing in the
+publication distinguishes "the same lecture offered five times" from "five
+different lectures", and both readings are internally consistent, so
+`assets/js/option-groups.js` states the rule rather than inferring one. An
+earlier version tried to infer it from stream labels and time overlaps, and put
+17 blocks on a five-course timetable that should hold 10.
 
-No rule gets every course right, so a group can be corrected and the correction
-is saved per course.
+A course that genuinely runs more than one of a type in a week is the
+exception, and the student splits the group to say so. The correction is saved
+per course.
 
 A placement the student made by hand is **pinned**, and nothing moves a pinned
 placement afterwards: not adding a course, not the bulk pass, not

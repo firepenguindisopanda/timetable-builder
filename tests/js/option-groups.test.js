@@ -3,10 +3,10 @@
 /**
  * What counts as one class.
  *
- * Every fixture below is a real course from the publication of 6 August 2026,
- * because the whole question these rules answer is what the university
- * actually publishes, and invented data would only test the rules against
- * themselves.
+ * A student attends one lecture, one lab and one tutorial per course per week,
+ * so every sitting of a type is a choice rather than an obligation. That rule
+ * is institutional and not visible in the data, which is exactly why it is
+ * pinned here against real courses from the publication of 6 August 2026.
  */
 
 const test = require('node:test');
@@ -16,7 +16,6 @@ const { load, course, sessionsOfType } = require('./harness.js');
 const api = load('calendar-utils.js', 'option-groups.js');
 const deriveOptionGroups = api.get('deriveOptionGroups');
 const isMenu = api.get('isMenu');
-const MENU_CEILING_HOURS = api.get('MENU_CEILING_HOURS');
 
 /** A fixture course in the shape the state layer hands to the grouper. */
 function pick(code, ...types) {
@@ -31,142 +30,74 @@ function groupsFor(code, ...types) {
   return deriveOptionGroups(pick(code, ...types));
 }
 
-function hoursOf(sessions) {
-  const timeToMins = api.get('timeToMins');
-  return (
-    sessions.reduce(
-      (t, s) => t + timeToMins(s.endTime) - timeToMins(s.startTime),
-      0
-    ) / 60
-  );
-}
-
-// Nothing to decide
+// One of each per week
 
 
-test('a course with one session of a type gets one group holding it', () => {
-  const groups = groupsFor('COMP 1602', 'Lecture').filter(
-    (g) => g.sessions.length === 1
-  );
+test('a course with one sitting of a type gets one placement', () => {
+  const groups = groupsFor('COMP 3613', 'Lecture');
 
-  assert.ok(groups.length >= 1);
+  assert.equal(groups.length, 1);
   assert.equal(groups[0].reason, 'single');
   assert.equal(isMenu(groups[0]), false);
 });
 
-// The ceiling
+test('several lectures a week are one choice, not several obligations', () => {
+  /**
+   * The case a student reported from the deployed app. COMP 1601 publishes
+   * five lecture sittings; reading them as four separate classes put
+   * seventeen blocks on a five-course timetable that should hold ten.
+   */
+  const lectures = sessionsOfType('COMP 1601', 'Lecture');
+  assert.equal(lectures.length, 5);
 
+  const groups = groupsFor('COMP 1601', 'Lecture');
 
-test('a cohort too large to attend becomes one menu', () => {
-  // FOUN 1101 publishes 33 unlabelled tutorial sessions. Read as obligations
-  // they are 33 hours of tutorial for one course.
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].sessions.length, 5);
+  assert.equal(groups[0].reason, 'sittings');
+  assert.equal(isMenu(groups[0]), true);
+});
+
+test('a Monday and Wednesday lecture pair is one choice of two sittings', () => {
+  const groups = groupsFor('AGBU 1005', 'Lecture');
+
+  assert.equal(groups.length, 1);
+  assert.deepEqual(
+    groups[0].sessions.map((s) => s.day),
+    ['Monday', 'Wednesday']
+  );
+});
+
+test('a large cohort is one choice too, however many sittings it has', () => {
   const tutorials = sessionsOfType('FOUN 1101', 'Tutorial');
   assert.equal(tutorials.length, 33);
 
   const groups = groupsFor('FOUN 1101', 'Tutorial');
 
   assert.equal(groups.length, 1);
-  assert.equal(groups[0].reason, 'ceiling');
   assert.equal(groups[0].sessions.length, 33);
 });
 
-test('the ceiling keeps a large cohort to one block on the grid', () => {
-  const groups = groupsFor('PSYC 1001', 'Tutorial');
-
-  assert.equal(groups.length, 1);
-  assert.equal(hoursOf(groups.map((g) => g.sessions[0])), 1);
+test('stream labels do not split a type into separate classes', () => {
+  // BIOL 2061 labels its five tutorials T1 to T5. They were already one
+  // choice; the point is that partial labelling cannot change that either.
+  assert.equal(groupsFor('BIOL 2061', 'Tutorial').length, 1);
+  assert.equal(groupsFor('CHEM 2470', 'Tutorial').length, 1);
 });
 
-test('a group is measured by its hours, not its session count', () => {
-  // BIOL 1262's eight four-hour labs are 32 hours; its eight one-hour
-  // tutorials are 8. Both are over, and both become menus.
-  for (const type of ['Lab', 'Tutorial']) {
-    const groups = groupsFor('BIOL 1262', type);
-    assert.equal(groups.length, 1, type);
-    assert.equal(groups[0].reason, 'ceiling', type);
-  }
-});
+test('each activity type is its own placement', () => {
+  const groups = groupsFor('COMP 1601');
 
-test('the ceiling is the one the warehouse justifies', () => {
-  assert.equal(MENU_CEILING_HOURS, 6.0);
-});
-
-// Stream labels
-
-
-test('fully labelled sessions are alternatives, not five tutorials', () => {
-  const tutorials = sessionsOfType('BIOL 2061', 'Tutorial');
-  assert.deepEqual(
-    tutorials.map((s) => s.streamLabel).sort(),
-    ['T1', 'T2', 'T3', 'T4', 'T5']
-  );
-
-  const groups = groupsFor('BIOL 2061', 'Tutorial');
-
-  assert.equal(groups.length, 1);
-  assert.equal(groups[0].reason, 'labelled');
-  assert.equal(isMenu(groups[0]), true);
-});
-
-test('a partly labelled group keeps its labelled sessions together', () => {
-  // CHEM 2470 labels five of its six tutorials and lands exactly on the
-  // ceiling, so the label rule rather than the ceiling decides it.
-  const tutorials = sessionsOfType('CHEM 2470', 'Tutorial');
-  assert.equal(hoursOf(tutorials), MENU_CEILING_HOURS);
-
-  const groups = groupsFor('CHEM 2470', 'Tutorial');
-  const labelled = groups.find((g) => g.reason === 'labelled');
-
-  assert.equal(labelled.sessions.length, 5);
-  assert.ok(labelled.sessions.every((s) => s.streamLabel));
-});
-
-test('one stray label does not turn a course lectures into a single choice', () => {
-  /**
-   * COMP 1601 is the case the spec worked through. Five lectures, one marked
-   * "G2". Reading every one of them as an alternative would place a single
-   * hour where the student owes three.
-   */
-  const groups = groupsFor('COMP 1601', 'Lecture');
-
-  assert.equal(groups.length, 4);
-  const labelled = groups.find((g) => g.reason === 'labelled');
-  assert.equal(labelled.sessions.length, 1);
-  assert.equal(labelled.sessions[0].streamLabel, 'G2');
-});
-
-// Overlap clustering
-
-
-test('two sessions at the same hour in different rooms are a room choice', () => {
-  // COMP 1601 runs Tuesday 12:00 in both LRC A and LRC B.
-  const groups = groupsFor('COMP 1601', 'Lecture');
-  const tuesday = groups.find(
-    (g) => g.sessions[0].day === 'Tuesday' && g.sessions[0].startTime === '12:00'
-  );
-
-  assert.equal(tuesday.sessions.length, 2);
-  assert.equal(tuesday.reason, 'overlap');
-  assert.deepEqual(
-    tuesday.sessions.map((s) => s.room).sort(),
-    ['LRC A', 'LRC B']
-  );
-});
-
-test('a Monday and Wednesday lecture pair stays two lectures', () => {
-  /**
-   * The warehouse holds 297 of these, and they are the reason the default is
-   * to attend everything rather than to pick one. Collapsing them would hide
-   * a real lecture every week.
-   */
-  const groups = groupsFor('AGBU 1005', 'Lecture');
-
+  assert.deepEqual(groups.map((g) => g.type), ['Lab', 'Lecture']);
   assert.equal(groups.length, 2);
-  assert.deepEqual(
-    groups.map((g) => g.sessions[0].day),
-    ['Monday', 'Wednesday']
-  );
-  assert.ok(groups.every((g) => !isMenu(g)));
+});
+
+test('a whole course reduces to one block per type', () => {
+  // Two types each, so two blocks each, which is what a student expects.
+  const perCourse = ['COMP 1601', 'COMP 1602', 'AGBU 1005']
+    .map((code) => groupsFor(code).length);
+
+  assert.deepEqual(perCourse, [2, 2, 2]);
 });
 
 // Group identity
@@ -233,20 +164,7 @@ test('a course with no sessions produces no groups', () => {
 // The student's override
 
 
-test('a student can say these are alternatives after all', () => {
-  const before = groupsFor('AGBU 1005', 'Lecture');
-  assert.equal(before.length, 2);
-
-  const after = deriveOptionGroups(pick('AGBU 1005', 'Lecture'), {
-    'AGBU 1005|Lecture': 'menu',
-  });
-
-  assert.equal(after.length, 1);
-  assert.equal(after[0].reason, 'override');
-  assert.equal(after[0].sessions.length, 2);
-});
-
-test('a student can say these are not alternatives after all', () => {
+test('a student can say this course runs several of these a week', () => {
   const before = groupsFor('FOUN 1101', 'Tutorial');
   assert.equal(before.length, 1);
 
@@ -257,20 +175,25 @@ test('a student can say these are not alternatives after all', () => {
   assert.equal(after.length, 33);
 });
 
-test('splitting also sets aside the labels, since that is what it means', () => {
-  const after = deriveOptionGroups(pick('BIOL 2061', 'Tutorial'), {
-    'BIOL 2061|Tutorial': 'split',
+test('splitting still keeps sittings that overlap as one choice', () => {
+  // COMP 1601 runs two Tuesday 12:00 lectures in different rooms. Even split
+  // apart, nobody can attend both.
+  const after = deriveOptionGroups(pick('COMP 1601', 'Lecture'), {
+    'COMP 1601|Lecture': 'split',
   });
 
-  assert.equal(after.length, 5);
-  assert.ok(after.every((g) => g.reason === 'single'));
+  assert.equal(after.length, 4);
+  const tuesday = after.find((g) => g.sessions[0].day === 'Tuesday');
+  assert.equal(tuesday.sessions.length, 2);
+  assert.equal(tuesday.reason, 'overlap');
 });
 
 test('an override for one type leaves the others alone', () => {
   const groups = deriveOptionGroups(pick('COMP 1601'), {
-    'COMP 1601|Lecture': 'menu',
+    'COMP 1601|Lecture': 'split',
   });
 
-  assert.equal(groups.filter((g) => g.type === 'Lecture').length, 1);
-  assert.equal(groups.filter((g) => g.type === 'Lab')[0].reason, 'ceiling');
+  assert.ok(groups.filter((g) => g.type === 'Lecture').length > 1);
+  assert.equal(groups.filter((g) => g.type === 'Lab').length, 1);
+  assert.equal(groups.filter((g) => g.type === 'Lab')[0].reason, 'sittings');
 });

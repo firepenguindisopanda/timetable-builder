@@ -1384,8 +1384,8 @@
         </div>`;
 
         const alternatives = details.optionCount > 1
-            ? `${details.optionCount} alternatives, drag to change`
-            : 'No alternative published';
+            ? `${details.optionCount} sittings, drag to pick another`
+            : 'Only one sitting published';
         html += `<div class="detail-section">
             <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
             ${detailField('Course', details.courseKey)}
@@ -1431,43 +1431,35 @@
      * hatch. Section 4 of the spec calls for it explicitly.
      */
     const GROUP_REASON = {
-        ceiling: 'These add up to more than a person could attend in a week, ' +
-                 'so we read them as a choice.',
-        labelled: 'These carry stream labels, which usually means pick one.',
+        sittings: 'This runs more than once a week and you attend one sitting. ' +
+                  'Drag it to pick a different one.',
+        single: 'Only one sitting of this is published.',
         overlap: 'These run at the same time, so you can only be at one.',
-        override: 'You said these are alternatives.',
-        single: 'Nothing else of this type runs opposite it.',
+        split: 'You said this course runs more than one of these a week.',
     };
 
     function groupOverrideHtml(details) {
         if (!state) return '';
-        const siblings = state.getSiblingGroups(details.groupId);
         const isMenu = details.optionCount > 1;
-        const overridden = details.groupReason === 'override';
 
-        let control = '';
-        if (isMenu) {
-            control = `<button type="button" class="btn btn-outline-secondary btn-sm group-split"
-                    data-course-key="${escapeHtml(details.courseKey)}"
-                    data-type="${escapeHtml(details.type || '')}">
-                    No, I attend all of these
-               </button>`;
-        } else if (siblings.length) {
-            control = `<button type="button" class="btn btn-outline-secondary btn-sm group-merge"
-                    data-course-key="${escapeHtml(details.courseKey)}"
-                    data-type="${escapeHtml(details.type || '')}">
-                    I only attend one of these ${siblings.length + 1}
-               </button>`;
-        }
-        if (!control && !overridden) return '';
-
-        const undo = overridden || details.groupReason === 'split'
+        // Splitting is the rare correction: a course that really does run two
+        // different lectures a week rather than the same one twice.
+        const split = details.groupReason === 'split' || details.groupReason === 'overlap';
+        const control = split
             ? `<button type="button" class="btn btn-outline-secondary btn-sm group-reset"
                     data-course-key="${escapeHtml(details.courseKey)}"
                     data-type="${escapeHtml(details.type || '')}">
-                    Use the published grouping again
+                    Go back to picking one
                </button>`
-            : '';
+            : (isMenu
+                ? `<button type="button" class="btn btn-outline-secondary btn-sm group-split"
+                        data-course-key="${escapeHtml(details.courseKey)}"
+                        data-type="${escapeHtml(details.type || '')}">
+                        I attend more than one of these a week
+                   </button>`
+                : '');
+        if (!control) return '';
+        const undo = '';
 
         return `<div class="group-override">
             <span class="why">${escapeHtml(GROUP_REASON[details.groupReason] || '')}</span>
@@ -1550,9 +1542,7 @@
         const button = event.target.closest('.group-split, .group-merge, .group-reset');
         if (!button || !state) return;
         const { courseKey, type } = button.dataset;
-        const mode = button.classList.contains('group-split') ? 'split'
-                   : button.classList.contains('group-merge') ? 'menu'
-                   : null;
+        const mode = button.classList.contains('group-split') ? 'split' : null;
         state.setOptionGroupOverride(courseKey, type, mode);
         toast(`Regrouped ${courseKey} ${String(type).toLowerCase()}.`,
               'Saved with your timetable. Ctrl+Z to undo.');
@@ -2500,6 +2490,11 @@
             // from v2 does gain blocks here, because the old model could hold
             // only one placement per course and type and so could not show a
             // course's second lecture at all.
+            // The grouping rules decide group ids, so a timetable saved under
+            // older rules can point at groups that no longer exist. Those are
+            // dropped and the gaps refilled rather than left as classes the
+            // student can neither see nor move.
+            state.pruneDanglingPlacements();
             state.placeMissing();
             state.onChange(onStateChanged);
             renderEvents();
