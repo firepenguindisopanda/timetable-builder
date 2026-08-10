@@ -505,16 +505,23 @@ class TimetableState {
   }
 
   /**
-   * Drop placements pointing at a group that no longer exists.
+   * Drop placements that no longer resolve to a class.
    *
-   * Group ids are derived from the grouping rules, so changing those rules
-   * strands every placement saved under the old ones. Leaving them would keep
-   * a class the student can neither see nor move, so they go and the gap is
-   * refilled by `placeMissing`.
+   * Two ways that happens, and both leave the same symptom: a placement that
+   * occupies its group, renders nothing, and stops `placeMissing` refilling
+   * the gap, so the class silently vanishes from the timetable.
+   *
+   * The group can go, because group ids are derived from the grouping rules
+   * and changing those rules strands everything saved under the old ones. Or
+   * the group can survive while the session inside it goes, which is what a
+   * republished timetable does when it moves one class and leaves the rest.
+   *
+   * Resolving the placement outright covers both, rather than checking for
+   * the first and being surprised by the second.
    */
   pruneDanglingPlacements() {
-    const live = new Set(this.optionGroups.map(g => g.groupId));
-    const kept = this.placements.filter(p => live.has(p.groupId));
+    const index = this.groupIndex;
+    const kept = this.placements.filter(p => eventForPlacement(p, index) !== null);
     const dropped = this.placements.length - kept.length;
     if (dropped) {
       this.placements = kept;

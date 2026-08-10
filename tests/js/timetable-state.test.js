@@ -262,6 +262,34 @@ test('an override leaves no placement pointing at a group that is gone', () => {
   assert.ok(state.placements.every((p) => ids.has(p.groupId)));
 });
 
+test('a placement whose session is gone is dropped, not left holding the group', () => {
+  /**
+   * The nastier of the two: the group still exists, so a check for missing
+   * groups alone leaves the placement in place. It renders nothing, and
+   * because the group looks occupied the gap is never refilled, so the class
+   * disappears from the timetable in silence.
+   */
+  const state = stateOf('COMP 1601');
+  const lab = state.placements.find((p) => p.groupId === 'COMP 1601|Lab|all');
+  lab.selectedSessionId = 99999999;
+
+  assert.equal(state.pruneDanglingPlacements(), 1);
+  assert.ok(!state.placements.some((p) => p.groupId === 'COMP 1601|Lab|all'));
+
+  state.placeMissing();
+  const refilled = state.placements.find((p) => p.groupId === 'COMP 1601|Lab|all');
+  assert.ok(refilled, 'the gap is refilled once the dead placement is gone');
+  assert.ok(state.getPlacedEvents().some((e) => e.type === 'Lab'));
+});
+
+test('a placement that still resolves is left alone by pruning', () => {
+  const state = stateOf('COMP 1601');
+  const before = JSON.parse(JSON.stringify(state.placements));
+
+  assert.equal(state.pruneDanglingPlacements(), 0);
+  assert.deepEqual(state.placements, before);
+});
+
 test('placements stranded by a rule change are dropped and refilled', () => {
   /**
    * Group ids come from the grouping rules, so changing those rules strands

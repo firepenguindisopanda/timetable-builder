@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/explore.css">
+<link rel="stylesheet" href="/assets/css/explore.css?v={{ asset_version }}">
 {% block head %}{% endblock %}
 </head>
 <body class="explore">
@@ -77,8 +77,8 @@
 <!-- Versioned together: explore.js now depends on course-search.js, so a
      browser must not be able to pair a cached copy of one with a fresh
      copy of the other. -->
-<script src="/assets/js/course-search.js?v=2" defer></script>
-<script src="/assets/js/explore.js?v=2" defer></script>
+<script src="/assets/js/course-search.js?v={{ asset_version }}" defer></script>
+<script src="/assets/js/explore.js?v={{ asset_version }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -58,6 +58,7 @@ from schemas import (
 from timetable_extractor import extract_timetable, observability
 
 import explore_router
+import static_version
 
 # --- Admin Auth ---
 
@@ -221,6 +222,9 @@ async def explorer_aware_http_exception(request: Request, exc: StarletteHTTPExce
     return await http_exception_handler(request, exc)
 
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
+# Every asset URL carries this, so a deploy that changes a script changes the
+# URL asking for it and no browser can pair new HTML with stale JavaScript.
+templates.env.globals["asset_version"] = static_version.asset_version()
 
 # Serve static files from assets folder
 assets_dir = Path(__file__).resolve().parent / "assets"

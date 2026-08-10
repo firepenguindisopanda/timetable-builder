@@ -25,6 +25,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
+import static_version
 from timetable_extractor.database import explore_queries as eq
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
 from timetable_extractor.observability import correlation_id, get_logger
@@ -39,6 +40,7 @@ SLOW_QUERY_MS = 500.0
 
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 templates.env.filters["urlpath"] = lambda value: quote(str(value), safe="")
+templates.env.globals["asset_version"] = static_version.asset_version()
 # Positioning a week grid is arithmetic, not markup, so the template calls into
 # Python for it rather than doing minute maths in Jinja.
 templates.env.globals["week_layout"] = eq.week_layout
