@@ -44,8 +44,13 @@ const PRINT_PALETTE = Object.freeze([
 /** Lecturers past this many are summarised, so one line cannot run away. */
 const STAFF_SHOWN = 3;
 
-/** Separates the two ends of a range, in weeks and in times alike. */
-const RANGE_DASH = '-';
+/**
+ * Separates the two ends of a range, in weeks and in times alike.
+ *
+ * An en dash, because that is the character a range takes in print. It is
+ * deliberate rather than stray Unicode: this one reaches paper.
+ */
+const RANGE_DASH = '–';
 
 /**
  * The activity type, reduced to the four the printout can draw.

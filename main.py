@@ -23,6 +23,7 @@ from typing import List, Optional
 
 import logging
 import os
+import secrets
 import time
 from collections import Counter
 from contextlib import asynccontextmanager
@@ -72,6 +73,30 @@ def get_admin_settings():
     return AdminSettings()
 
 
+def admin_key_matches(supplied: str, configured: str) -> bool:
+    """
+    Compare the two keys in constant time.
+
+    `==` on a string stops at the first differing byte, so how long the
+    comparison takes depends on how much of the key was right. Over enough
+    requests that recovers the key one character at a time. It costs nothing
+    to close, so it is closed.
+
+    Both sides are encoded first because `compare_digest` refuses a `str`
+    holding anything outside ASCII, and the configured key comes from an
+    environment variable that someone can paste anything into. UTF-8 rather
+    than ASCII, so an unusual character makes a key wrong rather than making
+    the request raise.
+
+    Length is still observable, which `compare_digest` does not hide and no
+    practical scheme does. Knowing the length of a random key is not what
+    breaks one.
+    """
+    return secrets.compare_digest(
+        supplied.encode("utf-8"), configured.encode("utf-8")
+    )
+
+
 async def require_admin_key(
     x_api_key: str | None = Header(None),
     settings = Depends(get_admin_settings),
@@ -98,7 +123,7 @@ async def require_admin_key(
             status_code=401,
             detail="Missing X-API-Key header. Log in at /admin/login first.",
         )
-    if x_api_key != settings.admin_api_key:
+    if not admin_key_matches(x_api_key, settings.admin_api_key):
         raise HTTPException(status_code=403, detail="Invalid API key")
     return x_api_key
 
@@ -323,7 +348,7 @@ async def admin_verify_key(request: AdminVerifyRequest, settings=Depends(get_adm
     """Check if the provided API key matches the configured admin key."""
     if not settings.admin_api_key:
         raise HTTPException(status_code=500, detail="Admin API key not configured on server")
-    if request.api_key == settings.admin_api_key:
+    if admin_key_matches(request.api_key, settings.admin_api_key):
         return {"valid": True, "message": "Key verified"}
     raise HTTPException(status_code=403, detail="Invalid API key")
 

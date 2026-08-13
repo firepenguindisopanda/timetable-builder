@@ -108,6 +108,96 @@ class TestAdminDisabled:
         assert no_key_client.get("/health").status_code == 200
 
 
+class TestKeyComparison:
+    """
+    The key is compared in constant time.
+
+    Timing cannot be asserted on reliably in a test suite, so these pin the
+    two things that can be: the comparison is the constant-time one, and it
+    survives the inputs that would make it raise instead of returning False.
+    """
+
+    def test_the_right_key_is_accepted(self, client):
+        response = client.post("/admin/verify", json={"api_key": VALID_KEY})
+
+        assert response.status_code == 200
+        assert response.json()["valid"] is True
+
+    def test_a_wrong_key_of_the_same_length_is_refused(self, client):
+        wrong = "x" * len(VALID_KEY)
+
+        assert client.post("/admin/verify", json={"api_key": wrong}).status_code == 403
+
+    @pytest.mark.parametrize(
+        "supplied",
+        [
+            "",
+            "test-admin-ke",          # one character short
+            "test-admin-keys",        # one character long
+            "test-admin-key ",        # trailing space
+            "TEST-ADMIN-KEY",         # wrong case
+        ],
+    )
+    def test_near_misses_are_refused(self, client, supplied):
+        response = client.post("/admin/verify", json={"api_key": supplied})
+
+        assert response.status_code == 403
+
+    @pytest.mark.parametrize("supplied", ["café", "ключ", "🔑", "test-admin-keyé"])
+    def test_a_non_ascii_key_is_refused_rather_than_crashing(self, client, supplied):
+        """
+        `secrets.compare_digest` raises TypeError on a `str` holding anything
+        outside ASCII, which would turn a wrong key into a 500 and hand an
+        anonymous caller a way to raise errors on the server. Both sides are
+        encoded to bytes to keep it a plain refusal.
+        """
+        response = client.post("/admin/verify", json={"api_key": supplied})
+
+        assert response.status_code == 403
+
+    def test_a_non_ascii_header_key_is_refused_rather_than_crashing(self, client):
+        """
+        Sent as raw latin-1 bytes, which is how a header can carry a byte
+        above 0x7F at all. Starlette decodes it back to a `str` with a
+        non-ASCII character in it, and an unencoded `compare_digest` would
+        raise TypeError there and answer 500.
+
+        The header is bytes rather than `str` because httpx refuses to send
+        the latter, not because the server would not see it.
+        """
+        response = client.post(
+            "/extract/batch",
+            json={"pdf_dir": "/etc"},
+            headers={"X-API-Key": "café".encode("latin-1")},
+        )
+
+        assert response.status_code == 403
+
+    def test_the_comparison_helper_is_constant_time(self):
+        """
+        Read the source rather than the clock: a timing measurement here would
+        be flaky, but a reintroduced `==` is a plain text match away.
+        """
+        import inspect
+
+        source = inspect.getsource(main.admin_key_matches)
+
+        assert "compare_digest" in source
+
+    @pytest.mark.parametrize("name", ["require_admin_key", "admin_verify_key"])
+    def test_neither_call_site_compares_keys_with_equality(self, name):
+        """The helper is worthless if a call site goes back to `==`."""
+        import inspect
+        import re
+
+        source = inspect.getsource(getattr(main, name))
+
+        assert not re.search(r"[!=]=\s*settings\.admin_api_key", source), (
+            f"{name} compares the admin key with equality"
+        )
+        assert "admin_key_matches" in source, f"{name} does not use the helper"
+
+
 class TestPublicEndpoints:
     """The student-facing routes must stay open."""
 

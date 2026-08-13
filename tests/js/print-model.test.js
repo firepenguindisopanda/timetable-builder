@@ -81,11 +81,11 @@ function fixtureEvent(code, predicate) {
 // Teaching weeks
 
 test('a contiguous run of weeks prints as a range', () => {
-  assert.equal(formatWeeks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]), 'Wks 1-12');
+  assert.equal(formatWeeks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]), 'Wks 1–12');
 });
 
 test('gaps in the weeks are kept as separate runs', () => {
-  assert.equal(formatWeeks([2, 3, 4, 8, 9]), 'Wks 2-4, 8-9');
+  assert.equal(formatWeeks([2, 3, 4, 8, 9]), 'Wks 2–4, 8–9');
 });
 
 test('a single week is singular', () => {
@@ -94,14 +94,14 @@ test('a single week is singular', () => {
 
 test('scattered single weeks are listed, not collapsed', () => {
   /**
-   * BIOL 1262 lectures on alternating weeks. Printing that as "Wks 2-12"
+   * BIOL 1262 lectures on alternating weeks. Printing that as "Wks 2–12"
    * would put a student in a lecture theatre five times for nothing.
    */
   assert.equal(formatWeeks([2, 4, 6, 8, 12]), 'Wks 2, 4, 6, 8, 12');
 });
 
 test('weeks arrive unsorted and with duplicates and still print in order', () => {
-  assert.equal(formatWeeks([3, 1, 2, 3]), 'Wks 1-3');
+  assert.equal(formatWeeks([3, 1, 2, 3]), 'Wks 1–3');
 });
 
 test('no week data is null, not "every week"', () => {
@@ -372,7 +372,7 @@ test('a class that sits out part of the semester is flagged', () => {
   const [monday, tuesday] = model.days;
   assert.equal(monday.entries[0].weeksRestricted, false);
   assert.equal(tuesday.entries[0].weeksRestricted, true);
-  assert.equal(tuesday.entries[0].weeks, 'Wks 3-12');
+  assert.equal(tuesday.entries[0].weeks, 'Wks 3–12');
 });
 
 test('a stale course still prints, and says it is stale', () => {
@@ -431,10 +431,10 @@ test('an unresolved clash is printed, not quietly dropped', () => {
   assert.deepEqual(model.clashes[0], {
     day: 'Thursday',
     courseA: 'COMP 1601',
-    timeA: '14:00-16:00',
+    timeA: '14:00–16:00',
     courseB: 'CHEM 1073',
-    timeB: '15:00-17:00',
-    weeks: 'Wks 3-5',
+    timeB: '15:00–17:00',
+    weeks: 'Wks 3–5',
     sameCourse: false,
   });
 });
@@ -456,7 +456,7 @@ test('printedAt comes from the caller, so the model has no clock in it', () => {
 });
 
 test('a time range uses an en dash, not a hyphen', () => {
-  assert.equal(formatTimeRange('09:00', '11:00'), '09:00-11:00');
+  assert.equal(formatTimeRange('09:00', '11:00'), '09:00–11:00');
 });
 
 // Against real data
@@ -468,7 +468,7 @@ test('a real tutorial off the fixture prints every field it has', () => {
 
   assert.equal(entry.typeClass, 'lab');
   assert.equal(entry.courseKey, 'COMP 1601');
-  assert.ok(entry.time.includes('-'));
+  assert.ok(entry.time.includes('–'));
   assert.ok(entry.weeks && entry.weeks.startsWith('Wk'));
 });
 

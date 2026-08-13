@@ -150,7 +150,7 @@ test('a missing room drops only itself, keeping lecturer and weeks', () => {
     events: [event({ room: null, staff: ['AUSTIN,Nigel'], weeks: [1, 2, 3] })],
   });
   const detail = html.match(/<p class="pv-line-detail">([\s\S]*?)<\/p>/)[1].trim();
-  assert.equal(detail, 'Nigel Austin &middot; Wks 1-3');
+  assert.equal(detail, 'Nigel Austin &middot; Wks 1–3');
 });
 
 test('a class outside the calendar grid hours still prints', () => {
@@ -166,8 +166,8 @@ test('a class outside the calendar grid hours still prints', () => {
       event({ day: 'Tuesday', startTime: '21:00', endTime: '23:00' }),
     ],
   });
-  assert.ok(html.includes('07:00-08:00'));
-  assert.ok(html.includes('21:00-23:00'));
+  assert.ok(html.includes('07:00–08:00'));
+  assert.ok(html.includes('21:00–23:00'));
   assert.ok(!html.includes('outside'), 'nothing is clipped, so nothing is flagged');
 });
 
@@ -186,7 +186,7 @@ test('room, lecturer and weeks are joined on one line when all present', () => {
   const html = render({
     events: [event({ room: 'SB1', staff: ['AUSTIN,Nigel'], weeks: [1, 2, 3] })],
   });
-  assert.ok(html.includes('SB1 &middot; Nigel Austin &middot; Wks 1-3'));
+  assert.ok(html.includes('SB1 &middot; Nigel Austin &middot; Wks 1–3'));
 });
 
 test('a class that sits out part of the semester is emphasised', () => {
@@ -196,9 +196,9 @@ test('a class that sits out part of the semester is emphasised', () => {
       event({ day: 'Tuesday', weeks: [7, 8] }),
     ],
   });
-  assert.ok(html.includes('<strong class="pv-weeks-odd">Wks 7-8</strong>'));
+  assert.ok(html.includes('<strong class="pv-weeks-odd">Wks 7–8</strong>'));
   assert.ok(
-    !html.includes('<strong class="pv-weeks-odd">Wks 1-12</strong>'),
+    !html.includes('<strong class="pv-weeks-odd">Wks 1–12</strong>'),
     'a class running the whole semester is not emphasised'
   );
 });
@@ -281,9 +281,9 @@ test('an unresolved clash is printed with both sides and the weeks', () => {
     ],
   });
   assert.ok(html.includes('Clashes (1)'));
-  assert.ok(html.includes('14:00-16:00'));
-  assert.ok(html.includes('15:00-17:00'));
-  assert.ok(html.includes('Wks 3-4'));
+  assert.ok(html.includes('14:00–16:00'));
+  assert.ok(html.includes('15:00–17:00'));
+  assert.ok(html.includes('Wks 3–4'));
 });
 
 test('a class the builder could not place is named on the page', () => {
