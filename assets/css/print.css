@@ -1,0 +1,353 @@
+/*
+ * The timetable on paper.
+ *
+ * The app is dark: --bg-deep #050507 under --text-primary #FFFFFF, with accent
+ * hues picked to glow on black. None of that survives a printer. Rather than
+ * unpick the screen theme this file paints its own page from scratch, in a
+ * scope (#printView) that exists only for print, so the two cannot interfere.
+ *
+ * The governing rule, spec section 3.2: colour is never the only carrier.
+ * Every course is named by its code and every class by its type, in words, on
+ * every entry. Most student printing is black and white, which takes the hue
+ * off every swatch at once, so the page is designed to be complete with all
+ * of them blank.
+ *
+ * See PRINT-EXPORT-SPEC.md.
+ */
+
+/* The print sheet is built on every render but only ever shown to a printer. */
+@media screen {
+  #printView {
+    display: none;
+  }
+}
+
+@media print {
+  /*
+   * Everything except the sheet is dropped outright rather than hidden with
+   * `visibility`, so no empty nav-shaped or footer-shaped gap is left behind
+   * and pagination is the browser's normal flow rather than a positioned
+   * overlay. #printView is a direct child of <body> so that this one rule
+   * reaches all of it.
+   */
+  body > *:not(#printView) {
+    display: none !important;
+  }
+
+  /*
+   * The dark theme paints <body>, not just its children. Without this a
+   * reader who has turned background graphics on prints a black page.
+   */
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #printView {
+    display: block !important;
+  }
+
+  @page {
+    /* No `size`: inherit whatever paper the reader has, so A4 and Letter
+       both work without asking. */
+    margin: 12mm;
+  }
+
+  /* The sheet */
+
+  .pv-sheet {
+    /* Keeps the swatch fills when the browser honours it. When it does not,
+       the code and type words still carry everything. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+
+    font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.35;
+    color: #000;
+    background: #fff;
+  }
+
+  .pv-sheet p,
+  .pv-sheet ul,
+  .pv-sheet ol,
+  .pv-sheet h1,
+  .pv-sheet h2 {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Header */
+
+  .pv-head {
+    border-bottom: 1.5pt solid #000;
+    padding-bottom: 6pt;
+    margin-bottom: 10pt;
+  }
+
+  .pv-title {
+    font-size: 17pt;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .pv-facts {
+    font-size: 8.5pt;
+    color: #333;
+  }
+
+  .pv-note {
+    font-size: 8.5pt;
+    color: #333;
+    font-style: italic;
+    margin-top: 3pt !important;
+    max-width: 62ch;
+  }
+
+  /* Blocks */
+
+  .pv-block {
+    margin-bottom: 10pt;
+    break-inside: avoid;
+  }
+
+  .pv-h2 {
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #333;
+    margin-bottom: 4pt !important;
+  }
+
+  /* Courses, which is also the legend */
+
+  .pv-course {
+    display: flex;
+    align-items: baseline;
+    gap: 6pt;
+    padding: 1.5pt 0;
+    font-size: 9.5pt;
+  }
+
+  .pv-course-title {
+    color: #333;
+  }
+
+  .pv-flag {
+    font-size: 8pt;
+    font-style: italic;
+    color: #96123C;
+    white-space: nowrap;
+  }
+
+  .pv-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10pt;
+    margin-top: 5pt !important;
+    padding-top: 4pt;
+    border-top: 0.5pt solid #bbb;
+    font-size: 8pt;
+    color: #333;
+  }
+
+  .pv-key-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3pt;
+  }
+
+  /* Days */
+
+  .pv-day {
+    margin-bottom: 9pt;
+  }
+
+  .pv-day-name {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    border-bottom: 0.5pt solid #999;
+    padding-bottom: 2pt;
+    margin-bottom: 4pt !important;
+    /* A day heading alone at the foot of a page is worse than a shorter
+       page, so it moves with its first class. */
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .pv-entry {
+    display: grid;
+    grid-template-columns: 78pt 1fr;
+    gap: 8pt;
+    padding: 3pt 0;
+    /* A class split down the middle by a page break is unreadable, and they
+       are small enough that avoiding it never wastes much page. */
+    break-inside: avoid;
+  }
+
+  .pv-entry + .pv-entry {
+    border-top: 0.5pt solid #ddd;
+  }
+
+  .pv-when {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 9.5pt;
+    white-space: nowrap;
+  }
+
+  .pv-line-main {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 5pt;
+  }
+
+  /*
+   * The code is the one thing a student scans for, so it takes the course
+   * hue as well as the weight. Every hue in the palette clears 4.5:1 on
+   * white, so this stays legible where a screen accent would not.
+   */
+  .pv-code {
+    font-weight: 700;
+    color: var(--pv-hue, #000);
+    white-space: nowrap;
+  }
+
+  .pv-type {
+    font-size: 9pt;
+  }
+
+  .pv-stream {
+    font-size: 8pt;
+    font-weight: 600;
+    border: 0.5pt solid #666;
+    border-radius: 2pt;
+    padding: 0 3pt;
+    white-space: nowrap;
+  }
+
+  .pv-line-title,
+  .pv-line-detail {
+    font-size: 8.5pt;
+    color: #333;
+  }
+
+  .pv-line-detail {
+    margin-top: 1pt !important;
+  }
+
+  /* Weeks worth noticing: the class does not run the whole semester. */
+  .pv-weeks-odd {
+    font-weight: 700;
+    color: #000;
+  }
+
+  .pv-empty {
+    font-size: 9.5pt;
+    font-style: italic;
+    color: #333;
+  }
+
+  /* Clashes */
+
+  .pv-clashes .pv-h2 {
+    color: #96123C;
+  }
+
+  .pv-clash-list {
+    border: 0.75pt solid #96123C;
+    border-radius: 2pt;
+    padding: 5pt 7pt !important;
+  }
+
+  .pv-clash {
+    font-size: 8.5pt;
+    padding: 1pt 0;
+  }
+
+  .pv-clash-day {
+    font-weight: 700;
+    margin-right: 4pt;
+  }
+
+  /* Not placed */
+
+  .pv-unplaced-list {
+    font-size: 8.5pt;
+    margin-top: 3pt !important;
+  }
+
+  /* Footer */
+
+  .pv-foot {
+    margin-top: 12pt;
+    padding-top: 5pt;
+    border-top: 0.5pt solid #999;
+    font-size: 7.5pt;
+    color: #555;
+  }
+
+  /* Swatches
+   *
+   * Hue says which course, the swatch says which activity type. The hue is
+   * not expected to survive a black-and-white printer, which is why neither
+   * is the only copy of anything.
+   *
+   * Each type differs in TWO ways: its fill, and its border style or shape.
+   * Measured against real PDFs, `print-color-adjust: exact` keeps the fills
+   * even when the reader unticks background graphics, so the case that
+   * actually strips them is a black-and-white printer, and that takes hue
+   * from all eight courses at once. Border style and border-radius are not
+   * colour, so they survive it and keep the four types apart.
+   *
+   * Nothing here is load-bearing regardless: the type is printed as a word
+   * beside every swatch on every entry.
+   */
+
+  .pv-swatch {
+    display: inline-block;
+    width: 8pt;
+    height: 8pt;
+    flex: 0 0 auto;
+    border: 1pt solid var(--pv-hue, #000);
+    border-radius: 1.5pt;
+    background: #fff;
+  }
+
+  .pv-fill-solid {
+    background: var(--pv-hue, #000);
+    border-style: solid;
+  }
+
+  .pv-fill-hatch {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--pv-hue, #000) 0 1.2pt,
+      #fff 1.2pt 2.6pt
+    );
+    border-style: dashed;
+  }
+
+  /* The round hollow one. Shape rather than border style, because solid,
+     dashed and dotted are the only border styles that stay legible on an
+     8pt box and the other three have taken them. */
+  .pv-fill-outline {
+    background: #fff;
+    border-style: solid;
+    border-radius: 50%;
+  }
+
+  .pv-fill-dots {
+    background-image: radial-gradient(var(--pv-hue, #000) 0.8pt, #fff 0.9pt);
+    background-size: 3pt 3pt;
+    border-style: dotted;
+  }
+}

@@ -25,11 +25,11 @@
             --bg-surface: #0e0e14;
             --bg-elevated: #16161e;
             --bg-interactive: #1c1c26;
-            
+
             /* Borders */
             --border-subtle: rgba(255, 255, 255, 0.06);
             --border-medium: rgba(255, 255, 255, 0.12);
-            
+
             /* Accent colors - solid, high contrast */
             --accent-cyan: #00E5FF;
             --accent-cyan-dim: rgba(0, 229, 255, 0.15);
@@ -37,7 +37,7 @@
             --accent-amber-dim: rgba(255, 184, 0, 0.15);
             --accent-green: #00D68F;
             --accent-red: #FF3D71;
-            
+
             /* Text colors */
             --text-primary: #FFFFFF;
             --text-secondary: #8B8B9E;
@@ -565,6 +565,13 @@
         </div>
     </footer>
 
+    <!--
+      Markup that has to sit directly inside <body> rather than inside <main>.
+      The print sheet uses it: `body > *:not(#printView)` is what clears the
+      page for printing, and that reaches only direct children.
+    -->
+    {% block body_end %}{% endblock %}
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     {% block scripts %}{% endblock %}
@@ -604,11 +611,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // We'll play at low volume first to detect if audio plays, then show warning if it fails
         try {
             const audio = new Audio('/assets/amazin.mp3');
-            
+
             // Try to play at low volume first
             audio.volume = 0.1;
             const playPromise = audio.play();
-            
+
             if (playPromise !== undefined) {
                 playPromise.then(function() {
                     // Audio is playing, ramp up volume after short delay
@@ -623,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             }
-            
+
         } catch (e) {
             console.error('Error playing audio:', e);
             if (toastBootstrap) {

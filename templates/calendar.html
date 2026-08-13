@@ -5,8 +5,14 @@
 {% block extra_head %}
 <!-- interact.js for touch-friendly drag & drop -->
 <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js" defer></script>
+<!--
+  The printed timetable. Kept out of the inline block below because it is a
+  page of its own rather than a tweak to this one, and because a linked file
+  picks up the asset version stamp.
+-->
+<link rel="stylesheet" href="/assets/css/print.css?v={{ asset_version }}">
 <style>
-/* ===== Events Master-Detail Panel ===== */
+/* Events Master-Detail Panel */
 .events-master-detail {
     display: flex;
     gap: 0;
@@ -338,7 +344,7 @@
     word-break: break-all;
 }
 
-/* ===== Existing styles (preserved) ===== */
+/* Existing styles (preserved) */
 
 /* Conflicts section */
 .conflicts-panel {
@@ -618,7 +624,7 @@
     background: rgba(255, 255, 255, 0.04);
 }
 
-/* ===== Course picker =====
+/* Course picker
    The rows borrow the explorer's shape, not its stylesheet: explore.css has
    its own palette and its own light and dark handling, and this page is dark
    throughout. Same facts, same order, this page's colours. */
@@ -966,7 +972,7 @@
     .picker-name { grid-column: 1 / -1; }
 }
 
-/* ===== Responsive: stack on small screens ===== */
+/* Responsive: stack on small screens */
 @media (max-width: 768px) {
     .events-master-detail {
         flex-direction: column;
@@ -1148,6 +1154,18 @@
                         title="Copy a link that rebuilds this timetable">
                     <i class="bi bi-link-45deg"></i> Share
                 </button>
+                <button id="printBtn" class="btn btn-outline-info btn-sm" disabled
+                        title="Print, or save as a PDF from the print dialog">
+                    <i class="bi bi-printer"></i> Print
+                </button>
+                <!--
+                  Last in the row and the only destructive one here, so a
+                  mis-aimed click on the everyday actions cannot land on it.
+                -->
+                <button id="clearAllBtn" class="btn btn-outline-danger btn-sm" disabled
+                        title="Remove every course and start again">
+                    <i class="bi bi-trash3"></i> Clear all
+                </button>
             </div>
             <div class="col">
                 <small class="text-muted">Drag a class to any of its alternatives. Anything you move yourself stays put.</small>
@@ -1187,8 +1205,19 @@
 </div>
 {% endblock %}
 
+{% block body_end %}
+<!--
+  Filled by renderPrintView() on every render, shown only to a printer.
+  Direct child of <body> so the `body > *:not(#printView)` rule in print.css
+  can clear the rest of the page.
+-->
+<section id="printView"></section>
+{% endblock %}
+
 {% block scripts %}
 <script src="/assets/js/calendar-utils.js?v={{ asset_version }}"></script>
+<script src="/assets/js/print-model.js?v={{ asset_version }}"></script>
+<script src="/assets/js/print-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/course-search.js?v={{ asset_version }}"></script>
 <script src="/assets/js/option-groups.js?v={{ asset_version }}"></script>
 <script src="/assets/js/placement.js?v={{ asset_version }}"></script>
@@ -1200,6 +1229,8 @@
     const $undoBtn = document.getElementById('undoBtn');
     const $redoBtn = document.getElementById('redoBtn');
     const $clearBtn = document.getElementById('clearBtn');
+    const $printBtn = document.getElementById('printBtn');
+    const $clearAllBtn = document.getElementById('clearAllBtn');
     const $searchBox = document.getElementById('searchBox');
     const $emptyState = document.getElementById('emptyState');
     const $detailPlaceholder = document.getElementById('detailPlaceholder');
@@ -1258,7 +1289,7 @@
         return event.code || event.courseKey || event.courseTitle || '?';
     }
 
-    // ===== Event List Rendering =====
+    // Event List Rendering
     function renderEventsList(events, filter = '') {
         const listEl = document.getElementById('eventsList');
         const countEl = document.getElementById('eventCount');
@@ -1329,7 +1360,7 @@
         }
     };
 
-    // ===== Detail Panel Rendering =====
+    // Detail Panel Rendering
     window.showEventDetail = function(groupId) {
         if (!state) return;
 
@@ -1559,7 +1590,7 @@
         content.classList.toggle('open');
     };
 
-    // ===== Conflicts Rendering =====
+    // Conflicts Rendering
 
     /**
      * Why a clash has no Fix button, in words rather than by omission.
@@ -1647,12 +1678,23 @@
         toast('Moved it out of the way.', 'It stays there now. Ctrl+Z to undo.');
     });
 
-    // ===== Main Render =====
+    // Main Render
     function renderEvents() {
         const events = state ? state.getPlacedEvents() : [];
 
         currentEvents = events || [];
         const filter = $searchBox ? $searchBox.value : '';
+
+        // Before the empty-timetable return below, so that clearing the
+        // calendar also clears the sheet rather than leaving the last
+        // printable version behind it.
+        if ($printBtn) $printBtn.disabled = currentEvents.length === 0;
+        // Keyed off chosen courses rather than placed classes: a course whose
+        // classes could not be placed is still a course to clear.
+        if ($clearAllBtn) {
+            $clearAllBtn.disabled = !state || state.courseKeys.length === 0;
+        }
+        buildPrintSheet();
 
         document.querySelectorAll('.calendar-event').forEach(e => e.remove());
 
@@ -1724,7 +1766,7 @@
         if (state) updateUndoRedoButtons();
     }
 
-    // ===== Drag & Drop =====
+    // Drag & Drop
     function setupDragDrop() {
         function initInteract() {
             if (typeof interact === 'undefined') {
@@ -1857,7 +1899,7 @@
         $redoBtn.disabled = !state.canRedo();
     }
 
-    // ===== Toasts =====
+    // Toasts
 
     /**
      * Adding a course happens with no apply step, so the outcome has to be
@@ -1879,7 +1921,7 @@
         setTimeout(() => note.remove(), 6000);
     }
 
-    // ===== Course picker =====
+    // Course picker
 
     const $picker = document.getElementById('pickerPanel');
     const $pickerQuery = document.getElementById('pickerQuery');
@@ -2030,7 +2072,7 @@
         }
     }
 
-    // ===== Bulk =====
+    // Bulk
 
     //: Ticked in the results but not yet added. Kept across re-renders so a
     //: student can search, tick one, search again and tick another.
@@ -2057,6 +2099,7 @@
         const API_CAP = 40;
         const courses = [];
         const notFound = [];
+        let publishedAt = null;
 
         for (let i = 0; i < codes.length; i += API_CAP) {
             const chunk = codes.slice(i, i + API_CAP);
@@ -2069,8 +2112,12 @@
             courses.push(...(data.courses || []));
             notFound.push(...(data.notFound || []));
             if (!state.publicationId) state.publicationId = data.publicationId;
+            // Every chunk reports the same publication, so the last one wins
+            // and it does not matter which.
+            if (data.publishedAt) publishedAt = data.publishedAt;
         }
-        return { courses, notFound };
+        if (publishedAt && !state.publishedAt) state.publishedAt = publishedAt;
+        return { courses, notFound, publishedAt };
     }
 
     /** Add many courses as one operation. Spec 8.2. */
@@ -2125,7 +2172,7 @@
               notFound.length || clashes ? 'warn' : undefined);
     }
 
-    // ===== Paste a list =====
+    // Paste a list
 
     const $paste = document.getElementById('pickerPaste');
     const $pasteBox = document.getElementById('pasteBox');
@@ -2258,7 +2305,7 @@
         if ($picker.style.display === 'block') closePicker(); else openPicker();
     });
 
-    // ===== Sharing =====
+    // Sharing
 
     /**
      * A link that rebuilds this timetable from the warehouse.
@@ -2308,7 +2355,7 @@
         if (codes.length) await addCoursesByCode(codes);
     }
 
-    // ===== A republished timetable (E16) =====
+    // A republished timetable (E16)
 
     const $stale = document.getElementById('staleWarning');
 
@@ -2338,13 +2385,15 @@
     async function refreshFromWarehouse() {
         const codes = state.warehouseCourseKeys;
         try {
-            const { courses, notFound } = await fetchCourses(codes);
+            const { courses, notFound, publishedAt } = await fetchCourses(codes);
             const incoming = TimetableState.fromWarehouseResponse({
                 publicationId: Number($stale.dataset.publicationId) || null,
+                publishedAt,
                 courses,
             });
             const result = state.refreshFromWarehouse(
-                incoming.courses, notFound, incoming.publicationId);
+                incoming.courses, notFound, incoming.publicationId,
+                incoming.publishedAt);
             $stale.style.display = 'none';
 
             const detail = [];
@@ -2365,7 +2414,81 @@
     });
     document.getElementById('shareBtn').addEventListener('click', copyShareLink);
 
-    // ===== Storage =====
+    // Printing
+
+    /**
+     * Option groups on the timetable with nothing placed for them.
+     *
+     * `placeMissing` normally leaves none, but a group it could not fit would
+     * otherwise vanish from the printout without a word, and a page that
+     * quietly omits a class is worse than one that admits it could not place
+     * it.
+     */
+    function unplacedGroups() {
+        if (!state) return [];
+        const placed = new Set(state.placements.map(p => p.groupId));
+        return state.optionGroups
+            .filter(group => !placed.has(group.groupId))
+            .map(group => ({ courseKey: group.courseKey, type: group.type }));
+    }
+
+    /**
+     * How old the timetable behind this page is, or nothing.
+     *
+     * Not the publication id: the warehouse numbers publications, so it is
+     * `1`, and "Publication 1" tells a student nothing on paper. The date it
+     * was published does, because a printout that claims to be a timetable
+     * should say how stale it might be. Spec open question 1.
+     */
+    function publicationLabel() {
+        const raw = state && state.publishedAt;
+        if (!raw) return null;
+        const when = new Date(raw);
+        if (isNaN(when.getTime())) return null;
+        return 'Published ' + when.toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'long', year: 'numeric',
+        });
+    }
+
+    /**
+     * Refill the print sheet from what is on the calendar now.
+     *
+     * Run on every render rather than only when the button is clicked,
+     * because Ctrl+P and the browser's own print menu never touch the button
+     * and would otherwise print whatever was last built.
+     */
+    function buildPrintSheet() {
+        const target = document.getElementById('printView');
+        if (!target) return;
+        if (!state) {
+            target.innerHTML = '';
+            return;
+        }
+
+        target.innerHTML = renderPrintView(buildPrintModel({
+            events: state.getPlacedEvents(),
+            conflicts: state.getConflicts(),
+            courses: state.activeCourses,
+            unplaced: unplacedGroups(),
+            meta: {
+                publication: publicationLabel(),
+                // The model takes the date rather than reading a clock, so
+                // that it stays pure and testable. Here is the clock.
+                printedAt: new Date().toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'long', year: 'numeric',
+                }),
+            },
+        }));
+    }
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+        // Rebuilt immediately before printing as well, so the date in the
+        // header is today's even on a tab left open overnight.
+        buildPrintSheet();
+        window.print();
+    });
+
+    // Storage
     function saveState() {
         if (!state) return;
         const result = writeSavedState(state.toSaved());
@@ -2380,18 +2503,33 @@
         }
     }
 
-    // ===== Search =====
+    // Search
     searchBox.addEventListener('input', e => {
         renderEventsList(currentEvents, e.target.value);
     });
 
-    // ===== Button Listeners =====
+    // Button Listeners
     $clearBtn.addEventListener('click', () => {
         if (!state) return;
         if (confirm('Re-place every class? Anything you moved by hand stays put.')) {
             state.reoptimise();
             if ($searchBox) $searchBox.value = '';
         }
+    });
+
+    $clearAllBtn.addEventListener('click', () => {
+        if (!state) return;
+        const count = state.courseKeys.length;
+        if (!count) return;
+        // Confirmed because it throws away work, but still undoable, and
+        // saying so is what makes the confirmation answerable.
+        const ask = `Remove all ${count} course${count === 1 ? '' : 's'} and `
+            + 'start over?\n\nCtrl+Z undoes this.';
+        if (!confirm(ask)) return;
+
+        state.clearAll();
+        if ($searchBox) $searchBox.value = '';
+        toast('Timetable cleared.', 'Ctrl+Z to undo.');
     });
 
     $undoBtn.addEventListener('click', () => { if (state) state.undo(); });
@@ -2410,7 +2548,7 @@
         }
     });
 
-    // ===== Init =====
+    // Init
     buildGrid();
 
     /**

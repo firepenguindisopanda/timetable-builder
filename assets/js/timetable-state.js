@@ -91,6 +91,12 @@ class TimetableState {
     this.sourceData = sourceData || { courses: [] };
     this.sourceData.courses = this.sourceData.courses || [];
     this.publicationId = this.sourceData.publicationId || null;
+    // Falls back to the saved copy so a student reloading offline still gets
+    // the provenance line on a printed timetable, the same way the courses
+    // themselves survive without a network.
+    this.publishedAt = this.sourceData.publishedAt
+      || (savedState && savedState.publishedAt)
+      || null;
     this.overrides = (savedState && savedState.optionGroupOverrides)
       || this.sourceData.optionGroupOverrides
       || {};
@@ -166,6 +172,7 @@ class TimetableState {
     if (!data) return { courses: [] };
     return {
       publicationId: data.publicationId || null,
+      publishedAt: data.publishedAt || null,
       courses: (data.courses || []).map(course => ({
         courseKey: course.code,
         origin: 'warehouse',
@@ -348,6 +355,27 @@ class TimetableState {
   }
 
   /**
+   * Empty the timetable so the student can start again.
+   *
+   * One snapshot for the whole thing, so it costs a single Ctrl+Z rather than
+   * one undo per course. Loaded courses stay in the pool, exactly as
+   * `removeCourse` leaves them, which means undoing this does not have to go
+   * back to the network for anything.
+   *
+   * False when there was nothing to clear, so a caller can stay quiet rather
+   * than announce that it emptied an empty timetable.
+   */
+  clearAll() {
+    if (!this.courseKeys.length && !this.placements.length) return false;
+    this._snapshot();
+    this.courseKeys = [];
+    this.placements = [];
+    this._invalidate();
+    this._notify();
+    return true;
+  }
+
+  /**
    * The student chose this option themselves, by dragging or by picking it.
    *
    * Pinning is what makes adding a seventh course safe after they have spent
@@ -462,7 +490,7 @@ class TimetableState {
    * index than that the student stopped taking it, and silently emptying part
    * of their timetable would be the worse mistake.
    */
-  refreshFromWarehouse(fetched, notFound, publicationId) {
+  refreshFromWarehouse(fetched, notFound, publicationId, publishedAt) {
     this._snapshot();
 
     for (const course of fetched || []) {
@@ -482,6 +510,9 @@ class TimetableState {
     }
 
     this.publicationId = publicationId || this.publicationId;
+    // Refreshing onto a newer publication moves the date with it, so a
+    // reprint does not still claim the freshness of the old one.
+    this.publishedAt = publishedAt || this.publishedAt;
     this._invalidate();
 
     const live = new Set(this.optionGroups.map(g => g.groupId));
@@ -623,6 +654,7 @@ class TimetableState {
     return {
       version: 3,
       publicationId: this.publicationId,
+      publishedAt: this.publishedAt,
       courses: this.sourceData.courses,
       courseKeys: this.courseKeys,
       optionGroupOverrides: this.overrides,

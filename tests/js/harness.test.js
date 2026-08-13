@@ -7,6 +7,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 const { load, warehouse, course, sessionsOfType } = require('./harness.js');
 
 test('the calendar scripts load and expose their functions', () => {
@@ -27,6 +29,42 @@ test('scripts loaded together share one scope, as they do in the page', () => {
   const api = load('calendar-utils.js', 'option-groups.js');
 
   assert.equal(typeof api.get('deriveOptionGroups'), 'function');
+});
+
+test('no two scripts declare the same top-level name', () => {
+  /**
+   * Sharing one scope is what lets these files call each other without a
+   * module system, and it is also the trap: the page loads them in order, so
+   * a name declared twice silently becomes whichever file loaded last, with
+   * no error anywhere.
+   *
+   * That is not hypothetical. print-view.js and print-model.js both defined
+   * `_entry`, and the view's HTML builder quietly replaced the model's field
+   * builder, so every printed class came out with unformatted weeks and no
+   * lecturer.
+   *
+   * Top-level declarations are the ones at column zero, which is the house
+   * style throughout `assets/js`.
+   */
+  const dir = path.join(__dirname, '..', '..', 'assets', 'js');
+  const declaredIn = new Map();
+
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+    const source = fs.readFileSync(path.join(dir, file), 'utf8');
+    const declarations = source.matchAll(
+      /^(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm
+    );
+    for (const [, name] of declarations) {
+      if (!declaredIn.has(name)) declaredIn.set(name, []);
+      declaredIn.get(name).push(file);
+    }
+  }
+
+  const clashes = [...declaredIn]
+    .filter(([, files]) => files.length > 1)
+    .map(([name, files]) => `${name} in ${files.join(' and ')}`);
+
+  assert.deepEqual(clashes, [], `top-level names declared more than once`);
 });
 
 test('the fixture is the warehouse response, not something invented', () => {

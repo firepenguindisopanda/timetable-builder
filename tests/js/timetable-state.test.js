@@ -187,6 +187,76 @@ test('removing a course leaves every other placement put', () => {
   assert.ok(!state.getPlacedEvents().some((e) => e.courseKey === 'PSYC 1001'));
 });
 
+// Starting over
+
+test('clearing empties every course and every placement', () => {
+  const state = stateOf('COMP 1601', 'PSYC 1001', 'MATH 1115');
+
+  assert.equal(state.clearAll(), true);
+
+  assert.deepEqual(state.courseKeys, []);
+  assert.deepEqual(state.placements, []);
+  assert.deepEqual(state.getPlacedEvents(), []);
+  assert.deepEqual(state.optionGroups, []);
+});
+
+test('clearing costs one undo, not one per course', () => {
+  /**
+   * Three separate snapshots would make starting over feel like a trap: the
+   * student presses Ctrl+Z, gets one course back, and has to guess how many
+   * more presses there are.
+   */
+  const state = stateOf('COMP 1601', 'PSYC 1001', 'MATH 1115');
+  const before = JSON.parse(JSON.stringify(state.placements));
+
+  state.clearAll();
+  state.undo();
+
+  assert.deepEqual(state.courseKeys.sort(), ['COMP 1601', 'MATH 1115', 'PSYC 1001']);
+  assert.deepEqual(state.placements, before);
+});
+
+test('clearing keeps the courses in the pool, so undo needs no network', () => {
+  const state = stateOf('COMP 1601', 'PSYC 1001');
+
+  state.clearAll();
+
+  assert.ok(state.getCourse('COMP 1601'), 'still pooled');
+  assert.ok(state.getCourse('PSYC 1001'), 'still pooled');
+});
+
+test('clearing an already empty timetable reports that it did nothing', () => {
+  // So the button can stay quiet rather than announce an empty clear.
+  const state = new TimetableState({ courses: [] }, null);
+
+  assert.equal(state.clearAll(), false);
+  assert.equal(state.history.length, 0, 'and does not spend an undo slot');
+});
+
+test('a cleared timetable saves as empty rather than keeping the old one', () => {
+  /**
+   * Saving happens on change, so a clear that did not reach storage would
+   * come back on the next reload.
+   */
+  const state = stateOf('COMP 1601');
+  state.clearAll();
+
+  const saved = state.toSaved();
+  assert.deepEqual(saved.courseKeys, []);
+  assert.deepEqual(saved.placements, []);
+});
+
+test('courses can be added again after clearing', () => {
+  const state = stateOf('COMP 1601', 'PSYC 1001');
+  state.clearAll();
+
+  state.addCourse(state.getCourse('PSYC 1001'));
+
+  assert.deepEqual(state.courseKeys, ['PSYC 1001']);
+  assert.ok(state.getPlacedEvents().some((e) => e.courseKey === 'PSYC 1001'));
+  assert.ok(!state.getPlacedEvents().some((e) => e.courseKey === 'COMP 1601'));
+});
+
 test('a removed course can be added back without fetching it again', () => {
   const state = stateOf('COMP 1601', 'PSYC 1001');
   state.removeCourse('PSYC 1001');
@@ -417,6 +487,77 @@ test('only warehouse courses are offered for refresh', () => {
   state.addCourse(uploaded.courses[0]);
 
   assert.deepEqual(state.warehouseCourseKeys, ['COMP 1601']);
+});
+
+// Publication provenance, which the printed timetable carries
+
+test('the publication date comes through from the warehouse', () => {
+  const source = TimetableState.fromWarehouseResponse({
+    publicationId: 1,
+    publishedAt: '2026-08-06T14:22:58+00:00',
+    courses: [course('COMP 1601')],
+  });
+  const state = new TimetableState(source, null);
+
+  assert.equal(state.publishedAt, '2026-08-06T14:22:58+00:00');
+});
+
+test('a response with no publication date leaves it null, not undefined', () => {
+  // The printed header drops the line on null, so the distinction matters.
+  const state = new TimetableState(
+    TimetableState.fromWarehouseResponse(response('COMP 1601')),
+    null
+  );
+
+  assert.equal(state.publishedAt, null);
+});
+
+test('the publication date survives a save and reload', () => {
+  /**
+   * A student reloading with no network still gets their timetable out of
+   * storage, and a printout that cannot say how old the data is would be
+   * worse than one that can.
+   */
+  const source = TimetableState.fromWarehouseResponse({
+    publicationId: 1,
+    publishedAt: '2026-08-06T14:22:58+00:00',
+    courses: [course('COMP 1601')],
+  });
+  const saved = new TimetableState(source, null).toSaved();
+
+  assert.equal(saved.publishedAt, '2026-08-06T14:22:58+00:00');
+
+  // Reloaded with no source data at all, which is the offline case.
+  const reloaded = new TimetableState({ courses: saved.courses }, saved);
+  assert.equal(reloaded.publishedAt, '2026-08-06T14:22:58+00:00');
+});
+
+test('refreshing onto a newer publication moves the date with it', () => {
+  const state = stateOf('COMP 1601');
+  const again = TimetableState.fromWarehouseResponse({
+    publicationId: 2,
+    publishedAt: '2026-09-01T00:00:00+00:00',
+    courses: [course('COMP 1601')],
+  });
+
+  state.refreshFromWarehouse(again.courses, [], 2, again.publishedAt);
+
+  assert.equal(state.publishedAt, '2026-09-01T00:00:00+00:00');
+});
+
+test('a refresh that reports no date keeps the one already known', () => {
+  // Otherwise a refresh would silently strip the provenance line.
+  const source = TimetableState.fromWarehouseResponse({
+    publicationId: 1,
+    publishedAt: '2026-08-06T14:22:58+00:00',
+    courses: [course('COMP 1601')],
+  });
+  const state = new TimetableState(source, null);
+  state.placeMissing();
+
+  state.refreshFromWarehouse([course('COMP 1601')], [], 2, null);
+
+  assert.equal(state.publishedAt, '2026-08-06T14:22:58+00:00');
 });
 
 test('a refresh keeps a placement that still resolves', () => {

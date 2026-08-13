@@ -642,9 +642,12 @@ async def timetable_sessions(
         index = cached(
             "code_index", lambda: eq.build_code_index(query(eq.course_codes))
         )
-        publication_id = cached("freshness", lambda: query(eq.freshness)).get(
-            "publication_id"
-        )
+        freshness = cached("freshness", lambda: query(eq.freshness))
+        publication_id = freshness.get("publication_id")
+        # The builder prints this on a student's timetable. The id alone is a
+        # serial number and says nothing on paper; the date says how old the
+        # data behind the page is.
+        published_at = _iso(freshness.get("published_at"))
 
         # Resolved codes keep the caller's order and lose duplicates, so that
         # asking for the same course twice is one entry rather than two.
@@ -678,6 +681,7 @@ async def timetable_sessions(
     return JSONResponse(
         {
             "publicationId": publication_id,
+            "publishedAt": published_at,
             "courses": [courses[code] for code in resolved if code in courses],
             "notFound": not_found,
         },
