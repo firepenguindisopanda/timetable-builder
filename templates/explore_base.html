@@ -27,6 +27,7 @@
       <a href="/explore" {% if active == 'explore' %}aria-current="page"{% endif %}>Courses</a>
       <a href="/explore/rooms" {% if active == 'rooms' %}aria-current="page"{% endif %}>Rooms</a>
       <a href="/explore/staff" {% if active == 'staff' %}aria-current="page"{% endif %}>Lecturers</a>
+      <a href="/explore/changes" {% if active == 'changes' %}aria-current="page"{% endif %}>Updates</a>
     </nav>
     <a class="masthead-tool" href="/calendar">Build a timetable</a>
   </div>
@@ -61,6 +62,30 @@
     </details>
   </div>
 </div>
+{% endif %}
+
+{# Suppressed on the changes page itself, where it would announce the page the
+   reader is already on. Rendered visible: a dismissed banner is hidden by
+   explore.js, so a reader without JavaScript sees it rather than missing it. #}
+{% if changes_banner and active != 'changes' %}
+<aside class="update-bar" id="updateBar"
+       data-publication="{{ changes_banner.publication_id }}">
+  <div class="update-inner">
+    <p class="update-text">
+      <b>The timetable was updated on
+        <time data-ts="{{ changes_banner.published_at }}" data-format="date">{{ changes_banner.published_at }}</time>.</b>
+      {% set parts = [] %}
+      {% if changes_banner.moved %}{% set _ = parts.append(changes_banner.moved ~ ' class' ~ ('es' if changes_banner.moved != 1 else '') ~ ' moved') %}{% endif %}
+      {% if changes_banner.confirmed %}{% set _ = parts.append(changes_banner.confirmed ~ ' venue' ~ ('s' if changes_banner.confirmed != 1 else '') ~ ' confirmed') %}{% endif %}
+      {% if changes_banner.courses_added %}{% set _ = parts.append(changes_banner.courses_added ~ ' course' ~ ('s' if changes_banner.courses_added != 1 else '') ~ ' added') %}{% endif %}
+      {% if changes_banner.courses_dropped %}{% set _ = parts.append(changes_banner.courses_dropped ~ ' no longer published') %}{% endif %}
+      <span class="update-counts">{{ parts | join(' · ') }}</span>
+    </p>
+    <a class="update-cta" href="/explore/changes">See what changed</a>
+    <button type="button" class="update-dismiss" id="updateDismiss"
+            aria-label="Dismiss this update notice">Dismiss</button>
+  </div>
+</aside>
 {% endif %}
 
 <main id="main">

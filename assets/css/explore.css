@@ -1104,3 +1104,174 @@ table.sessions tbody tr:hover td { background: var(--paper-sunk); }
     * { animation: none !important; transition: none !important; }
     .heat-cell:hover { transform: none; }
 }
+
+/* What a republish changed (/explore/changes)
+ *
+ * Kind is carried by a status dot and a muted label, not by a coloured rail
+ * down the card edge. At 94 cards a rail (or a row of filled pills) is louder
+ * than the content it decorates; a small dot in the same palette reads at a
+ * glance, forms a tidy column down the right, and leaves the course code as
+ * the strongest thing on the row - which is what a student is scanning for.
+ *
+ * One accent per card: the dot, and the "now" marker it points at. Everything
+ * else is neutral, so colour means something when it appears.
+ */
+
+.chg-cards { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.chg {
+    padding: 0.7rem 0.9rem;
+    /* Tighter than the default card. These are dense list rows rather than
+       panels, and a small radius reads as precise where a large one reads as
+       soft. */
+    border-radius: var(--r-sm);
+}
+
+.chg--class_moved            { --chg-hue: var(--gold); }
+.chg--class_venue_confirmed  { --chg-hue: var(--teal); }
+.chg--class_added,
+.chg--course_added           { --chg-hue: var(--green); }
+.chg--class_removed,
+.chg--course_dropped         { --chg-hue: var(--coral); }
+.chg--course_renamed         { --chg-hue: var(--ink-3); }
+
+.chg-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.6rem;
+}
+
+.chg-type {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+.chg-kind {
+    margin-left: auto;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.chg-kind::before {
+    content: "";
+    inline-size: 6px;
+    block-size: 6px;
+    border-radius: 50%;
+    background: var(--chg-hue, var(--ink-3));
+    flex: none;
+}
+
+.chg-title {
+    margin: 0.15rem 0 0.5rem;
+    font-size: 0.82rem;
+    color: var(--ink-2);
+}
+
+.chg-n {
+    font-family: var(--font-data);
+    font-size: 0.8rem;
+    color: var(--ink-3);
+    font-weight: 400;
+}
+
+/* The slot rows. A fixed grid so the times line up down the card and a
+ * student can scan for their own without reading every word. */
+.chg-slots { display: flex; flex-direction: column; gap: 0.15rem; overflow-x: auto; }
+
+.chg-slot {
+    display: grid;
+    grid-template-columns: 2.6rem 2.6rem 6.2rem minmax(8rem, 1fr) 5.5rem;
+    gap: 0.5rem;
+    align-items: baseline;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-width: 30rem;
+}
+
+.chg-when {
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* With no rail, the weight of the two rows is what separates them: what is
+   true now is the darker, heavier line. */
+.chg-slot--was { color: var(--ink-3); }
+.chg-slot--was .chg-when { color: var(--ink-3); }
+.chg-slot--now { color: var(--ink); font-weight: 500; }
+.chg-slot--now .chg-when { color: var(--chg-hue, var(--ink-2)); }
+
+.chg-room { white-space: normal; }
+.chg-slot--was .chg-room { color: var(--ink-3); }
+.chg-weeks { text-align: right; color: var(--ink-3); font-weight: 400; }
+
+/* The update notice under the provenance rail
+ *
+ * Sits between the rail and the page: the rail says when the timetable was
+ * published, this says that the publication moved something. Gold, matching
+ * the colour a moved class carries on /explore/changes, so the notice and
+ * what it leads to read as one thing.
+ */
+
+.update-bar {
+    background: var(--gold-soft);
+    border-bottom: 1px solid var(--rule);
+}
+
+.update-inner {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: 0.55rem 1.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    flex-wrap: wrap;
+}
+
+.update-text {
+    margin: 0;
+    font-size: 0.79rem;
+    color: var(--gold-ink);
+    flex: 1 1 20rem;
+}
+
+.update-text b { font-weight: 600; }
+
+.update-counts {
+    font-family: var(--font-data);
+    font-size: 0.74rem;
+    opacity: 0.85;
+}
+
+.update-cta {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gold-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+}
+
+.update-dismiss {
+    font: inherit;
+    font-size: 0.74rem;
+    background: none;
+    border: 1px solid currentColor;
+    border-radius: var(--r-sm);
+    color: var(--gold-ink);
+    opacity: 0.7;
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.update-dismiss:hover { opacity: 1; }

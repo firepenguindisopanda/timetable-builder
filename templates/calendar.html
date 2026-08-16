@@ -1005,6 +1005,63 @@
         max-height: 300px;
     }
 }
+
+/* What the republish did to this student's own courses.
+   A status dot rather than a rail down each line: amber where the change
+   costs them something, dim where it is only news. The course code stays the
+   strongest thing on the row, because that is what they are looking for. */
+
+.stale-changes {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0 0 0 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.stale-changes li {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.stale-changes li::before {
+    content: "";
+    inline-size: 5px;
+    block-size: 5px;
+    border-radius: 50%;
+    background: var(--border-medium);
+    flex: none;
+    /* Baseline alignment puts a bare dot on the text baseline; nudge it to
+       the middle of the line it marks. */
+    transform: translateY(-0.2em);
+}
+
+.stale-changes li b {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.stale-changes li.chg-act::before { background: var(--accent-amber); }
+.stale-changes li.chg-info::before { background: var(--accent-cyan-dim); }
+
+.stale-see-all {
+    display: inline-block;
+    margin: 0.55rem 0 0 1.6rem;
+    font-size: 0.76rem;
+    color: var(--accent-cyan);
+    text-decoration: none;
+}
+
+.stale-see-all:hover { text-decoration: underline; }
+
+/* Both set a display above, which outranks the browser's own
+   `[hidden] { display: none }` and would leave them visible when hidden. */
+.stale-changes[hidden],
+.stale-see-all[hidden] { display: none; }
 </style>
 {% endblock %}
 
@@ -1027,16 +1084,24 @@
     </div>
 
     <!-- The warehouse was reloaded under a saved timetable (E16) -->
-    <div id="staleWarning" class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2"
+    <div id="staleWarning" class="alert alert-info py-2 px-3 mb-3"
          role="status" style="display: none; font-size: 0.8rem;">
-        <i class="bi bi-arrow-repeat"></i>
-        <span class="flex-grow-1" id="staleWarningText"></span>
-        <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
-            Update my courses
-        </button>
-        <button type="button" class="btn btn-sm btn-link text-decoration-none" id="staleDismiss">
-            Not now
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-repeat"></i>
+            <span class="flex-grow-1" id="staleWarningText"></span>
+            <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
+                Update my courses
+            </button>
+            <button type="button" class="btn btn-sm btn-link text-decoration-none" id="staleDismiss">
+                Not now
+            </button>
+        </div>
+        <!-- Filled in by describeWhatChanged once the endpoint answers. The
+             warning above is useful without it, so both start empty and
+             hidden rather than blocking on the request. -->
+        <ul id="staleChanges" class="stale-changes" hidden></ul>
+        <a id="staleSeeAll" class="stale-see-all"
+           href="/explore/changes?from=calendar" hidden>See everything that changed →</a>
     </div>
 
     <!-- Two ways in, offered only while the calendar is empty (9.1) -->
@@ -1216,6 +1281,7 @@
 
 {% block scripts %}
 <script src="/assets/js/calendar-utils.js?v={{ asset_version }}"></script>
+<script src="/assets/js/change-notes.js?v={{ asset_version }}"></script>
 <script src="/assets/js/print-model.js?v={{ asset_version }}"></script>
 <script src="/assets/js/print-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/course-search.js?v={{ asset_version }}"></script>
@@ -2359,6 +2425,10 @@
 
     const $stale = document.getElementById('staleWarning');
 
+    const GENERIC_STALE_TEXT =
+        'The university republished the timetable after you built this. ' +
+        'Your classes may have moved.';
+
     /**
      * Ask which publication is current, and offer to catch up.
      *
@@ -2372,14 +2442,72 @@
             const current = ops.freshness && ops.freshness.publication_id;
             if (!current || current === state.publicationId) return;
 
-            document.getElementById('staleWarningText').textContent =
-                'The university republished the timetable after you built this. ' +
-                'Your classes may have moved.';
+            document.getElementById('staleWarningText').textContent = GENERIC_STALE_TEXT;
             $stale.style.display = 'flex';
             $stale.dataset.publicationId = current;
+
+            // Then replace "may have moved" with what actually moved. Second,
+            // and separately, because the offer to update must not wait on a
+            // slower request and must survive that request failing.
+            await describeWhatChanged();
         } catch (err) {
             /* offline, and it does not matter */
         }
+    }
+
+    /**
+     * Turn the generic warning into this student's own list.
+     *
+     * Asked with `since` set to the publication their timetable was built
+     * against, so the answer is theirs however many republishes they missed:
+     * a direct diff between the two, not a replay of the hops between them.
+     *
+     * The generic wording stays if anything here fails. A student who cannot
+     * reach the endpoint still needs to know the timetable moved, which is
+     * what the warning already told them.
+     */
+    async function describeWhatChanged() {
+        const codes = state.warehouseCourseKeys;
+        if (!codes.length) return;
+
+        let summary;
+        try {
+            const url = '/api/timetable/changes?codes='
+                + encodeURIComponent(codes.join(','))
+                + '&since=' + encodeURIComponent(state.publicationId);
+            const data = await fetch(url).then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            });
+            summary = summariseChanges(data.changes);
+        } catch (err) {
+            return;  // the generic warning stands
+        }
+
+        const $text = document.getElementById('staleWarningText');
+        const $list = document.getElementById('staleChanges');
+        const $link = document.getElementById('staleSeeAll');
+
+        if (!summary.total) {
+            // Worth saying. "Nothing of yours moved" is the answer a student
+            // wants most, and the generic warning does not give it.
+            $text.textContent =
+                'The university republished the timetable, but none of your '
+                + 'classes moved. Updating is safe.';
+            $list.innerHTML = '';
+            $list.hidden = true;
+            $link.hidden = false;
+            return;
+        }
+
+        $text.textContent = summary.headline
+            + ' since you built this timetable.';
+        $list.innerHTML = summary.lines.map(line =>
+            '<li class="' + (line.severity === 'act' ? 'chg-act' : 'chg-info') + '">'
+            + '<b>' + escapeHtml(line.code) + '</b> ' + escapeHtml(line.text)
+            + '</li>').join('');
+        $list.hidden = false;
+        $link.hidden = false;
     }
 
     async function refreshFromWarehouse() {

@@ -26,6 +26,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 import static_version
+from timetable_extractor.database import changes as cq
 from timetable_extractor.database import explore_queries as eq
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
 from timetable_extractor.observability import correlation_id, get_logger
@@ -333,6 +334,43 @@ def freshness_context() -> dict[str, Any]:
     }
 
 
+def changes_banner_context() -> dict[str, Any] | None:
+    """
+    The one-line summary that sits under the provenance rail.
+
+    Deliberately derived from the same cached change set the page itself
+    reads, rather than a count query of its own. A banner claiming 55 moved
+    classes above a page listing 47 would be worse than no banner, and the
+    two counts differ because "moved" is a reading of the stored change, not
+    the stored change itself.
+
+    Returns None when there is nothing to say: one publication, or a republish
+    that changed nothing.
+    """
+    try:
+        data = cached("changes", lambda: query(cq.changes_for_page))
+    except ExplorerUnavailable:
+        # The rail above already reports the warehouse being unreachable.
+        # Repeating it here would say the same thing twice.
+        return None
+
+    if not data or not data.get("total"):
+        return None
+
+    counts = data["counts"]
+    return {
+        # A saved dismissal is keyed on this, so a later republish brings the
+        # banner back rather than staying dismissed forever.
+        "publication_id": data["to_id"],
+        "published_at": _iso(data["to_published_at"]),
+        "moved": counts.get(cq.CLASS_MOVED, 0),
+        "confirmed": counts.get(cq.CLASS_VENUE_CONFIRMED, 0),
+        "courses_added": len(data["courses_added"]),
+        "courses_dropped": len(data["courses_dropped"]),
+        "total": data["total"],
+    }
+
+
 def page_context(request: Request, active: str, **extra: Any) -> dict[str, Any]:
     """Base template context shared by every explorer page."""
     context = {
@@ -341,6 +379,7 @@ def page_context(request: Request, active: str, **extra: Any) -> dict[str, Any]:
         "total_weeks": eq.TOTAL_WEEKS,
         "day_order": eq.DAY_ORDER,
         "freshness": freshness_context(),
+        "changes_banner": changes_banner_context(),
         "unavailable": None,
     }
     context.update(extra)
@@ -508,6 +547,35 @@ async def course_page(request: Request, code: str):
         request=request,
         name="explore/course.html",
         context=page_context(request, "explore", course=course),
+    )
+
+
+@router.get("/changes", include_in_schema=False)
+async def changes_page(request: Request):
+    """
+    What the last republish changed.
+
+    One hop: the current publication against the one before it. A student two
+    publications behind needs a different answer, and gets it from the builder
+    rather than here - see CHANGES-FEED-SPEC.md section 4.5.
+    """
+    try:
+        changes = cached("changes", lambda: query(cq.changes_for_page))
+    except ExplorerUnavailable as exc:
+        return _unavailable(request, "changes", str(exc))
+
+    return templates.TemplateResponse(
+        request=request,
+        name="explore/changes.html",
+        context=page_context(
+            request,
+            "changes",
+            changes=changes,
+            # An explicit parameter, not the referrer: the referrer is empty on
+            # a hard refresh and absent under some privacy settings, so the
+            # back link would come and go for reasons a student cannot see.
+            from_calendar=request.query_params.get("from") == "calendar",
+        ),
     )
 
 
@@ -683,6 +751,120 @@ async def timetable_sessions(
             "publicationId": publication_id,
             "publishedAt": published_at,
             "courses": [courses[code] for code in resolved if code in courses],
+            "notFound": not_found,
+        },
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@api_router.get("/changes")
+async def timetable_changes(
+    codes: str = Query(
+        ...,
+        description=(
+            "Comma-separated course codes, with or without the space. "
+            "Unrecognised codes come back in notFound; recognised courses "
+            "with nothing to report are simply absent from changes."
+        ),
+        examples=["ECCD 0110,FREN 3401"],
+    ),
+    since: int | None = Query(
+        None,
+        description=(
+            "The publication the caller's timetable was built against. "
+            "Omit for the previous publication, which is the right answer "
+            "for someone who has not built one."
+        ),
+    ),
+):
+    """
+    What changed for a set of courses, for the timetable builder.
+
+    The answer depends on who is asking. A visitor wants the last republish;
+    a student wants everything since the publication their timetable was
+    built against, however many republishes ago that was. `since` is how they
+    say which.
+
+    That difference is computed as a direct diff between the two publications,
+    never by replaying the hops between them: a class that moved and moved
+    back would otherwise be reported as two changes when the honest answer is
+    none. See CHANGES-FEED-SPEC.md section 4.5.
+    """
+    wanted = _split_codes(codes)
+    if not wanted:
+        raise HTTPException(
+            status_code=400, detail="codes must name at least one course"
+        )
+    if len(wanted) > MAX_CODES_PER_REQUEST:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{len(wanted)} codes requested; this endpoint takes at most "
+                f"{MAX_CODES_PER_REQUEST} per request"
+            ),
+        )
+
+    try:
+        index = cached(
+            "code_index", lambda: eq.build_code_index(query(eq.course_codes))
+        )
+
+        resolved: dict[str, str] = {}
+        unresolved: list[str] = []
+        for raw in wanted:
+            published = eq.resolve_published_code(raw, index)
+            if published is None:
+                unresolved.append(raw)
+            else:
+                resolved.setdefault(published, raw)
+
+        # Unresolved codes are asked about too, rather than dismissed here.
+        # A code that stopped resolving is exactly the symptom of a rename,
+        # and a saved timetable holding `EDMA 11**` needs to be told it is now
+        # `EDMA 1142` - which is the one answer "not found" cannot give.
+        asked = list(resolved) + unresolved
+
+        # Not cached per code set: the key would be unbounded in the number of
+        # distinct course combinations, and the stored path is an indexed read.
+        # The browser is told to hold the answer for five minutes instead.
+        result = query(cq.changes_for_courses, asked, since) if asked else None
+    except ExplorerUnavailable as exc:
+        return JSONResponse({"error": str(exc)}, status_code=503)
+
+    # A code that came back as a rename is not missing; it moved.
+    renamed_from = {
+        change["previousCode"]
+        for change in (result or {}).get("changes", [])
+        if change.get("previousCode")
+    }
+    not_found = [code for code in unresolved if code not in renamed_from]
+
+    if result is None:
+        # One publication, or nothing resolved. Neither is an error: there is
+        # simply nothing that changed.
+        return JSONResponse(
+            {
+                "fromPublicationId": None,
+                "toPublicationId": None,
+                "publishedAt": None,
+                "previousPublishedAt": None,
+                "sinceUnavailable": False,
+                "changes": [],
+                "notFound": not_found,
+            },
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+
+    return JSONResponse(
+        {
+            "fromPublicationId": result["from_id"],
+            "toPublicationId": result["to_id"],
+            "publishedAt": _iso(result["to_published_at"]),
+            "previousPublishedAt": _iso(result["from_published_at"]),
+            # True when the caller named a publication the warehouse no longer
+            # holds, so the answer is the default hop rather than theirs.
+            "sinceUnavailable": result["since_unavailable"],
+            "changes": result["changes"],
             "notFound": not_found,
         },
         headers={"Cache-Control": "public, max-age=300"},

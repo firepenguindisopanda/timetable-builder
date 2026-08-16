@@ -1,0 +1,205 @@
+{% extends "explore_base.html" %}
+
+{% block title %}Updates{% endblock %}
+{% block description %}What changed when UWI last republished the St. Augustine timetable: the courses added and withdrawn, and the classes that moved.{% endblock %}
+
+{% macro slot_row(slot, which, kind) %}
+<div class="chg-slot chg-slot--{{ which }}">
+  <span class="chg-when">{{ which }}</span>
+  <span class="mono">{{ slot.day[:3] }}</span>
+  <span class="mono">{{ slot.startTime }}&ndash;{{ slot.endTime }}</span>
+  <span class="chg-room">{{ slot.room or 'no room published' }}</span>
+  <span class="mono chg-weeks">{{ slot.weeks or '' }}</span>
+</div>
+{% endmacro %}
+
+{# Colour follows what the reader sees, not the stored change type: a class
+   that only gained a sitting reads as an addition, not a move. #}
+{% set KIND_STYLE = {
+  'class_moved': 'class_moved',
+  'class_venue_confirmed': 'class_venue_confirmed',
+  'class_added': 'class_added',
+  'sitting_added': 'class_added',
+  'class_removed': 'class_removed',
+  'sitting_removed': 'class_removed',
+} %}
+{% set KIND_LABEL = {
+  'class_moved': 'moved',
+  'class_venue_confirmed': 'venue confirmed',
+  'class_added': 'new class',
+  'sitting_added': 'extra sitting',
+  'class_removed': 'class removed',
+  'sitting_removed': 'sitting dropped',
+} %}
+
+{% macro change_card(entry) %}
+{% set kind = entry.display_kind %}
+<article class="card chg chg--{{ KIND_STYLE.get(kind, kind) }}" data-search="{{ (entry.course_code ~ ' ' ~ (entry.course_title or '') ~ ' ' ~ (entry.activity_type or '')) | lower }}">
+  <div class="chg-head">
+    <span class="detail-code">{{ entry.course_code }}</span>
+    <span class="chg-type">{{ entry.activity_type or 'Unspecified' }}{% if entry.stream_label %} &middot; {{ entry.stream_label }}{% endif %}</span>
+    <span class="chg-kind">{{ KIND_LABEL.get(kind, 'changed') }}</span>
+  </div>
+  {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}
+  <div class="chg-slots">
+    {% for slot in entry.before_slots %}{{ slot_row(slot, 'was', kind) }}{% endfor %}
+    {% for slot in entry.after_slots %}{{ slot_row(slot, 'now', kind) }}{% endfor %}
+  </div>
+</article>
+{% endmacro %}
+
+{% block content %}
+<div class="shell">
+
+  {% if from_calendar %}
+  <p class="crumb"><a class="link-teal" href="/calendar">&larr; Back to your timetable</a></p>
+  {% endif %}
+
+  <header class="detail-head">
+    <p class="eyebrow">Timetable update</p>
+
+    {% if not changes %}
+      <h1>Nothing to compare yet</h1>
+      <p class="detail-sub">
+        The warehouse holds one publication of the timetable, so there is no
+        earlier version to measure it against. This page will fill in the first
+        time UWI republishes.
+      </p>
+    {% elif changes.total == 0 %}
+      <h1>Nothing changed</h1>
+      <p class="detail-sub">
+        UWI republished the timetable on
+        <time datetime="{{ changes.to_published_at }}">{{ changes.to_published_at.strftime('%-d %B %Y') }}</time>,
+        but no course or class is different from the version published on
+        {{ changes.from_published_at.strftime('%-d %B %Y') }}.
+      </p>
+    {% else %}
+      <h1>What moved in the {{ changes.to_published_at.strftime('%-d %B') }} timetable</h1>
+      <p class="detail-sub">
+        UWI republished the whole timetable on
+        {{ changes.to_published_at.strftime('%-d %B %Y') }}. Most of it is
+        unchanged. These are the {{ changes.total }} course{{ 's' if changes.total != 1 }} and
+        class{{ 'es' if changes.total != 1 }} that are not, measured against the
+        version published on {{ changes.from_published_at.strftime('%-d %B %Y') }}.
+      </p>
+
+      <div class="figures">
+        <div class="figure"><b>{{ changes.counts.class_moved }}</b><span>classes moved</span></div>
+        <div class="figure"><b>{{ changes.counts.class_venue_confirmed }}</b><span>venues confirmed</span></div>
+        <div class="figure"><b>{{ changes.courses_added | length }}</b><span>courses added</span></div>
+        <div class="figure"><b>{{ changes.courses_dropped | length }}</b><span>no longer published</span></div>
+        {% if changes.lost_types %}
+        <div class="figure"><b>{{ changes.lost_types | length }}</b><span>lost a class type</span></div>
+        {% endif %}
+      </div>
+
+      <label class="search" style="margin-top:1.25rem; max-width:26rem;">
+        <input type="search" id="changesFilter" autocomplete="off"
+               placeholder="Search a course code, title or room"
+               aria-label="Search changes" aria-controls="changesList">
+      </label>
+      <p class="result-count" id="changesCount" role="status" aria-live="polite"
+         style="margin:0.6rem 0 0;"></p>
+    {% endif %}
+  </header>
+
+  {% if changes and changes.total %}
+  <div id="changesList">
+
+    {% if changes.lost_types %}
+    <section class="section" data-chg-section>
+      <h2>No longer has a published class type</h2>
+      <p class="section-note">
+        The option group a saved timetable placed is keyed on the activity
+        type, so these are the changes that leave a hole rather than move
+        something. Ask your department what replaces them.
+      </p>
+      <div class="chg-cards">
+        {% for entry in changes.lost_types %}
+        <article class="card chg chg--class_removed"
+                 data-search="{{ (entry.course_code ~ ' ' ~ (entry.course_title or '') ~ ' ' ~ (entry.activity_type or '')) | lower }}">
+          <div class="chg-head">
+            <span class="detail-code">{{ entry.course_code }}</span>
+            <span class="chg-kind">no {{ entry.activity_type or 'class' }} published</span>
+          </div>
+          {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if changes.classes %}
+    <section class="section" data-chg-section>
+      <h2>Classes changed <span class="chg-n">{{ changes.classes | length }}</span></h2>
+      <div class="chg-cards">
+        {% for entry in changes.classes %}{{ change_card(entry) }}{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if changes.renamed %}
+    <section class="section" data-chg-section>
+      <h2>Renamed <span class="chg-n">{{ changes.renamed | length }}</span></h2>
+      <p class="section-note">
+        The same published course under a new code. A saved timetable reads
+        this as a course that vanished, so it is kept and marked rather than
+        updated.
+      </p>
+      <div class="chg-cards">
+        {% for entry in changes.renamed %}
+        <article class="card chg chg--course_renamed"
+                 data-search="{{ ((entry.from_code or '') ~ ' ' ~ entry.course_code ~ ' ' ~ (entry.course_title or '')) | lower }}">
+          <div class="chg-head">
+            <span class="detail-code">{{ entry.from_code }} &rarr; {{ entry.course_code }}</span>
+            <span class="chg-kind">same course</span>
+          </div>
+          {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if changes.courses_added %}
+    <section class="section" data-chg-section>
+      <h2>Courses added <span class="chg-n">{{ changes.courses_added | length }}</span></h2>
+      <div class="chg-cards">
+        {% for entry in changes.courses_added %}
+        <article class="card chg chg--course_added"
+                 data-search="{{ (entry.course_code ~ ' ' ~ (entry.course_title or '')) | lower }}">
+          <div class="chg-head">
+            <a class="detail-code link-teal" href="/explore/course/{{ entry.course_code | urlpath }}">{{ entry.course_code }}</a>
+            <span class="chg-kind">new course</span>
+          </div>
+          {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if changes.courses_dropped %}
+    <section class="section" data-chg-section>
+      <h2>No longer published <span class="chg-n">{{ changes.courses_dropped | length }}</span></h2>
+      <div class="chg-cards">
+        {% for entry in changes.courses_dropped %}
+        <article class="card chg chg--course_dropped"
+                 data-search="{{ (entry.course_code ~ ' ' ~ (entry.course_title or '')) | lower }}">
+          <div class="chg-head">
+            <span class="detail-code">{{ entry.course_code }}</span>
+            <span class="chg-kind">withdrawn</span>
+          </div>
+          {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <p class="empty" id="changesEmpty" hidden>Nothing matches that.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

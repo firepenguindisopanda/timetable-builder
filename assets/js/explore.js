@@ -110,6 +110,83 @@
     run();
   }
 
+  /*
+     The update notice, and remembering that it was dismissed.
+
+     Keyed on the publication id rather than a plain "dismissed" flag, so the
+     next republish brings the notice back instead of staying dismissed for
+     the rest of term. The markup ships visible and is hidden here, so a
+     reader without JavaScript sees the notice rather than missing it; the
+     cost is that a dismisser may glimpse it for a frame.
+
+     localStorage throws rather than returning null in some privacy modes, so
+     every access is guarded: a student who cannot save a dismissal should
+     still be able to dismiss it for this page view.
+  */
+  var DISMISS_KEY = 'celcat_changes_dismissed';
+
+  function wireUpdateBar() {
+    var bar = document.getElementById('updateBar');
+    if (!bar) { return; }
+    var publication = bar.getAttribute('data-publication');
+
+    var dismissed = null;
+    try { dismissed = window.localStorage.getItem(DISMISS_KEY); } catch (e) { /* private mode */ }
+    if (dismissed && dismissed === publication) {
+      bar.hidden = true;
+      return;
+    }
+
+    var button = document.getElementById('updateDismiss');
+    if (!button) { return; }
+    button.addEventListener('click', function () {
+      bar.hidden = true;
+      try { window.localStorage.setItem(DISMISS_KEY, publication); } catch (e) { /* private mode */ }
+    });
+  }
+
+  /*
+     The changes page filters across several sections at once.
+
+     wireStaticFilter above walks one list's children; here the cards a
+     student might be looking for are spread over "classes changed",
+     "courses added" and the rest, and a search that only looked in one of
+     them would answer "nothing" while the answer was further down the page.
+     A section with nothing left in it is hidden, so the headings do not
+     outnumber the results.
+  */
+  function wireChangesFilter() {
+    var input = document.getElementById('changesFilter');
+    var root = document.getElementById('changesList');
+    var count = document.getElementById('changesCount');
+    var empty = document.getElementById('changesEmpty');
+    if (!input || !root) { return; }
+
+    var cards = Array.prototype.slice.call(root.querySelectorAll('[data-search]'));
+    var sections = Array.prototype.slice.call(root.querySelectorAll('[data-chg-section]'));
+
+    function run() {
+      var term = input.value.trim().toLowerCase();
+      var visible = 0;
+      cards.forEach(function (card) {
+        var hit = !term || card.getAttribute('data-search').indexOf(term) !== -1;
+        card.hidden = !hit;
+        if (hit) { visible++; }
+      });
+      sections.forEach(function (section) {
+        var any = section.querySelectorAll('[data-search]:not([hidden])').length;
+        section.hidden = !any;
+      });
+      if (empty) { empty.hidden = visible !== 0; }
+      count.textContent = term
+        ? visible.toLocaleString() + ' of ' + cards.length.toLocaleString() + ' changes'
+        : cards.length.toLocaleString() + ' change' + (cards.length === 1 ? '' : 's');
+    }
+
+    input.addEventListener('input', run);
+    run();
+  }
+
   // state
 
   // Column-header tooltips show on hover and on focus. Focus is what makes
@@ -128,6 +205,8 @@
   if (!page) {
     renderTimestamps();
     wireStaticFilter();
+    wireChangesFilter();
+    wireUpdateBar();
     wireTooltipDismiss();
     return;
   }
@@ -382,6 +461,7 @@
   // boot
 
   renderTimestamps();
+  wireUpdateBar();
   wireTooltipDismiss();
   els.count.textContent = 'Loading courses…';
 

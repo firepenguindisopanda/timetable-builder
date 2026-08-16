@@ -18,6 +18,7 @@ from typing import Any, Iterable
 
 import psycopg
 
+from timetable_extractor.database.changes import previous_publication, store_diff
 from timetable_extractor.database.courses import build_code_index, resolve_course_code
 from timetable_extractor.database.people import build_name_index, resolve_name
 from timetable_extractor.database.records import (
@@ -53,6 +54,9 @@ class LoadStats:
     staff_links: int
     source_links: int
     reused_publication: bool
+    #: Changes recorded against the previous publication. Zero on the first
+    #: load, when there is nothing to compare against.
+    changes: int = 0
 
 
 def parse_published_at(xml_text: str) -> datetime | None:
@@ -529,6 +533,14 @@ def load_all(
         row = cur.fetchone()
         published_at = row[0] if row else None
 
+    # What this republish changed, computed now rather than on every page view.
+    # A `--replace` reload rewrites the sessions the stored diff was derived
+    # from, so this recomputes rather than appending.
+    previous = previous_publication(conn, publication_id)
+    changes = store_diff(conn, previous, publication_id) if previous else 0
+    if progress and previous:
+        print(f"  changes vs publication {previous}: {changes}", flush=True)
+
     return LoadStats(
         publication_id=publication_id,
         published_at=published_at,
@@ -543,4 +555,5 @@ def load_all(
         staff_links=staff_links,
         source_links=source_links,
         reused_publication=reused,
+        changes=changes,
     )

@@ -124,6 +124,8 @@ def main() -> int:
                 print(f"Raw records  : {stats.raw_records}")
                 print(f"Sessions     : {stats.sessions} after merging")
                 print(f"Links        : {stats.staff_links} staff, {stats.source_links} sources")
+                print(f"Changes      : {stats.changes} vs the previous publication"
+                      f"{'  (first publication, nothing to compare)' if not stats.changes else ''}")
                 return 0
 
             if args.command == "stats":

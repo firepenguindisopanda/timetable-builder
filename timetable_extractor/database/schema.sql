@@ -234,6 +234,57 @@ COMMENT ON TABLE session_sources IS
     'and staff timetables is more trustworthy than one seen in a single PDF.';
 
 
+-- What a republish changed
+--
+-- Diffing two publications is cheap but not free: about 7,000 rows compared
+-- per pair. It happens once per republish and is read on every page view, so
+-- the result is computed at load time and stored rather than recomputed.
+--
+-- Rows are per (from, to) pair rather than per publication, so a student two
+-- publications behind can be answered directly instead of by replaying hops.
+-- Replaying is not equivalent: a class that moves and moves back composes to
+-- two changes when the honest answer is none.
+
+CREATE TABLE IF NOT EXISTS publication_changes (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    from_publication_id BIGINT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
+    to_publication_id   BIGINT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
+
+    -- course_added | course_dropped | course_renamed
+    -- class_added  | class_removed  | class_moved | class_venue_confirmed
+    change_type     TEXT   NOT NULL,
+
+    course_code     TEXT   NOT NULL,
+    course_title    TEXT,
+    activity_type   TEXT,
+    stream_label    TEXT,
+
+    -- The slots either side, already rendered, so describing a change needs no
+    -- second query. Null on the side where the thing did not exist.
+    before          JSONB,
+    after           JSONB
+);
+
+COMMENT ON TABLE publication_changes IS
+    'One row per thing that changed between two publications. Written by the '
+    'loader, read by /explore/changes.';
+
+CREATE INDEX IF NOT EXISTS publication_changes_pair_idx
+    ON publication_changes (to_publication_id, from_publication_id);
+
+-- The per-course lookup the builder needs: "did anything happen to these six
+-- courses since the publication my timetable was built against?"
+CREATE INDEX IF NOT EXISTS publication_changes_course_idx
+    ON publication_changes (to_publication_id, course_code);
+
+-- One row per change per pair. Re-running a diff must not double it.
+CREATE UNIQUE INDEX IF NOT EXISTS publication_changes_identity_idx
+    ON publication_changes (
+        from_publication_id, to_publication_id, change_type, course_code,
+        COALESCE(activity_type, ''), COALESCE(stream_label, '')
+    );
+
+
 -- Convenience views
 
 CREATE OR REPLACE VIEW latest_publication AS
