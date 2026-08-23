@@ -29,9 +29,12 @@
     --rule:         #CBD5DC;
     --rule-soft:    #E2E8ED;
 
-    --gold:         #A2670B;
+    /* Bright enough to read as gold rather than ochre. Text never sits on
+       white in this colour - that is what --gold-ink is for - and text on a
+       gold surface is dark, so the accent can afford the brightness. */
+    --gold:         #C9880A;
     --gold-ink:     #6E4605;
-    --gold-soft:    #F3E4C4;
+    --gold-soft:    #F6E8C4;
 
     --teal:         #0A6B66;
     --teal-soft:    #D5EBE9;
@@ -69,9 +72,9 @@
         --rule:       #21333F;
         --rule-soft:  #182734;
 
-        --gold:       #E3AC46;
+        --gold:       #EFB84A;
         --gold-ink:   #F0CA8A;
-        --gold-soft:  #3B2D12;
+        --gold-soft:  #443413;
 
         --teal:       #4FC6BD;
         --teal-soft:  #0F2F2D;
@@ -617,15 +620,12 @@ body.explore {
 
 .week-pick button:hover { border-color: var(--gold); color: var(--ink); }
 
+/* Dark text in both themes: the brighter gold no longer carries white. */
 .week-pick button[aria-pressed="true"] {
     background: var(--gold);
     border-color: var(--gold);
-    color: #fff;
+    color: #14202b;
     font-weight: 500;
-}
-
-@media (prefers-color-scheme: dark) {
-    .week-pick button[aria-pressed="true"] { color: #14202b; }
 }
 
 /* The signature needs one sentence of explanation, once, above the list. */

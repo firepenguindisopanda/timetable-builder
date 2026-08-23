@@ -62,6 +62,10 @@
             --accent-cyan-dim: color-mix(in srgb, var(--teal) 15%, transparent);
             --accent-amber: var(--gold);
             --accent-amber-dim: color-mix(in srgb, var(--gold) 15%, transparent);
+            /* Gold used as text. The bright gold reads on white at graphic
+               contrast only, so small amber labels take the ink shade, which
+               is already the pale gold in dark mode. */
+            --accent-amber-ink: var(--gold-ink);
             --accent-green: var(--green);
             --accent-red: var(--coral);
 
@@ -160,10 +164,13 @@
             box-shadow: var(--shadow);
         }
 
+        /* Dark label in both themes: the gold is bright enough that white
+           text on it would not read, exactly as on the explorer's pressed
+           week-picker buttons. */
         .btn-accent {
             background: var(--gold);
             border: 1px solid var(--gold);
-            color: #fff;
+            color: #14202b;
             font-family: var(--font-body);
             font-weight: 600;
             font-size: 0.85rem;
@@ -174,14 +181,14 @@
 
         .btn-accent:hover {
             background: var(--gold);
-            color: #fff;
+            color: #14202b;
             filter: brightness(1.08);
             transform: translateY(-1px);
         }
 
         .btn-accent:active {
             background: var(--gold) !important;
-            color: #fff !important;
+            color: #14202b !important;
             transform: translateY(0);
         }
 
@@ -190,13 +197,6 @@
             border-color: var(--rule);
             color: var(--ink-3);
             transform: none;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            /* Dark gold is light, so the label flips dark, as the explorer's
-               pressed week-picker buttons do. */
-            .btn-accent, .btn-accent:hover { color: #14202b; }
-            .btn-accent:active { color: #14202b !important; }
         }
 
         /* Bootstrap's stock accents read neon against the limestone ground,
@@ -212,15 +212,17 @@
             --bs-btn-active-color: var(--card);
         }
 
+        /* Resting text is the ink shade so it reads at button size; the
+           filled hover carries dark text because the gold is bright. */
         .btn-outline-warning {
-            --bs-btn-color: var(--gold);
+            --bs-btn-color: var(--gold-ink);
             --bs-btn-border-color: var(--gold);
             --bs-btn-hover-bg: var(--gold);
             --bs-btn-hover-border-color: var(--gold);
-            --bs-btn-hover-color: var(--card);
+            --bs-btn-hover-color: #14202b;
             --bs-btn-active-bg: var(--gold);
             --bs-btn-active-border-color: var(--gold);
-            --bs-btn-active-color: var(--card);
+            --bs-btn-active-color: #14202b;
         }
 
         .btn-outline-danger {
