@@ -73,6 +73,36 @@ def get_admin_settings():
     return AdminSettings()
 
 
+def get_dev_settings():
+    from timetable_extractor.config.db import DevToolsSettings
+
+    return DevToolsSettings()
+
+
+async def require_dev_tools(settings=Depends(get_dev_settings)):
+    """
+    Close the corpus-building tools outside development.
+
+    /batch, /download and /evaluate exist to build the corpus, which happens
+    on a dev machine; the deployed site only reads the warehouse. Their
+    actions were already behind the admin key, but the pages themselves
+    answered anyone, which advertised tooling the deployment does not use.
+
+    404 rather than 403, and before the admin key is even looked at: a tool
+    that is not offered should be indistinguishable from one that does not
+    exist, valid key or not.
+    """
+    if not settings.dev_tools:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+#: Read once at startup for what cannot be per-request: whether the dev-only
+#: routes appear in the OpenAPI schema and the masthead. The routes
+#: themselves are gated per request by require_dev_tools, which tests can
+#: override.
+DEV_TOOLS_ENABLED = get_dev_settings().dev_tools
+
+
 def admin_key_matches(supplied: str, configured: str) -> bool:
     """
     Compare the two keys in constant time.
@@ -250,6 +280,7 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templat
 # Every asset URL carries this, so a deploy that changes a script changes the
 # URL asking for it and no browser can pair new HTML with stale JavaScript.
 templates.env.globals["asset_version"] = static_version.asset_version()
+templates.env.globals["dev_tools_enabled"] = DEV_TOOLS_ENABLED
 
 
 def _page_context(request: Request, active: str) -> dict:
@@ -403,7 +434,12 @@ async def extract_from_upload(files: List[UploadFile] = File(...)):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-@app.post("/extract/batch", response_model=ExtractResponse)
+@app.post(
+    "/extract/batch",
+    response_model=ExtractResponse,
+    dependencies=[Depends(require_dev_tools)],
+    include_in_schema=DEV_TOOLS_ENABLED,
+)
 async def extract_from_disk(
     request: BatchExtractRequest,
     _: str = Depends(require_admin_key),
@@ -447,7 +483,7 @@ async def extract_from_disk(
     return _build_extract_response(results)
 
 
-@app.get("/download", include_in_schema=False)
+@app.get("/download", include_in_schema=False, dependencies=[Depends(require_dev_tools)])
 async def download_page(request: Request):
     """Serve the download page."""
     return templates.TemplateResponse(
@@ -457,7 +493,7 @@ async def download_page(request: Request):
     )
 
 
-@app.get("/evaluate", include_in_schema=False)
+@app.get("/evaluate", include_in_schema=False, dependencies=[Depends(require_dev_tools)])
 async def evaluate_page(request: Request):
     """Serve the evaluate page."""
     return templates.TemplateResponse(
@@ -477,7 +513,7 @@ async def extract_page(request: Request):
     )
 
 
-@app.get("/batch", include_in_schema=False)
+@app.get("/batch", include_in_schema=False, dependencies=[Depends(require_dev_tools)])
 async def batch_page(request: Request):
     """Serve the batch extraction page."""
     return templates.TemplateResponse(
@@ -497,7 +533,12 @@ async def calendar_page(request: Request):
     )
 
 
-@app.post("/download", response_model=DownloadResponse)
+@app.post(
+    "/download",
+    response_model=DownloadResponse,
+    dependencies=[Depends(require_dev_tools)],
+    include_in_schema=DEV_TOOLS_ENABLED,
+)
 async def download_timetables_endpoint(
     request: DownloadRequest,
     _: str = Depends(require_admin_key),
@@ -529,7 +570,12 @@ async def download_timetables_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/evaluate", response_model=EvaluateResponse)
+@app.post(
+    "/evaluate",
+    response_model=EvaluateResponse,
+    dependencies=[Depends(require_dev_tools)],
+    include_in_schema=DEV_TOOLS_ENABLED,
+)
 async def evaluate_headers_endpoint(
     request: EvaluateRequest,
     _: str = Depends(require_admin_key),

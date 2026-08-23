@@ -5,6 +5,12 @@ Three endpoints read a caller-supplied filesystem path or make the server
 fetch the whole CELCAT site. The nav hides their pages behind an `.admin-only`
 CSS class, which is not access control: the routes themselves were reachable
 by anyone. These tests pin the guard so it cannot quietly come off again.
+
+Two layers now guard them. DEV_TOOLS decides whether the corpus-building
+tools are served at all (they are dev-machine jobs; the deployed site never
+sets it and answers 404). Where they are served, the admin key still guards
+the actions. The admin-layer tests below run with dev tools enabled, since
+a 404 from the outer gate would shadow the behaviour they pin.
 """
 
 from __future__ import annotations
@@ -21,9 +27,18 @@ class FakeSettings:
     admin_api_key = VALID_KEY
 
 
+class DevToolsOn:
+    dev_tools = True
+
+
+class DevToolsOff:
+    dev_tools = False
+
+
 @pytest.fixture
 def client():
     main.app.dependency_overrides[main.get_admin_settings] = lambda: FakeSettings()
+    main.app.dependency_overrides[main.get_dev_settings] = lambda: DevToolsOn()
     with TestClient(main.app) as test_client:
         yield test_client
     main.app.dependency_overrides.clear()
@@ -71,6 +86,68 @@ class TestAdminOnlyEndpoints:
         assert response.status_code == 401
 
 
+class TestDevToolsGate:
+    """
+    The corpus-building tools are not served outside development.
+
+    Deliberately overridden to disabled rather than left to the environment,
+    because a developer's .env sets DEV_TOOLS and would make "off by
+    default" pass on their machine for the wrong reason.
+    """
+
+    #: Every dev-only route: the pages and the actions behind them.
+    DEV_ONLY = [
+        ("GET", "/batch", None),
+        ("GET", "/download", None),
+        ("GET", "/evaluate", None),
+        ("POST", "/extract/batch", {"pdf_dir": "/etc"}),
+        ("POST", "/download", {"codes": ["COMP2601"], "dry_run": True}),
+        ("POST", "/evaluate", {"pdf_dir": "/etc"}),
+    ]
+
+    @pytest.fixture
+    def disabled_client(self):
+        main.app.dependency_overrides[main.get_admin_settings] = lambda: FakeSettings()
+        main.app.dependency_overrides[main.get_dev_settings] = lambda: DevToolsOff()
+        with TestClient(main.app) as test_client:
+            yield test_client
+        main.app.dependency_overrides.clear()
+
+    @pytest.mark.parametrize("method, path, body", DEV_ONLY)
+    def test_disabled_answers_404(self, disabled_client, method, path, body):
+        response = disabled_client.request(method, path, json=body)
+        assert response.status_code == 404
+
+    @pytest.mark.parametrize("method, path, body", DEV_ONLY)
+    def test_a_valid_admin_key_does_not_reopen_them(
+        self, disabled_client, method, path, body
+    ):
+        """Not offered means not offered: the outer gate wins over the key."""
+        response = disabled_client.request(
+            method, path, json=body, headers={"X-API-Key": VALID_KEY}
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.parametrize("method, path, _body", DEV_ONLY)
+    def test_the_gate_is_wired_to_the_route(self, method, path, _body):
+        route = next(
+            r for r in main.app.routes
+            if getattr(r, "path", None) == path and method in getattr(r, "methods", ())
+        )
+        guards = [d.call for d in route.dependant.dependencies]
+
+        assert main.require_dev_tools in guards
+
+    @pytest.mark.parametrize("path", ["/", "/extract", "/calendar", "/health"])
+    def test_the_public_pages_are_unaffected(self, disabled_client, path):
+        assert disabled_client.get(path).status_code == 200
+
+    def test_enabled_serves_the_pages_again(self, client):
+        """The same routes, with dev tools on: the pages come back."""
+        for path in ("/batch", "/download", "/evaluate"):
+            assert client.get(path).status_code == 200
+
+
 class TestAdminDisabled:
     """
     A deployment serving only the public timetable leaves ADMIN_API_KEY unset.
@@ -85,6 +162,7 @@ class TestAdminDisabled:
             admin_api_key = ""
 
         main.app.dependency_overrides[main.get_admin_settings] = lambda: Unset()
+        main.app.dependency_overrides[main.get_dev_settings] = lambda: DevToolsOn()
         with TestClient(main.app) as test_client:
             yield test_client
         main.app.dependency_overrides.clear()

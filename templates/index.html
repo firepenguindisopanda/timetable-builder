@@ -29,6 +29,10 @@
             <p class="tool-desc">Upload PDF files directly and extract timetable data.</p>
         </a>
         
+        {# Corpus-building tools, served only where DEV_TOOLS is set. The
+           routes answer 404 elsewhere, so the cards are not rendered rather
+           than leading somewhere closed. #}
+        {% if dev_tools_enabled %}
         <a href="/batch" class="tool-card">
             <div class="tool-icon" style="color: var(--accent-amber);">
                 <i class="bi bi-folder2-open"></i>
@@ -36,7 +40,7 @@
             <h3 class="tool-title">Batch Extract</h3>
             <p class="tool-desc">Process multiple PDFs from a directory on the server.</p>
         </a>
-        
+
         <a href="/download" class="tool-card">
             <div class="tool-icon" style="color: var(--accent-green);">
                 <i class="bi bi-cloud-download"></i>
@@ -44,7 +48,7 @@
             <h3 class="tool-title">Download</h3>
             <p class="tool-desc">Fetch timetables from UWI's CELCAT server.</p>
         </a>
-        
+
         <a href="/evaluate" class="tool-card">
             <div class="tool-icon" style="color: var(--accent-red);">
                 <i class="bi bi-clipboard-data"></i>
@@ -52,6 +56,7 @@
             <h3 class="tool-title">Evaluate</h3>
             <p class="tool-desc">Check header consistency across PDFs.</p>
         </a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

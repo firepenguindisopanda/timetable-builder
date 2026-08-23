@@ -66,6 +66,20 @@ class AdminSettings(BaseSettings):
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
+class DevToolsSettings(BaseSettings):
+    """
+    Whether the corpus-building tools are served at all.
+
+    /batch, /download and /evaluate exist to build and check the PDF corpus,
+    which is a dev-machine job: the deployed site only reads the warehouse.
+    Off unless DEV_TOOLS is set, so a deployment that configures nothing
+    does not serve them.
+    """
+
+    dev_tools: bool = False
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+
+
 def close_mongo_client() -> None:
     """Close the MongoDB connection (call on shutdown)."""
     global _client, _db

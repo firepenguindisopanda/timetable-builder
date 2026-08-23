@@ -11,9 +11,14 @@
     </a>
     <nav class="masthead-nav" aria-label="Tools">
       <a href="/extract" {% if active == 'extract' %}aria-current="page"{% endif %}>Upload</a>
+      {# The corpus-building tools are served only where DEV_TOOLS is set
+         (require_dev_tools in main.py answers 404 elsewhere), so the links
+         are not rendered at all rather than hidden by CSS. #}
+      {% if dev_tools_enabled %}
       <a href="/batch" class="admin-only" style="display:none;" {% if active == 'batch' %}aria-current="page"{% endif %}>Batch</a>
       <a href="/download" class="admin-only" style="display:none;" {% if active == 'download' %}aria-current="page"{% endif %}>Download</a>
       <a href="/evaluate" class="admin-only" style="display:none;" {% if active == 'evaluate' %}aria-current="page"{% endif %}>Evaluate</a>
+      {% endif %}
       <a href="/explore" {% if active == 'explore' %}aria-current="page"{% endif %}>Timetable</a>
       <a href="/calendar" {% if active == 'calendar' %}aria-current="page"{% endif %}>Calendar</a>
       {# No Admin link. It is reached by typing /admin, which is where the
