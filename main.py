@@ -251,6 +251,27 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templat
 # URL asking for it and no browser can pair new HTML with stale JavaScript.
 templates.env.globals["asset_version"] = static_version.asset_version()
 
+
+def _page_context(request: Request, active: str) -> dict:
+    """
+    The context every tool page shares.
+
+    The explorer's update notice is site-wide, so these pages need the same
+    banner summary the explorer computes. These pages also work without a
+    warehouse at all (upload and extraction predate it), so a database that
+    is down or empty must cost them the banner, never the page.
+    """
+    try:
+        changes_banner = explore_router.changes_banner_context()
+    except Exception:
+        changes_banner = None
+    return {
+        "request": request,
+        "active": active,
+        "version": "1.0.0",
+        "changes_banner": changes_banner,
+    }
+
 # Serve static files from assets folder
 assets_dir = Path(__file__).resolve().parent / "assets"
 if assets_dir.exists():
@@ -302,7 +323,7 @@ async def index(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"active": "home", "version": "1.0.0", "request": request},
+        context=_page_context(request, "home"),
     )
 
 
@@ -321,11 +342,7 @@ async def admin_login_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="admin_login.html",
-        context={
-            "active": "admin",
-            "version": "1.0.0",
-            "request": request,
-        },
+        context=_page_context(request, "admin"),
     )
 
 
@@ -335,11 +352,7 @@ async def admin_dashboard_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="admin.html",
-        context={
-            "active": "admin",
-            "version": "1.0.0",
-            "request": request,
-        },
+        context=_page_context(request, "admin"),
     )
 
 
@@ -440,7 +453,7 @@ async def download_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="download.html",
-        context={"active": "download", "version": "1.0.0", "request": request},
+        context=_page_context(request, "download"),
     )
 
 
@@ -450,7 +463,7 @@ async def evaluate_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="evaluate.html",
-        context={"active": "evaluate", "version": "1.0.0", "request": request},
+        context=_page_context(request, "evaluate"),
     )
 
 
@@ -460,7 +473,7 @@ async def extract_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="extract.html",
-        context={"active": "extract", "version": "1.0.0", "request": request},
+        context=_page_context(request, "extract"),
     )
 
 
@@ -470,7 +483,7 @@ async def batch_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="batch.html",
-        context={"active": "batch", "version": "1.0.0", "request": request},
+        context=_page_context(request, "batch"),
     )
 
 
@@ -480,7 +493,7 @@ async def calendar_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="calendar.html",
-        context={"active": "calendar", "version": "1.0.0", "request": request},
+        context=_page_context(request, "calendar"),
     )
 
 

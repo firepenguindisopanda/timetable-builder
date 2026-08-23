@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,290 +9,310 @@
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
 
+    <!--
+      Bootstrap's theme is an attribute, not a media query, so it is stamped
+      from the scheme before first paint and re-stamped if the scheme changes.
+      Everything else themes itself through the explorer's tokens.
+    -->
+    <script>
+    (function () {
+        var scheme = window.matchMedia('(prefers-color-scheme: dark)');
+        var apply = function () {
+            document.documentElement.setAttribute(
+                'data-bs-theme', scheme.matches ? 'dark' : 'light');
+        };
+        apply();
+        scheme.addEventListener('change', apply);
+    })();
+    </script>
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
+    <!-- Google Fonts: the explorer's three faces, shared site-wide -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!--
+      The explorer's stylesheet is the site's design system: tokens, masthead,
+      update notice and footer all come from it, in light and dark. These
+      pages reuse it rather than describing the same design twice.
+    -->
+    <link rel="stylesheet" href="/assets/css/explore.css?v={{ asset_version }}">
 
     <style>
+        /*
+          The tool pages were built on their own dark-only variables. Rather
+          than rewrite every page, those names now alias the explorer's
+          tokens, so every existing rule follows the explorer's palette and
+          answers prefers-color-scheme for free.
+        */
         :root {
-            /* Base colors - solid, no gradients */
-            --bg-deep: #050507;
-            --bg-surface: #0e0e14;
-            --bg-elevated: #16161e;
-            --bg-interactive: #1c1c26;
+            --bg-deep: var(--paper);
+            --bg-surface: var(--card);
+            --bg-elevated: var(--paper-sunk);
+            --bg-interactive: color-mix(in srgb, var(--ink) 7%, var(--card));
 
-            /* Borders */
-            --border-subtle: rgba(255, 255, 255, 0.06);
-            --border-medium: rgba(255, 255, 255, 0.12);
+            --border-subtle: var(--rule-soft);
+            --border-medium: var(--rule);
 
-            /* Accent colors - solid, high contrast */
-            --accent-cyan: #00E5FF;
-            --accent-cyan-dim: rgba(0, 229, 255, 0.15);
-            --accent-amber: #FFB800;
-            --accent-amber-dim: rgba(255, 184, 0, 0.15);
-            --accent-green: #00D68F;
-            --accent-red: #FF3D71;
+            --accent-cyan: var(--teal);
+            --accent-cyan-dim: color-mix(in srgb, var(--teal) 15%, transparent);
+            --accent-amber: var(--gold);
+            --accent-amber-dim: color-mix(in srgb, var(--gold) 15%, transparent);
+            --accent-green: var(--green);
+            --accent-red: var(--coral);
 
-            /* Text colors */
-            --text-primary: #FFFFFF;
-            --text-secondary: #8B8B9E;
-            --text-tertiary: #5C5C6D;
-        }
-
-        * {
-            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        h1, h2, h3, h4, h5, h6, .heading-font, .navbar-brand {
-            font-family: 'Sora', sans-serif;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-        }
-
-        code, .mono {
-            font-family: 'JetBrains Mono', monospace;
+            --text-primary: var(--ink);
+            --text-secondary: var(--ink-2);
+            --text-tertiary: var(--ink-3);
         }
 
         body {
-            background: var(--bg-deep);
-            color: var(--text-primary);
-            min-height: 100vh;
-            /* Subtle noise texture */
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-        }
-
-        .navbar {
-            background: rgba(5, 5, 7, 0.85) !important;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .navbar-brand {
-            font-size: 1.15rem;
-            font-weight: 700;
-        }
-
-        .brand-icon {
-            color: var(--accent-cyan);
-            font-size: 1.3rem;
-        }
-
-        .version-badge {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: var(--accent-cyan-dim);
-            color: var(--accent-cyan);
-            font-weight: 500;
-        }
-
-        .surface-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: 12px;
-        }
-
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(5, 5, 7, 0.95) !important;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-subtle);
-            padding: 0.75rem 1rem;
-        }
-
-        .navbar-brand {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .navbar-brand:hover {
-            color: var(--text-primary);
-        }
-
-        .brand-icon {
-            color: var(--accent-cyan);
-            font-size: 1.3rem;
-        }
-
-        .version-badge {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: var(--accent-cyan-dim);
-            color: var(--accent-cyan);
-            font-weight: 500;
-        }
-
-        .nav {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
             margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 0.94rem;
+            line-height: 1.55;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4, h5, h6, .heading-font {
+            font-family: var(--font-display);
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        code, .mono {
+            font-family: var(--font-data);
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--gold);
+            outline-offset: 2px;
+        }
+
+        /*
+          explore.css names its result-list rows .row, which is also
+          Bootstrap's grid row. These pages only render Bootstrap's, so
+          restore it; the explorer never loads this file.
+        */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            grid-template-columns: none;
+            gap: 0;
+            align-items: initial;
             padding: 0;
         }
 
-        .nav-item {
-            list-style: none;
+        .row:hover { background: none; }
+
+        /* Masthead additions the explorer does not need */
+
+        /* explore.css inherits link colour under body.explore, which these
+           pages do not carry, so Bootstrap's blue would win here. */
+        .wordmark, .masthead-tool { color: var(--ink); }
+        .masthead-tool { color: var(--ink-3); }
+
+        .version-badge {
+            font-family: var(--font-data);
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: var(--r-sm);
+            background: var(--gold-soft);
+            color: var(--gold-ink);
+            font-weight: 500;
+            letter-spacing: 0;
         }
 
-        .nav-link {
-            border: none;
-            border-radius: 7px;
-            color: var(--text-secondary);
-            font-family: 'IBM Plex Sans', sans-serif;
-            font-weight: 500;
-            font-size: 0.8rem;
-            padding: 0.4rem 0.75rem;
-            transition: all 0.2s ease;
-            text-decoration: none;
+        .api-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-family: var(--font-data);
+            font-size: 0.66rem;
+            color: var(--ink-3);
             white-space: nowrap;
         }
 
-        .nav-link:hover {
-            color: var(--text-primary);
-            background: var(--bg-interactive);
+        .api-dot::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 20%, transparent);
         }
 
-        .nav-link.active {
-            color: var(--bg-deep);
-            background: var(--accent-cyan);
-            font-weight: 600;
-        }
+        .masthead-tool { cursor: pointer; background: none; }
 
-        .nav-link.disabled {
-            opacity: 0.4;
-            pointer-events: none;
-            cursor: not-allowed;
-        }
+        /* Cards and panels */
 
-        .tab-content {
-            border-radius: 12px !important;
-            margin-top: 1.25rem;
+        .surface-card {
+            background: var(--card);
+            border: 1px solid var(--rule);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow);
         }
 
         .btn-accent {
-            background: var(--accent-cyan);
-            border: none;
-            color: #000;
-            font-family: 'Sora', sans-serif;
+            background: var(--gold);
+            border: 1px solid var(--gold);
+            color: #fff;
+            font-family: var(--font-body);
             font-weight: 600;
             font-size: 0.85rem;
             padding: 0.6rem 1.25rem;
-            border-radius: 8px;
-            transition: all 0.2s ease;
+            border-radius: var(--r-md);
+            transition: filter 0.15s ease, transform 0.15s ease;
         }
 
         .btn-accent:hover {
-            background: #33EBFF;
-            color: #000;
+            background: var(--gold);
+            color: #fff;
+            filter: brightness(1.08);
             transform: translateY(-1px);
         }
 
         .btn-accent:active {
+            background: var(--gold) !important;
+            color: #fff !important;
             transform: translateY(0);
-            background: #00CCE5;
         }
 
         .btn-accent:disabled {
-            opacity: 0.4;
-            background: var(--text-tertiary);
-            color: var(--text-secondary);
+            background: var(--rule);
+            border-color: var(--rule);
+            color: var(--ink-3);
             transform: none;
         }
 
+        @media (prefers-color-scheme: dark) {
+            /* Dark gold is light, so the label flips dark, as the explorer's
+               pressed week-picker buttons do. */
+            .btn-accent, .btn-accent:hover { color: #14202b; }
+            .btn-accent:active { color: #14202b !important; }
+        }
+
+        /* Bootstrap's stock accents read neon against the limestone ground,
+           so its everyday buttons borrow the explorer's palette. */
+        .btn-outline-info {
+            --bs-btn-color: var(--teal);
+            --bs-btn-border-color: var(--teal);
+            --bs-btn-hover-bg: var(--teal);
+            --bs-btn-hover-border-color: var(--teal);
+            --bs-btn-hover-color: var(--card);
+            --bs-btn-active-bg: var(--teal);
+            --bs-btn-active-border-color: var(--teal);
+            --bs-btn-active-color: var(--card);
+        }
+
+        .btn-outline-warning {
+            --bs-btn-color: var(--gold);
+            --bs-btn-border-color: var(--gold);
+            --bs-btn-hover-bg: var(--gold);
+            --bs-btn-hover-border-color: var(--gold);
+            --bs-btn-hover-color: var(--card);
+            --bs-btn-active-bg: var(--gold);
+            --bs-btn-active-border-color: var(--gold);
+            --bs-btn-active-color: var(--card);
+        }
+
+        .btn-outline-danger {
+            --bs-btn-color: var(--coral);
+            --bs-btn-border-color: var(--coral);
+            --bs-btn-hover-bg: var(--coral);
+            --bs-btn-hover-border-color: var(--coral);
+            --bs-btn-hover-color: var(--card);
+            --bs-btn-active-bg: var(--coral);
+            --bs-btn-active-border-color: var(--coral);
+            --bs-btn-active-color: var(--card);
+        }
+
+        .btn-outline-secondary {
+            --bs-btn-color: var(--ink-2);
+            --bs-btn-border-color: var(--rule);
+            --bs-btn-hover-bg: var(--paper-sunk);
+            --bs-btn-hover-border-color: var(--ink-3);
+            --bs-btn-hover-color: var(--ink);
+            --bs-btn-active-bg: var(--paper-sunk);
+            --bs-btn-active-border-color: var(--ink-3);
+            --bs-btn-active-color: var(--ink);
+        }
+
+        /* Forms */
+
         .form-control, .form-select {
-            background: var(--bg-deep);
-            border: 1px solid var(--border-medium);
-            color: var(--text-primary);
-            border-radius: 8px;
+            background: var(--paper);
+            border: 1px solid var(--rule);
+            color: var(--ink);
+            border-radius: var(--r-md);
             padding: 0.6rem 0.9rem;
             font-size: 0.85rem;
-            transition: all 0.2s ease;
         }
 
-        .form-control::placeholder {
-            color: var(--text-tertiary);
-        }
+        .form-control::placeholder { color: var(--ink-3); }
 
         .form-control:focus, .form-select:focus {
-            background: var(--bg-deep);
-            border-color: var(--accent-cyan);
-            color: var(--text-primary);
-            box-shadow: 0 0 0 3px var(--accent-cyan-dim);
+            background: var(--paper);
+            border-color: var(--gold);
+            color: var(--ink);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 18%, transparent);
         }
 
         .form-label {
-            font-family: 'IBM Plex Sans', sans-serif;
-            font-weight: 500;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+            font-family: var(--font-data);
+            font-weight: 400;
+            font-size: 0.66rem;
+            color: var(--ink-3);
             margin-bottom: 0.4rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.1em;
         }
 
-        .form-text {
-            color: var(--text-tertiary);
-            font-size: 0.72rem;
-        }
+        .form-text { color: var(--ink-3); font-size: 0.72rem; }
 
-        .form-check-label {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
+        .form-check-label { color: var(--ink-2); font-size: 0.8rem; }
 
         .form-check-input {
-            background-color: var(--bg-deep);
-            border-color: var(--border-medium);
+            background-color: var(--paper);
+            border-color: var(--rule);
         }
 
         .form-check-input:checked {
-            background-color: var(--accent-cyan);
-            border-color: var(--accent-cyan);
+            background-color: var(--gold);
+            border-color: var(--gold);
         }
 
         .upload-zone {
-            border: 1px dashed var(--border-medium);
-            border-radius: 10px;
+            border: 1px dashed var(--rule);
+            border-radius: var(--r-lg);
             padding: 2.5rem 1.5rem;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease;
-            background: var(--bg-deep);
+            transition: border-color 0.2s ease, background 0.2s ease;
+            background: var(--paper);
             position: relative;
         }
 
         .upload-zone:hover, .upload-zone.dragover {
-            border-color: var(--accent-cyan);
-            background: var(--accent-cyan-dim);
+            border-color: var(--gold);
+            background: var(--gold-soft);
         }
 
         .upload-zone i {
             font-size: 2rem;
-            color: var(--text-tertiary);
+            color: var(--ink-3);
             margin-bottom: 0.5rem;
-            transition: all 0.2s ease;
+            transition: color 0.2s ease;
         }
 
-        .upload-zone:hover i {
-            color: var(--accent-cyan);
-        }
+        .upload-zone:hover i { color: var(--gold-ink); }
 
         /* Label trigger to activate file input - covers entire upload zone */
         .upload-label-trigger {
@@ -302,129 +322,140 @@
             z-index: 1;
         }
 
+        /* Tables. The pages say table-dark, which now only means "the site's
+           table": Bootstrap's variables are re-pointed at the tokens. */
         .table-responsive {
-            border-radius: 10px;
+            border-radius: var(--r-lg);
             overflow: hidden;
-            border: 1px solid var(--border-subtle);
+            border: 1px solid var(--rule);
+            background: var(--card);
         }
 
         .table-dark {
-            --bs-table-bg: var(--bg-elevated);
-            --bs-table-border-color: var(--border-subtle);
+            --bs-table-bg: var(--card);
+            --bs-table-color: var(--ink);
+            --bs-table-border-color: var(--rule-soft);
+            --bs-table-striped-bg: var(--card);
+            --bs-table-striped-color: var(--ink);
+            --bs-table-hover-bg: var(--paper-sunk);
+            --bs-table-hover-color: var(--ink);
             margin-bottom: 0;
             font-size: 0.8rem;
         }
 
         .table thead th {
-            background: var(--bg-deep);
-            font-family: 'IBM Plex Sans', sans-serif;
-            font-size: 0.68rem;
+            background: var(--card);
+            font-family: var(--font-data);
+            font-size: 0.63rem;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-secondary);
-            font-weight: 600;
-            border-bottom: 1px solid var(--border-subtle);
+            letter-spacing: 0.1em;
+            color: var(--ink-3);
+            font-weight: 400;
+            border-bottom: 1px solid var(--rule);
             padding: 0.7rem 0.6rem;
         }
 
         .table tbody td {
             padding: 0.6rem;
             vertical-align: middle;
-            border-bottom: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
+            border-bottom: 1px solid var(--rule-soft);
+            color: var(--ink-2);
         }
 
-        .table tbody tr:hover td {
-            background: var(--bg-interactive);
-        }
+        .table tbody tr:hover td { background: var(--paper-sunk); }
 
         .badge.pill-type {
-            background: var(--accent-cyan-dim) !important;
-            color: var(--accent-cyan) !important;
+            background: var(--gold-soft) !important;
+            color: var(--gold-ink) !important;
+            font-family: var(--font-data);
             font-weight: 500;
             font-size: 0.65rem;
         }
+
+        /* Alerts */
+
         .result-alert {
-            border-radius: 8px;
+            border-radius: var(--r-md);
             border: 1px solid;
             font-size: 0.8rem;
             padding: 0.75rem 1rem;
         }
 
         .alert-danger {
-            background: rgba(255, 61, 113, 0.1);
-            border-color: rgba(255, 61, 113, 0.3);
-            color: #FF80A8;
+            background: var(--coral-soft);
+            border-color: var(--coral);
+            color: var(--ink);
         }
 
         .alert-success {
-            background: rgba(0, 214, 143, 0.1);
-            border-color: rgba(0, 214, 143, 0.3);
-            color: #80FFCA;
+            background: color-mix(in srgb, var(--green) 14%, var(--card));
+            border-color: var(--green);
+            color: var(--ink);
         }
 
         .alert-warning {
-            background: var(--accent-amber-dim);
-            border-color: rgba(255, 184, 0, 0.3);
-            color: #FFD780;
+            background: var(--gold-soft);
+            border-color: var(--gold);
+            color: var(--ink);
+        }
+
+        .alert-info {
+            background: var(--teal-soft);
+            border-color: var(--teal);
+            color: var(--ink);
         }
 
         .loading-overlay {
             display: none;
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5, 5, 7, 0.85);
-            border-radius: 12px;
+            background: color-mix(in srgb, var(--paper) 85%, transparent);
+            border-radius: var(--r-lg);
             z-index: 10;
             align-items: center;
             justify-content: center;
         }
 
-        .loading-overlay.active {
-            display: flex;
-        }
+        .loading-overlay.active { display: flex; }
 
         .spinner-border {
-            color: var(--accent-cyan);
+            color: var(--gold);
             width: 2.5rem;
             height: 2.5rem;
             border-width: 3px;
         }
 
-        .stat-card {
-            background: var(--bg-deep);
-            border: 1px solid var(--border-subtle);
-            border-radius: 10px;
-            padding: 1rem;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
+        /* Stat cards, the tool pages' version of the explorer's figures */
 
-        .stat-card:hover {
-            border-color: var(--border-medium);
-            transform: translateY(-2px);
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--rule);
+            border-radius: var(--r-md);
+            padding: 0.85rem 1rem;
+            text-align: center;
         }
 
         .stat-value {
-            font-family: 'Sora', sans-serif;
-            font-size: 1.75rem;
+            font-family: var(--font-display);
+            font-size: 1.45rem;
             font-weight: 700;
+            letter-spacing: -0.03em;
             line-height: 1.2;
-            color: var(--text-primary);
+            color: var(--ink);
         }
 
-        .stat-value.cyan { color: var(--accent-cyan); }
-        .stat-value.amber { color: var(--accent-amber); }
-        .stat-value.green { color: var(--accent-green); }
-        .stat-value.red { color: var(--accent-red); }
+        .stat-value.cyan { color: var(--teal); }
+        .stat-value.amber { color: var(--gold); }
+        .stat-value.green { color: var(--green); }
+        .stat-value.red { color: var(--coral); }
 
         .stat-label {
-            font-size: 0.65rem;
+            font-family: var(--font-data);
+            font-size: 0.62rem;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-tertiary);
+            letter-spacing: 0.1em;
+            color: var(--ink-3);
             margin-top: 0.25rem;
-            font-weight: 600;
         }
 
         .fade-up {
@@ -436,58 +467,51 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        .text-accent { color: var(--accent-cyan); }
-        .text-secondary { color: var(--text-secondary) !important; }
-        .text-tertiary { color: var(--text-tertiary) !important; }
+        .text-accent { color: var(--gold-ink); }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-deep); }
-        ::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
-
-        footer {
-            border-top: 1px solid var(--border-subtle);
-            color: var(--text-tertiary);
-            font-size: 0.72rem;
+        @media (prefers-color-scheme: dark) {
+            .text-accent { color: var(--gold); }
         }
+
+        .text-secondary { color: var(--ink-2) !important; }
+        .text-tertiary { color: var(--ink-3) !important; }
+        .text-muted { color: var(--ink-3) !important; }
 
         .section-title {
             font-size: 0.9rem;
             font-weight: 600;
-            color: var(--text-primary);
+            color: var(--ink);
             margin-bottom: 0.25rem;
         }
 
         .section-desc {
             font-size: 0.75rem;
-            color: var(--text-tertiary);
+            color: var(--ink-3);
             margin-bottom: 1rem;
         }
 
         .page-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin: 1.5rem 0 2rem;
         }
 
         .page-title {
-            font-size: 1.75rem;
+            font-size: clamp(1.5rem, 3.6vw, 2rem);
             font-weight: 700;
             margin-bottom: 0.5rem;
-            letter-spacing: -0.03em;
         }
 
         .page-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-tertiary);
-            max-width: 500px;
+            font-size: 0.86rem;
+            color: var(--ink-2);
+            max-width: 520px;
             margin: 0 auto;
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
-        .tabs-wrapper {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+        .tabs-wrapper { max-width: 900px; margin: 0 auto; }
+
+        /* Tool cards on the landing page */
 
         .tools-grid {
             display: grid;
@@ -500,36 +524,34 @@
 
         .tool-card {
             display: block;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--rule);
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow);
             padding: 1.5rem;
             text-decoration: none;
-            color: var(--text-primary);
-            transition: all 0.2s ease;
+            color: var(--ink);
+            transition: border-color 0.2s ease, transform 0.2s ease;
         }
 
         .tool-card:hover {
-            border-color: var(--border-medium);
+            border-color: var(--ink-3);
+            color: var(--ink);
             transform: translateY(-2px);
-            background: var(--bg-elevated);
         }
 
-        .tool-card .tool-icon {
-            font-size: 1.75rem;
-            margin-bottom: 0.75rem;
-        }
+        .tool-card .tool-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
 
         .tool-card .tool-title {
-            font-family: 'Sora', sans-serif;
+            font-family: var(--font-display);
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 0.35rem;
         }
 
         .tool-card .tool-desc {
             font-size: 0.8rem;
-            color: var(--text-tertiary);
+            color: var(--ink-3);
             margin-bottom: 0;
         }
     </style>
@@ -540,6 +562,32 @@
 
 {{ nav(active=active, version=version) }}
 
+    {#
+      The explorer's update notice, site-wide. It shares the explorer's
+      markup, styles and dismissal key, so dismissing it on any page hides
+      it everywhere until the next republish.
+    #}
+    {% if changes_banner is defined and changes_banner %}
+    <aside class="update-bar" id="updateBar"
+           data-publication="{{ changes_banner.publication_id }}">
+      <div class="update-inner">
+        <p class="update-text">
+          <b>The timetable was updated on
+            <time data-ts="{{ changes_banner.published_at }}" data-format="date">{{ changes_banner.published_at }}</time>.</b>
+          {% set parts = [] %}
+          {% if changes_banner.moved %}{% set _ = parts.append(changes_banner.moved ~ ' class' ~ ('es' if changes_banner.moved != 1 else '') ~ ' moved') %}{% endif %}
+          {% if changes_banner.confirmed %}{% set _ = parts.append(changes_banner.confirmed ~ ' venue' ~ ('s' if changes_banner.confirmed != 1 else '') ~ ' confirmed') %}{% endif %}
+          {% if changes_banner.courses_added %}{% set _ = parts.append(changes_banner.courses_added ~ ' course' ~ ('s' if changes_banner.courses_added != 1 else '') ~ ' added') %}{% endif %}
+          {% if changes_banner.courses_dropped %}{% set _ = parts.append(changes_banner.courses_dropped ~ ' no longer published') %}{% endif %}
+          <span class="update-counts">{{ parts | join(' · ') }}</span>
+        </p>
+        <a class="update-cta" href="/explore/changes">See what changed</a>
+        <button type="button" class="update-dismiss" id="updateDismiss"
+                aria-label="Dismiss this update notice">Dismiss</button>
+      </div>
+    </aside>
+    {% endif %}
+
     <!-- Main Content -->
     <main class="container py-4">
         {% block content %}{% endblock %}
@@ -547,21 +595,22 @@
 
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
-        <div id="muteToast" class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true" style="background: var(--bg-elevated); border: 1px solid var(--accent-amber);">
+        <div id="muteToast" class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true" style="background: var(--card); border: 1px solid var(--gold);">
             <div class="d-flex">
-                <div class="toast-body d-flex align-items-center gap-2" style="color: var(--accent-amber);">
+                <div class="toast-body d-flex align-items-center gap-2" style="color: var(--gold-ink);">
                     <i class="bi bi-exclamation-triangle"></i>
                     <span>Please raise your volume to hear the meme!</span>
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="py-4 mt-5">
-        <div class="container text-center">
-            CELCAT Timetable Extraction &middot; Structured Data API
+    <footer class="foot">
+        <div class="shell">
+            <p>CELCAT Timetable Extraction · Structured Data API</p>
+            <p><a href="/explore">Browse the published timetable</a> · <a href="/calendar">Build your own timetable</a></p>
         </div>
     </footer>
 
@@ -574,6 +623,7 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/update-banner.js?v={{ asset_version }}" defer></script>
     {% block scripts %}{% endblock %}
 
 <script>

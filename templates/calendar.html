@@ -220,10 +220,10 @@
     border-radius: 4px;
 }
 
-.detail-type-badge.lecture { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); }
-.detail-type-badge.lab { background: rgba(255, 184, 0, 0.15); color: var(--accent-amber); }
-.detail-type-badge.tutorial { background: rgba(0, 214, 143, 0.15); color: var(--accent-green); }
-.detail-type-badge.other { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+.detail-type-badge.lecture { background: color-mix(in srgb, var(--accent-cyan) 15%, transparent); color: var(--accent-cyan); }
+.detail-type-badge.lab { background: color-mix(in srgb, var(--accent-amber) 15%, transparent); color: var(--accent-amber); }
+.detail-type-badge.tutorial { background: color-mix(in srgb, var(--accent-green) 15%, transparent); color: var(--accent-green); }
+.detail-type-badge.other { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--text-secondary); }
 
 /* Detail field groups */
 .detail-section {
@@ -336,7 +336,7 @@
     padding: 10px 12px;
     font-size: 0.65rem;
     color: var(--text-secondary);
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: var(--font-data);
     line-height: 1.5;
     overflow-x: auto;
     margin: 0;
@@ -348,8 +348,8 @@
 
 /* Conflicts section */
 .conflicts-panel {
-    background: rgba(255, 61, 113, 0.1);
-    border: 1px solid rgba(255, 61, 113, 0.3);
+    background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
     border-radius: 8px;
     margin-bottom: 12px;
 }
@@ -390,7 +390,7 @@
 
 .conflict-item {
     padding: 8px 10px;
-    background: rgba(255, 61, 113, 0.12);
+    background: color-mix(in srgb, var(--accent-red) 12%, transparent);
     border-radius: 5px;
     margin-bottom: 5px;
     font-size: 0.72rem;
@@ -492,7 +492,7 @@
 }
 
 .time-slot:nth-child(even) {
-    border-bottom: 1px dashed rgba(255,255,255,0.05);
+    border-bottom: 1px dashed color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .time-label {
@@ -527,7 +527,6 @@
 }
 
 .calendar-event:hover {
-    filter: brightness(1.15);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
     z-index: 5;
 }
@@ -551,36 +550,36 @@
 }
 
 .time-slot.drop-target {
-    background: rgba(0, 229, 255, 0.15);
+    background: color-mix(in srgb, var(--accent-cyan) 15%, transparent);
     border-top: 2px solid var(--accent-cyan);
 }
 
 /* The color-mix line wins where supported; the hex is the same mix baked in
    for anything older, so the block is never transparent either way. */
 .calendar-event.lecture {
-    background: #123b46;
-    background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-elevated));
-    border-color: rgba(0, 229, 255, 0.35);
+    background: var(--bg-surface);
+    background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
     border-left-color: var(--accent-cyan);
 }
 
 .calendar-event.lab {
-    background: #403319;
-    background: color-mix(in srgb, var(--accent-amber) 16%, var(--bg-elevated));
-    border-color: rgba(255, 184, 0, 0.35);
+    background: var(--bg-surface);
+    background: color-mix(in srgb, var(--accent-amber) 16%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--accent-amber) 35%, transparent);
     border-left-color: var(--accent-amber);
 }
 
 .calendar-event.tutorial {
-    background: #123832;
-    background: color-mix(in srgb, var(--accent-green) 16%, var(--bg-elevated));
-    border-color: rgba(0, 214, 143, 0.35);
+    background: var(--bg-surface);
+    background: color-mix(in srgb, var(--accent-green) 16%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--accent-green) 35%, transparent);
     border-left-color: var(--accent-green);
 }
 
 .calendar-event.other {
-    background: #23232d;
-    background: color-mix(in srgb, #ffffff 6%, var(--bg-elevated));
+    background: var(--bg-surface);
+    background: color-mix(in srgb, var(--ink) 6%, var(--bg-surface));
     border-color: var(--border-medium);
     border-left-color: var(--text-tertiary);
 }
@@ -621,9 +620,9 @@
 /* A block that genuinely collides with another. The ring says "clash"; the
    badge is the way in when the block itself is half-hidden or finger-sized. */
 .calendar-event.clash {
-    border-color: rgba(255, 61, 113, 0.6);
+    border-color: color-mix(in srgb, var(--accent-red) 60%, transparent);
     border-left-color: var(--accent-red);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 61, 113, 0.35);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--accent-red) 35%, transparent);
     /* Room for the badge, so it does not sit on the course code. */
     padding-right: 20px;
 }
@@ -660,7 +659,7 @@
 .calendar-event.clipped {
     background-image: repeating-linear-gradient(
         135deg, transparent, transparent 5px,
-        rgba(255, 255, 255, 0.07) 5px, rgba(255, 255, 255, 0.07) 10px);
+        color-mix(in srgb, var(--ink) 8%, transparent) 5px, color-mix(in srgb, var(--ink) 8%, transparent) 10px);
 }
 
 .calendar-event .event-clipped {
@@ -681,21 +680,21 @@
     position: absolute;
     left: 8px;
     right: 8px;
-    border: 2px dashed rgba(13, 202, 240, 0.3);
+    border: 2px dashed color-mix(in srgb, var(--accent-cyan) 30%, transparent);
     border-radius: 6px;
-    background: rgba(13, 202, 240, 0.05);
+    background: color-mix(in srgb, var(--accent-cyan) 5%, transparent);
     z-index: 1;
     pointer-events: none;
     transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .drop-zone.active {
-    border-color: rgba(13, 202, 240, 0.8);
-    background: rgba(13, 202, 240, 0.12);
+    border-color: color-mix(in srgb, var(--accent-cyan) 80%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
     border-style: solid;
 }
 .drop-zone.same-slot {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.04);
+    border-color: color-mix(in srgb, var(--ink) 22%, transparent);
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 /* The resolve dialog: both sides of a clash at once, options and all.
@@ -703,7 +702,8 @@
    wants is the one they cannot hit. Here each side gets its own column, with
    every sitting it could move to and what that would run into. */
 
-.resolve-overlay {
+.resolve-overlay,
+.detail-overlay {
     position: fixed;
     inset: 0;
     background: rgba(5, 5, 7, 0.72);
@@ -742,7 +742,41 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .resolve-overlay, .resolve-dialog { animation: none; }
+    .resolve-overlay, .resolve-dialog,
+    .detail-overlay, .detail-dialog { animation: none; }
+}
+
+/* The detail dialog: the same body the panel shows, opened by a tap on a
+   grid block. The panel sits above the calendar, so a student who taps a
+   late-afternoon class is a whole viewport away from it; the dialog opens
+   where they are. Everything inside reuses the panel's own classes. */
+.detail-dialog {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 480px;
+    max-height: min(85vh, 640px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    position: relative;
+    animation: resolve-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-dialog > .resolve-close {
+    /* Above the sticky section header inside the scrolling body. */
+    z-index: 3;
+}
+
+.detail-dialog .detail-content {
+    flex: 1;
+    min-height: 0;
+}
+
+.detail-dialog .detail-header {
+    padding-right: 44px;
 }
 
 .resolve-head {
@@ -888,7 +922,7 @@ button.resolve-option:focus-visible {
 }
 
 .resolve-option.is-recommended {
-    border-color: rgba(0, 229, 255, 0.5);
+    border-color: color-mix(in srgb, var(--accent-cyan) 50%, transparent);
 }
 
 .resolve-option.is-current {
@@ -932,14 +966,17 @@ button.resolve-option:focus-visible {
 /* On a phone the dialog docks to the bottom like a sheet, which keeps the
    options under the thumb and the close reachable. */
 @media (max-width: 560px) {
-    .resolve-overlay {
+    .resolve-overlay,
+    .detail-overlay {
         padding: 0;
         align-items: flex-end;
     }
-    .resolve-dialog {
+    .resolve-dialog,
+    .detail-dialog {
         border-radius: 14px 14px 0 0;
         border-bottom: none;
         max-height: 88vh;
+        max-width: none;
     }
     .resolve-side { padding: 10px 8px; }
     .resolve-side-code { font-size: 0.78rem; }
@@ -1170,7 +1207,7 @@ button.resolve-option:focus-visible {
     border-radius: 6px;
     padding: 8px 10px;
     font-size: 0.8rem;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: var(--font-data);
     resize: vertical;
     min-height: 76px;
 }
@@ -1195,19 +1232,19 @@ button.resolve-option:focus-visible {
     font-size: 0.7rem;
     background: var(--accent-cyan-dim);
     color: var(--accent-cyan);
-    border: 1px solid rgba(0, 229, 255, 0.35);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
 }
 
 .paste-preview .chip.dim {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
     color: var(--text-tertiary);
     border-color: var(--border-subtle);
 }
 
 .paste-preview .chip.bad {
-    background: rgba(255, 61, 113, 0.12);
+    background: color-mix(in srgb, var(--accent-red) 12%, transparent);
     color: var(--accent-red);
-    border-color: rgba(255, 61, 113, 0.35);
+    border-color: color-mix(in srgb, var(--accent-red) 35%, transparent);
 }
 
 .paste-preview h4 {
@@ -1275,7 +1312,7 @@ button.resolve-option:focus-visible {
     border-radius: 1px;
 }
 
-.wk-meter i.on { background: var(--accent-cyan); }
+.wk-meter i.on { background: var(--accent-amber); }
 
 .picker-empty {
     padding: 22px 14px;
@@ -1668,6 +1705,7 @@ button.resolve-option:focus-visible {
 <script src="/assets/js/option-groups.js?v={{ asset_version }}"></script>
 <script src="/assets/js/placement.js?v={{ asset_version }}"></script>
 <script src="/assets/js/conflict-resolve.js?v={{ asset_version }}"></script>
+<script src="/assets/js/detail-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/timetable-state.js?v={{ asset_version }}"></script>
 <script>
 (function() {
@@ -1819,275 +1857,58 @@ button.resolve-option:focus-visible {
         return known.includes(lower) ? lower : 'other';
     }
 
-    // Detail Panel Rendering
-    window.showEventDetail = function(groupId, sessionId) {
-        if (!state) return;
+    // Detail rendering
+    //
+    // The body itself comes from detail-view.js so the two places it shows,
+    // the panel beside the list and the dialog a grid tap opens, can never
+    // drift apart. This side assembles the model and owns the surfaces.
 
-        selectedEventKey = eventKeyOf(groupId, sessionId);
+    /** Everything renderEventDetail needs to say about one placed class. */
+    function buildDetailModel(groupId, sessionId, idSuffix) {
+        const details = state.getPlacedEventDetails(groupId, sessionId);
+        if (!details) return null;
+        const clashing = state.getConflicts().some(c =>
+            (c.a.groupId === groupId && c.a.sessionId === details.sessionId) ||
+            (c.b.groupId === groupId && c.b.sessionId === details.sessionId));
+        return {
+            details,
+            sessions: state.getOptions(groupId),
+            attendedSessionIds: state.placements
+                .filter(p => p.groupId === groupId)
+                .map(p => p.selectedSessionId),
+            clashing,
+            idSuffix,
+        };
+    }
 
+    function highlightListItem(groupId, sessionId) {
         document.querySelectorAll('.event-list-item.selected').forEach(el => {
             el.classList.remove('selected');
             el.setAttribute('aria-selected', 'false');
         });
-        const selectedItem = document.querySelector(
+        const item = document.querySelector(
             `.event-list-item[data-group-id="${CSS.escape(groupId)}"][data-session-id="${CSS.escape(String(sessionId))}"]`);
-        if (selectedItem) {
-            selectedItem.classList.add('selected');
-            selectedItem.setAttribute('aria-selected', 'true');
-            selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (item) {
+            item.classList.add('selected');
+            item.setAttribute('aria-selected', 'true');
+            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
+    }
 
-        const details = state.getPlacedEventDetails(groupId, sessionId);
-        if (!details) return;
+    window.showEventDetail = function(groupId, sessionId) {
+        if (!state) return;
+        const model = buildDetailModel(groupId, sessionId, 'Panel');
+        if (!model) return;
+
+        selectedEventKey = eventKeyOf(groupId, sessionId);
+        highlightListItem(groupId, sessionId);
 
         $detailPlaceholder.style.display = 'none';
         $detailContent.style.display = 'block';
-
-        const typeClass = typeClassOf(details.type);
-        const typeIcon = getTypeIcon(details.type);
-
-        let html = '';
-
-        html += `<div class="detail-header">
-            <h3 class="detail-course-title">${escapeHtml(details.courseTitle)}</h3>
-            <span class="detail-type-badge ${typeClass}">
-                <i class="bi ${typeIcon}"></i>
-                ${escapeHtml(details.type || 'Class')}${details.streamLabel ? ' ' + escapeHtml(details.streamLabel) : ''}
-            </span>
-        </div>`;
-
-        html += `<div class="detail-section">
-            <h4 class="detail-section-title"><i class="bi bi-clock"></i> Schedule</h4>
-            ${detailField('Day', details.day)}
-            ${detailField('Start Time', formatTime12(details.startTime))}
-            ${detailField('End Time', formatTime12(details.endTime))}
-            ${detailField('Weeks', describeWeeks(details))}
-        </div>`;
-
-        html += `<div class="detail-section">
-            <h4 class="detail-section-title"><i class="bi bi-geo-alt"></i> Location</h4>
-            ${detailField('Room', details.room)}
-        </div>`;
-
-        html += `<div class="detail-section">
-            <h4 class="detail-section-title"><i class="bi bi-person"></i> People</h4>
-            ${detailField('Staff', (details.staff || []).join(', '))}
-        </div>`;
-
-        html += `<div class="detail-section">
-            <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
-            ${detailField('Course', details.courseKey)}
-            ${detailField('Chosen by', details.pinned ? 'You' : 'Auto-placement')}
-            ${detailField('Source', details.origin === 'upload'
-                ? 'Your upload: ' + (details.sourceFile || 'PDF')
-                : 'Published timetable')}
-            ${groupOverrideHtml(details)}
-        </div>`;
-
-        html += sittingsSectionHtml(details);
-
-        // Two sizes of removal, smallest first. Taking one class off is the
-        // everyday act; taking the whole course is the destructive one and
-        // keeps the red.
-        html += `<div class="detail-section" style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-outline-secondary btn-sm detail-remove-class"
-                data-group-id="${escapeHtml(details.groupId)}"
-                data-session-id="${escapeHtml(String(details.sessionId))}">
-                <i class="bi bi-x-lg me-1"></i> Remove this class
-            </button>
-            <button type="button" class="btn btn-outline-danger btn-sm"
-                onclick="removeCourseFromCalendar('${escapeHtml(details.courseKey)}')">
-                <i class="bi bi-trash me-1"></i> Remove ${escapeHtml(details.courseKey)}
-            </button>
-        </div>`;
-
-        const rawData = buildRawData(details);
-        html += `<button class="detail-raw-toggle"
-            onclick="toggleRawData(this)"
-            aria-expanded="false"
-            aria-controls="rawDataContent">
-            <span><i class="bi bi-chevron-right me-1"></i> Raw Extracted Data</span>
-        </button>
-        <div id="rawDataContent" class="detail-raw-content" role="region">
-            <div class="detail-raw-inner">
-                <pre>${escapeHtml(rawData)}</pre>
-            </div>
-        </div>`;
-
-        $detailContent.innerHTML = html;
-        $detailContent.setAttribute('aria-label', `Details for ${details.courseTitle} ${details.type}`);
+        $detailContent.innerHTML = renderEventDetail(model);
+        $detailContent.setAttribute('aria-label',
+            `Details for ${model.details.courseTitle} ${model.details.type}`);
     };
-
-    /**
-     * How the grouping rules read this course's classes, and how to disagree.
-     *
-     * No rule gets all 457 ambiguous course-and-type groups in the warehouse
-     * right, so the correction is part of the design rather than an escape
-     * hatch. Section 4 of the spec calls for it explicitly.
-     */
-    const GROUP_REASON = {
-        sittings: 'This runs more than once a week and you attend one sitting. ' +
-                  'Drag it to pick a different one.',
-        single: 'Only one sitting of this is published.',
-        overlap: 'These run at the same time, so you can only be at one.',
-        split: 'You said this course runs more than one of these a week.',
-    };
-
-    function groupOverrideHtml(details) {
-        if (!state) return '';
-        const isMenu = details.optionCount > 1;
-
-        // Splitting is the rare correction: a course that really does run two
-        // different lectures a week rather than the same one twice.
-        const split = details.groupReason === 'split' || details.groupReason === 'overlap';
-        const control = split
-            ? `<button type="button" class="btn btn-outline-secondary btn-sm group-reset"
-                    data-course-key="${escapeHtml(details.courseKey)}"
-                    data-type="${escapeHtml(details.type || '')}">
-                    Go back to picking one
-               </button>`
-            : (isMenu
-                ? `<button type="button" class="btn btn-outline-secondary btn-sm group-split"
-                        data-course-key="${escapeHtml(details.courseKey)}"
-                        data-type="${escapeHtml(details.type || '')}">
-                        I attend more than one of these a week
-                   </button>`
-                : '');
-        if (!control) return '';
-        const undo = '';
-
-        return `<div class="group-override">
-            <span class="why">${escapeHtml(GROUP_REASON[details.groupReason] || '')}</span>
-            ${control}${undo}
-        </div>`;
-    }
-
-    /**
-     * Every sitting of the open class, each with what can be done to it.
-     *
-     * One of each type is what auto-placement builds, but it is a guide, not
-     * a rule the student is held to: their real week may include two sittings
-     * of the same lab, or none. Adding and removing individual sittings is
-     * how the timetable stops arguing with them about it.
-     */
-    function sittingsSectionHtml(details) {
-        const options = state ? state.getOptions(details.groupId) : [];
-        if (!options.length) return '';
-
-        const attended = new Set(state.placements
-            .filter(p => p.groupId === details.groupId)
-            .map(p => p.selectedSessionId));
-
-        const rows = sessionsInTimetableOrder(options).map(session => {
-            const when = `${session.day.slice(0, 3)} ${session.startTime}-${session.endTime}`;
-            const where = [session.streamLabel, session.room].filter(Boolean).join(' · ');
-            const isViewing = session.sessionId === details.sessionId;
-            const isAttended = attended.has(session.sessionId);
-
-            let tail;
-            if (isViewing) {
-                tail = '<span class="sitting-state">This one</span>';
-            } else if (isAttended) {
-                tail = `<button type="button" class="btn btn-outline-secondary btn-sm sitting-remove"
-                    data-group-id="${escapeHtml(details.groupId)}"
-                    data-session-id="${escapeHtml(String(session.sessionId))}">Remove</button>`;
-            } else {
-                tail = `<button type="button" class="btn btn-outline-secondary btn-sm sitting-add"
-                    data-group-id="${escapeHtml(details.groupId)}"
-                    data-session-id="${escapeHtml(String(session.sessionId))}">Also attend</button>`;
-            }
-
-            return `<div class="sitting-row${isViewing ? ' viewing' : ''}">
-                <span class="sitting-when">${escapeHtml(when)}</span>
-                <span class="sitting-where">${escapeHtml(where)}</span>
-                ${tail}
-            </div>`;
-        });
-
-        const hint = options.length > 1
-            ? 'Drag the block on the grid to swap this sitting for another.'
-            : 'Only one sitting of this is published.';
-
-        return `<div class="detail-section">
-            <h4 class="detail-section-title"><i class="bi bi-collection"></i>
-                Sittings (${options.length})</h4>
-            <div class="sittings-list">${rows.join('')}</div>
-            <div class="detail-field" style="padding-top: 8px;">
-                <span class="detail-field-value empty">${escapeHtml(hint)}</span>
-            </div>
-        </div>`;
-    }
-
-    /**
-     * Uploaded PDFs carry the printed week text and nothing else, so there is
-     * no expanded array to count. Saying "Not published" for those would be a
-     * lie: the weeks are right there, just not as data.
-     */
-    function describeWeeks(details) {
-        if (details.weeksRaw) {
-            const count = details.weeks ? ` (${details.weeks.length} weeks)` : '';
-            return details.weeksRaw + count;
-        }
-        if (details.weeks && details.weeks.length) {
-            return 'W' + details.weeks.join(', W');
-        }
-        return '';
-    }
-
-    function formatTime12(time24) {
-        if (!time24) return '';
-        return timeLabel(timeToMins(time24));
-    }
-
-    /** Empty fields say "Not published", never nothing at all (E9). */
-    function detailField(label, value) {
-        const isEmpty = value === null || value === undefined || value === '';
-        const shown = isEmpty ? 'Not published' : value;
-        return `<div class="detail-field">
-            <span class="detail-field-label">${escapeHtml(label)}</span>
-            <span class="detail-field-value${isEmpty ? ' empty' : ''}">${escapeHtml(String(shown))}</span>
-        </div>`;
-    }
-
-    function getTypeIcon(type) {
-        const icons = {
-            'Lecture': 'bi-easel',
-            'Lab': 'bi-cpu',
-            'Tutorial': 'bi-chat-dots',
-            'Seminar': 'bi-people',
-            'Workshop': 'bi-tools',
-        };
-        return icons[type] || 'bi-calendar-event';
-    }
-
-    function buildRawData(details) {
-        const fields = [
-            ['courseKey', details.courseKey],
-            ['courseTitle', details.courseTitle],
-            ['origin', details.origin],
-            ['type', details.type],
-            ['groupId', details.groupId],
-            ['groupReason', details.groupReason],
-            ['optionCount', details.optionCount],
-            ['pinned', details.pinned],
-            ['sessionId', details.sessionId],
-            ['streamId', details.streamId],
-            ['day', details.day],
-            ['startTime', details.startTime],
-            ['endTime', details.endTime],
-            ['room', details.room],
-            ['staff', (details.staff || []).join(', ')],
-            ['streamLabel', details.streamLabel],
-            ['weeks', details.weeks ? details.weeks.join(', ') : null],
-            ['weeksRaw', details.weeksRaw],
-            ['sourceCount', details.sourceCount],
-            ['sourceFile', details.sourceFile],
-        ];
-        return fields
-            .filter(([, v]) => v !== null && v !== undefined && v !== '')
-            .map(([k, v]) => `${k}: ${v}`)
-            .join('\n');
-    }
 
     function closeDetailPanel() {
         selectedEventKey = null;
@@ -2095,8 +1916,25 @@ button.resolve-option:focus-visible {
         $detailContent.style.display = 'none';
     }
 
-    $detailContent.addEventListener('click', event => {
+    /**
+     * What every detail button does, wherever the body is mounted.
+     *
+     * The panel and the dialog hold the same markup, so they share this
+     * handler. The ctx says how to redraw the body after a change and how to
+     * close the surface when the class it was showing is gone.
+     */
+    function handleDetailAction(event, ctx) {
         if (!state) return;
+
+        const rawToggle = event.target.closest('.detail-raw-toggle');
+        if (rawToggle) {
+            const region = document.getElementById(
+                rawToggle.getAttribute('aria-controls'));
+            const expanded = rawToggle.getAttribute('aria-expanded') === 'true';
+            rawToggle.setAttribute('aria-expanded', String(!expanded));
+            if (region) region.classList.toggle('open');
+            return;
+        }
 
         const regroup = event.target.closest('.group-split, .group-merge, .group-reset');
         if (regroup) {
@@ -2105,23 +1943,18 @@ button.resolve-option:focus-visible {
             state.setOptionGroupOverride(courseKey, type, mode);
             toast(`Regrouped ${courseKey} ${String(type).toLowerCase()}.`,
                   'Saved with your timetable. Ctrl+Z to undo.');
-            // The old group ids are gone, so the panel has nothing left to show.
-            closeDetailPanel();
+            // The old group ids are gone, so there is nothing left to show.
+            ctx.close();
             return;
         }
 
         const add = event.target.closest('.sitting-add');
         if (add) {
-            const groupId = add.dataset.groupId;
-            const sessionId = parseSessionId(add.dataset.sessionId);
-            if (state.addSitting(groupId, sessionId)) {
+            if (state.addSitting(add.dataset.groupId,
+                    parseSessionId(add.dataset.sessionId))) {
                 toast('Added that sitting too.', 'Ctrl+Z takes it back off.');
-                // Re-open on the same class so the row flips to "Remove".
-                const key = selectedEventKey;
-                if (key) {
-                    const at = key.lastIndexOf(' ');
-                    showEventDetail(key.slice(0, at), parseSessionId(key.slice(at + 1)));
-                }
+                // Redrawn so the row flips to "Remove".
+                ctx.rerender();
             }
             return;
         }
@@ -2132,11 +1965,7 @@ button.resolve-option:focus-visible {
                 dropSitting.dataset.groupId,
                 parseSessionId(dropSitting.dataset.sessionId));
             toast('Removed that sitting.', 'Ctrl+Z puts it back.');
-            const key = selectedEventKey;
-            if (key) {
-                const at = key.lastIndexOf(' ');
-                showEventDetail(key.slice(0, at), parseSessionId(key.slice(at + 1)));
-            }
+            ctx.rerender();
             return;
         }
 
@@ -2150,17 +1979,112 @@ button.resolve-option:focus-visible {
                 toast('Class removed.', gone
                     ? 'It will not come back on its own. Ctrl+Z puts it back now.'
                     : 'Ctrl+Z puts it back.');
-                closeDetailPanel();
+                ctx.close();
             }
+            return;
         }
+
+        const dropCourse = event.target.closest('.detail-remove-course');
+        if (dropCourse) {
+            ctx.close();
+            removeCourse(dropCourse.dataset.courseKey);
+            return;
+        }
+
+        const resolve = event.target.closest('.detail-resolve-clash');
+        if (resolve) {
+            const groupId = resolve.dataset.groupId;
+            const sessionId = parseSessionId(resolve.dataset.sessionId);
+            const conflict = state.getClassifiedConflicts().find(c =>
+                (c.a.groupId === groupId && c.a.sessionId === sessionId) ||
+                (c.b.groupId === groupId && c.b.sessionId === sessionId));
+            ctx.close();
+            if (conflict) openResolveDialog(conflict);
+        }
+    }
+
+    $detailContent.addEventListener('click', event => {
+        handleDetailAction(event, {
+            rerender: () => {
+                if (!selectedEventKey) return;
+                const at = selectedEventKey.lastIndexOf(' ');
+                showEventDetail(
+                    selectedEventKey.slice(0, at),
+                    parseSessionId(selectedEventKey.slice(at + 1)));
+            },
+            close: closeDetailPanel,
+        });
     });
 
-    window.toggleRawData = function(btn) {
-        const content = document.getElementById('rawDataContent');
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExpanded));
-        content.classList.toggle('open');
-    };
+    // The detail dialog
+
+    //: Where focus returns when the detail dialog closes.
+    let detailReturnFocus = null;
+
+    /**
+     * The same details, as a dialog over the grid.
+     *
+     * The panel sits above the calendar, so a student who taps a Thursday
+     * lab is a viewport away from the answer. The dialog opens where they
+     * are, and on a phone it is the difference between details being
+     * reachable and not.
+     */
+    function openDetailDialog(groupId, sessionId) {
+        if (!state) return;
+        closeDetailDialog();
+        const model = buildDetailModel(groupId, sessionId, 'Dialog');
+        if (!model) return;
+
+        // The list keeps step, so closing the dialog leaves the panel and
+        // list agreeing about which class was just looked at.
+        selectedEventKey = eventKeyOf(groupId, sessionId);
+        highlightListItem(groupId, sessionId);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'detail-overlay';
+        overlay.innerHTML =
+            `<div class="detail-dialog" role="dialog" aria-modal="true"
+                 aria-label="Details for ${escapeHtml(model.details.courseTitle)} ${escapeHtml(model.details.type || '')}">
+                <button type="button" class="resolve-close" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <div class="detail-content" style="display: block;">${renderEventDetail(model)}</div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        detailReturnFocus = document.activeElement;
+        const closeButton = overlay.querySelector('.resolve-close');
+        if (closeButton) closeButton.focus();
+
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay || event.target.closest('.resolve-close')) {
+                closeDetailDialog();
+                return;
+            }
+            handleDetailAction(event, {
+                rerender: () => {
+                    const body = overlay.querySelector('.detail-content');
+                    const fresh = buildDetailModel(groupId, sessionId, 'Dialog');
+                    if (fresh && body) {
+                        body.innerHTML = renderEventDetail(fresh);
+                    } else {
+                        closeDetailDialog();
+                    }
+                },
+                close: closeDetailDialog,
+            });
+        });
+    }
+
+    function closeDetailDialog() {
+        const overlay = document.querySelector('.detail-overlay');
+        if (!overlay) return;
+        overlay.remove();
+        if (detailReturnFocus && document.contains(detailReturnFocus)) {
+            detailReturnFocus.focus();
+        }
+        detailReturnFocus = null;
+    }
 
     // Conflicts Rendering
 
@@ -2324,8 +2248,16 @@ button.resolve-option:focus-visible {
         resolveReturnFocus = null;
     }
 
+    // Escape closes the topmost surface: the resolve dialog can sit over
+    // the page after being opened from the detail dialog's clash button, so
+    // it goes first and a second press clears the details.
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') closeResolveDialog();
+        if (event.key !== 'Escape') return;
+        if (document.querySelector('.resolve-overlay')) {
+            closeResolveDialog();
+        } else {
+            closeDetailDialog();
+        }
     });
 
     // The badge on a clashing block is the shortest path in: the block
@@ -2477,11 +2409,14 @@ button.resolve-option:focus-visible {
 
             // Tapping is how details open; the badge has its own click and
             // must not double as a tap on the block behind it.
+            // A grid tap opens the dialog rather than the panel: the block
+            // that was tapped can be a whole viewport below the panel, and
+            // the dialog appears where the student already is.
             interact('.calendar-event').on('tap', event => {
                 if (event.target.closest && event.target.closest('.clash-badge')) return;
                 const el = event.currentTarget;
                 if (el.dataset.groupId) {
-                    showEventDetail(el.dataset.groupId, parseSessionId(el.dataset.sessionId));
+                    openDetailDialog(el.dataset.groupId, parseSessionId(el.dataset.sessionId));
                 }
             });
 
@@ -2994,7 +2929,6 @@ button.resolve-option:focus-visible {
         toast(`${courseKey} removed.`, 'Ctrl+Z puts it back.');
         renderPickerResults();
     }
-    window.removeCourseFromCalendar = removeCourse;
 
     $pickerResults.addEventListener('click', event => {
         const row = event.target.closest('.picker-row');

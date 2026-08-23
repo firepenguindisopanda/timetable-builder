@@ -14,7 +14,7 @@
     }
 
     .admin-tag {
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-data);
         font-size: 0.65rem;
         padding: 3px 8px;
         border-radius: 4px;
@@ -41,7 +41,7 @@
     }
 
     .session-code {
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-data);
         font-size: 0.85rem;
         font-weight: 600;
     }
@@ -54,12 +54,12 @@
     }
 
     .session-status.completed {
-        background: rgba(0, 214, 143, 0.15);
+        background: color-mix(in srgb, var(--accent-green) 15%, transparent);
         color: var(--accent-green);
     }
 
     .session-status.failed {
-        background: rgba(255, 61, 113, 0.15);
+        background: color-mix(in srgb, var(--accent-red) 15%, transparent);
         color: var(--accent-red);
     }
 
@@ -80,7 +80,7 @@
     }
 
     .config-badge {
-        font-family: 'JetBrains Mono', monospace;
+        font-family: var(--font-data);
         font-size: 0.65rem;
         padding: 2px 6px;
         border-radius: 3px;
@@ -320,7 +320,7 @@ function renderConfigs(data) {
                     </div>
                 </div>
                 <div class="text-end">
-                    <span class="config-badge" style="background: ${c.status === 'active' ? 'rgba(0, 214, 143, 0.15)' : 'var(--bg-deep)'}; color: ${c.status === 'active' ? 'var(--accent-green)' : 'var(--text-tertiary)'};">${c.status}</span>
+                    <span class="config-badge" style="background: ${c.status === 'active' ? 'color-mix(in srgb, var(--accent-green) 15%, transparent)' : 'var(--bg-deep)'}; color: ${c.status === 'active' ? 'var(--accent-green)' : 'var(--text-tertiary)'};">${c.status}</span>
                     <div style="font-size: 0.68rem; color: var(--text-tertiary); margin-top: 2px;">
                         ${formatTime(c.created_at)}
                     </div>
