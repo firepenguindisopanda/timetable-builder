@@ -500,34 +500,52 @@
     color: var(--text-tertiary);
 }
 
+/* Blocks used to be 20% washes of their accent with accent-coloured text,
+   which read as ghosts over the grid lines. Solid surfaces with an accent
+   edge keep the type colour system while the text sits on real ground. */
 .calendar-event {
     position: absolute;
     left: 2px;
     right: 2px;
-    padding: 4px;
-    border-radius: 4px;
-    font-size: 0.6rem;
+    padding: 4px 6px;
+    border-radius: 5px;
+    font-size: 0.62rem;
     cursor: grab;
     z-index: 2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    min-width: 80px;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
-    transition: box-shadow 0.15s ease, transform 0.1s ease;
+    transition: box-shadow 0.15s ease, transform 0.1s ease, filter 0.15s ease;
+    color: var(--text-primary);
+    border: 1px solid transparent;
+    border-left-width: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.calendar-event:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+    z-index: 5;
 }
 
 .calendar-event:active {
     cursor: grabbing;
 }
 
+.calendar-event:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 1px;
+    z-index: 5;
+}
+
 .calendar-event.dragging {
-    opacity: 0.85;
+    opacity: 0.9;
     z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
     transform: scale(1.02);
     cursor: grabbing;
 }
@@ -537,48 +555,104 @@
     border-top: 2px solid var(--accent-cyan);
 }
 
+/* The color-mix line wins where supported; the hex is the same mix baked in
+   for anything older, so the block is never transparent either way. */
 .calendar-event.lecture {
-    background: rgba(0, 229, 255, 0.2);
-    border: 1px solid var(--accent-cyan);
-    color: var(--accent-cyan);
+    background: #123b46;
+    background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-elevated));
+    border-color: rgba(0, 229, 255, 0.35);
+    border-left-color: var(--accent-cyan);
 }
 
 .calendar-event.lab {
-    background: rgba(255, 184, 0, 0.2);
-    border: 1px solid var(--accent-amber);
-    color: var(--accent-amber);
+    background: #403319;
+    background: color-mix(in srgb, var(--accent-amber) 16%, var(--bg-elevated));
+    border-color: rgba(255, 184, 0, 0.35);
+    border-left-color: var(--accent-amber);
 }
 
 .calendar-event.tutorial {
-    background: rgba(0, 214, 143, 0.2);
-    border: 1px solid var(--accent-green);
-    color: var(--accent-green);
+    background: #123832;
+    background: color-mix(in srgb, var(--accent-green) 16%, var(--bg-elevated));
+    border-color: rgba(0, 214, 143, 0.35);
+    border-left-color: var(--accent-green);
 }
 
 .calendar-event.other {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--text-tertiary);
-    color: var(--text-secondary);
+    background: #23232d;
+    background: color-mix(in srgb, #ffffff 6%, var(--bg-elevated));
+    border-color: var(--border-medium);
+    border-left-color: var(--text-tertiary);
 }
 
 .calendar-event .event-course {
-    font-weight: 600;
-    font-size: 0.65rem;
+    font-weight: 700;
+    font-size: 0.68rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .calendar-event .event-type {
-    font-size: 0.55rem;
-    opacity: 0.85;
+    font-size: 0.54rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-.calendar-event .event-time {
-    font-size: 0.55rem;
-    opacity: 0.7;
-}
+.calendar-event.lecture .event-type { color: var(--accent-cyan); }
+.calendar-event.lab .event-type { color: var(--accent-amber); }
+.calendar-event.tutorial .event-type { color: var(--accent-green); }
+.calendar-event.other .event-type { color: var(--text-secondary); }
 
+.calendar-event .event-time,
 .calendar-event .event-room {
+    font-size: 0.58rem;
+    color: var(--text-secondary);
+}
+
+.calendar-event .event-pin {
     font-size: 0.55rem;
-    opacity: 0.7;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+/* A block that genuinely collides with another. The ring says "clash"; the
+   badge is the way in when the block itself is half-hidden or finger-sized. */
+.calendar-event.clash {
+    border-color: rgba(255, 61, 113, 0.6);
+    border-left-color: var(--accent-red);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 61, 113, 0.35);
+    /* Room for the badge, so it does not sit on the course code. */
+    padding-right: 20px;
+}
+
+.clash-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 0.6rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    z-index: 6;
+}
+
+.clash-badge:hover { filter: brightness(1.2); }
+
+.clash-badge:focus-visible {
+    outline: 2px solid var(--accent-red);
+    outline-offset: 1px;
 }
 
 /* A class that starts before the grid does, or runs past its end. Clamped so
@@ -622,6 +696,308 @@
 .drop-zone.same-slot {
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.04);
+}
+
+/* The resolve dialog: both sides of a clash at once, options and all.
+   On the grid the two blocks share an hour, so on a phone the one a student
+   wants is the one they cannot hit. Here each side gets its own column, with
+   every sitting it could move to and what that would run into. */
+
+.resolve-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 5, 7, 0.72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 1090;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: resolve-in 0.16s ease;
+}
+
+@keyframes resolve-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.resolve-dialog {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 700px;
+    max-height: min(85vh, 640px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    animation: resolve-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes resolve-up {
+    from { transform: translateY(10px); opacity: 0.6; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .resolve-overlay, .resolve-dialog { animation: none; }
+}
+
+.resolve-head {
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.resolve-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.resolve-sub {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    margin: 0;
+    padding-right: 30px;
+    line-height: 1.5;
+}
+
+.resolve-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.resolve-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-interactive);
+}
+
+.resolve-close:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+}
+
+/* Side by side stays side by side on a phone: comparing the two classes is
+   the whole point, and the cards are built narrow enough to share 360px. */
+.resolve-sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-subtle);
+    flex: 1;
+    min-height: 0;
+}
+
+.resolve-side {
+    background: var(--bg-surface);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 12px;
+}
+
+.resolve-side-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.resolve-side-code {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.resolve-side-type {
+    font-size: 0.64rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.resolve-pinned {
+    font-size: 0.62rem;
+    color: var(--text-tertiary);
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.resolve-side-title {
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+    margin: 3px 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resolve-options {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+    padding-right: 2px;
+}
+
+.resolve-option {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    padding: 8px 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    flex-shrink: 0;
+}
+
+button.resolve-option {
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+button.resolve-option:hover {
+    border-color: var(--border-medium);
+    background: var(--bg-interactive);
+}
+
+button.resolve-option:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 1px;
+}
+
+.resolve-option.is-recommended {
+    border-color: rgba(0, 229, 255, 0.5);
+}
+
+.resolve-option.is-current {
+    border-style: dashed;
+    border-color: var(--border-medium);
+}
+
+.resolve-option.is-taken {
+    opacity: 0.55;
+}
+
+.resolve-option .ro-when {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.resolve-option .ro-where {
+    font-size: 0.66rem;
+    color: var(--text-secondary);
+}
+
+.resolve-option .ro-note {
+    font-size: 0.64rem;
+}
+
+.resolve-option .ro-note.ok { color: var(--accent-green); }
+.resolve-option .ro-note.bad { color: var(--accent-red); }
+.resolve-option .ro-note.now { color: var(--accent-amber); }
+.resolve-option .ro-note.dim { color: var(--text-tertiary); }
+
+.resolve-option .ro-note em {
+    font-style: normal;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-cyan);
+    margin-left: 5px;
+}
+
+/* On a phone the dialog docks to the bottom like a sheet, which keeps the
+   options under the thumb and the close reachable. */
+@media (max-width: 560px) {
+    .resolve-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .resolve-dialog {
+        border-radius: 14px 14px 0 0;
+        border-bottom: none;
+        max-height: 88vh;
+    }
+    .resolve-side { padding: 10px 8px; }
+    .resolve-side-code { font-size: 0.78rem; }
+}
+
+/* Every sitting of the open class, inside the detail panel. Attending more
+   than one, or none, is the student's call; this is where they make it. */
+.sittings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 190px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.sitting-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+}
+
+.sitting-row.viewing {
+    border-color: var(--border-medium);
+}
+
+.sitting-when {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.sitting-where {
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sitting-state {
+    font-size: 0.62rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.sitting-row .btn {
+    font-size: 0.64rem;
+    padding: 1px 8px;
+    white-space: nowrap;
 }
 
 /* Course picker
@@ -1072,7 +1448,8 @@
             <span class="text-accent">My</span> Timetable
         </h1>
         <p class="page-subtitle">
-            Drag or touch events to reschedule. Double-click an event in the list to view its details.
+            Tap a class for its details, drag it to another sitting.
+            Anything you place yourself stays put.
         </p>
     </div>
 
@@ -1195,7 +1572,7 @@
                 <div id="detailPlaceholder" class="detail-placeholder">
                     <i class="bi bi-hand-index"></i>
                     <p>No event selected</p>
-                    <p class="hint">Double-click an event to view its details</p>
+                    <p class="hint">Select a class here or tap one on the grid</p>
                 </div>
                 <div id="detailContent" class="detail-content" style="display: none;" role="region" aria-label="Event details" aria-live="polite">
                     <!-- Detail content rendered by JS -->
@@ -1265,6 +1642,8 @@
             <span class="legend-dot" style="background: var(--accent-amber); margin-left: 8px;"></span>Lab
             <span class="legend-dot" style="background: var(--accent-green); margin-left: 8px;"></span>Tutorial
             <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
+            <i class="bi bi-pin-angle-fill" style="margin-left: 8px;"></i> Placed by you
+            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
         </span>
     </div>
 </div>
@@ -1281,12 +1660,14 @@
 
 {% block scripts %}
 <script src="/assets/js/calendar-utils.js?v={{ asset_version }}"></script>
+<script src="/assets/js/grid-layout.js?v={{ asset_version }}"></script>
 <script src="/assets/js/change-notes.js?v={{ asset_version }}"></script>
 <script src="/assets/js/print-model.js?v={{ asset_version }}"></script>
 <script src="/assets/js/print-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/course-search.js?v={{ asset_version }}"></script>
 <script src="/assets/js/option-groups.js?v={{ asset_version }}"></script>
 <script src="/assets/js/placement.js?v={{ asset_version }}"></script>
+<script src="/assets/js/conflict-resolve.js?v={{ asset_version }}"></script>
 <script src="/assets/js/timetable-state.js?v={{ asset_version }}"></script>
 <script>
 (function() {
@@ -1306,10 +1687,14 @@
 
     let currentEvents = [];
     let state = null;
-    // One placement per option group, so the group id is what identifies a
-    // block on the grid. It used to be course id plus type, which cannot tell
-    // a course's Monday lecture from its Wednesday one.
-    let selectedGroupId = null;
+    // A block on the grid is a placement: an option group plus the session it
+    // currently shows. The group alone stopped being enough when extra
+    // sittings arrived, since a group can then hold two blocks at once.
+    let selectedEventKey = null;
+
+    function eventKeyOf(groupId, sessionId) {
+        return String(groupId) + ' ' + String(sessionId);
+    }
 
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const START_HOUR = 8;
@@ -1390,23 +1775,38 @@
         let html = '';
         sorted.forEach(event => {
             const typeClass = typeClassOf(event.type);
-            const isSelected = event.groupId === selectedGroupId;
+            const key = eventKeyOf(event.groupId, event.sessionId);
+            const isSelected = key === selectedEventKey;
             html += `<div class="event-list-item${isSelected ? ' selected' : ''}"
                 data-group-id="${escapeHtml(event.groupId)}"
+                data-session-id="${escapeHtml(String(event.sessionId))}"
                 role="option"
                 aria-selected="${isSelected}"
-                tabindex="0"
-                ondblclick="showEventDetail('${escapeHtml(event.groupId)}')"
-                onkeydown="handleListKeydown(event, '${escapeHtml(event.groupId)}')">
+                tabindex="0">
                 <span class="event-dot ${typeClass}"></span>
                 <span class="event-list-time">${event.day.substring(0,3)} ${event.startTime}</span>
                 <span class="event-list-course">${escapeHtml(event.courseTitle || '?')}</span>
-                <span class="event-list-type">${escapeHtml(event.type || 'Event')}${event.pinned ? ' &#9679;' : ''}</span>
+                <span class="event-list-type">${escapeHtml(event.type || 'Event')}${event.pinned ? ' <i class="bi bi-pin-angle-fill" title="Placed by you"></i>' : ''}</span>
             </div>`;
         });
 
         listEl.innerHTML = html;
     }
+
+    // One delegated listener instead of per-row inline handlers, and a single
+    // click instead of the old double click: opening details is the only
+    // thing a row does, so it should not take a gesture nobody discovers.
+    document.getElementById('eventsList').addEventListener('click', event => {
+        const row = event.target.closest('.event-list-item');
+        if (row) showEventDetail(row.dataset.groupId, parseSessionId(row.dataset.sessionId));
+    });
+    document.getElementById('eventsList').addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const row = event.target.closest('.event-list-item');
+        if (!row) return;
+        event.preventDefault();
+        showEventDetail(row.dataset.groupId, parseSessionId(row.dataset.sessionId));
+    });
 
     /**
      * The grid has four colours and the warehouse publishes 22 activity types,
@@ -1419,31 +1819,25 @@
         return known.includes(lower) ? lower : 'other';
     }
 
-    window.handleListKeydown = function(e, groupId) {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            showEventDetail(groupId);
-        }
-    };
-
     // Detail Panel Rendering
-    window.showEventDetail = function(groupId) {
+    window.showEventDetail = function(groupId, sessionId) {
         if (!state) return;
 
-        selectedGroupId = groupId;
+        selectedEventKey = eventKeyOf(groupId, sessionId);
 
         document.querySelectorAll('.event-list-item.selected').forEach(el => {
             el.classList.remove('selected');
             el.setAttribute('aria-selected', 'false');
         });
-        const selectedItem = document.querySelector(`.event-list-item[data-group-id="${CSS.escape(groupId)}"]`);
+        const selectedItem = document.querySelector(
+            `.event-list-item[data-group-id="${CSS.escape(groupId)}"][data-session-id="${CSS.escape(String(sessionId))}"]`);
         if (selectedItem) {
             selectedItem.classList.add('selected');
             selectedItem.setAttribute('aria-selected', 'true');
             selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
 
-        const details = state.getPlacedEventDetails(groupId);
+        const details = state.getPlacedEventDetails(groupId, sessionId);
         if (!details) return;
 
         $detailPlaceholder.style.display = 'none';
@@ -1480,13 +1874,9 @@
             ${detailField('Staff', (details.staff || []).join(', '))}
         </div>`;
 
-        const alternatives = details.optionCount > 1
-            ? `${details.optionCount} sittings, drag to pick another`
-            : 'Only one sitting published';
         html += `<div class="detail-section">
             <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
             ${detailField('Course', details.courseKey)}
-            ${detailField('Options', alternatives)}
             ${detailField('Chosen by', details.pinned ? 'You' : 'Auto-placement')}
             ${detailField('Source', details.origin === 'upload'
                 ? 'Your upload: ' + (details.sourceFile || 'PDF')
@@ -1494,9 +1884,17 @@
             ${groupOverrideHtml(details)}
         </div>`;
 
-        // Removing takes the whole course, not this one class: a lecture
-        // without its labs is not something a student wants to be left with.
-        html += `<div class="detail-section">
+        html += sittingsSectionHtml(details);
+
+        // Two sizes of removal, smallest first. Taking one class off is the
+        // everyday act; taking the whole course is the destructive one and
+        // keeps the red.
+        html += `<div class="detail-section" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline-secondary btn-sm detail-remove-class"
+                data-group-id="${escapeHtml(details.groupId)}"
+                data-session-id="${escapeHtml(String(details.sessionId))}">
+                <i class="bi bi-x-lg me-1"></i> Remove this class
+            </button>
             <button type="button" class="btn btn-outline-danger btn-sm"
                 onclick="removeCourseFromCalendar('${escapeHtml(details.courseKey)}')">
                 <i class="bi bi-trash me-1"></i> Remove ${escapeHtml(details.courseKey)}
@@ -1561,6 +1959,62 @@
         return `<div class="group-override">
             <span class="why">${escapeHtml(GROUP_REASON[details.groupReason] || '')}</span>
             ${control}${undo}
+        </div>`;
+    }
+
+    /**
+     * Every sitting of the open class, each with what can be done to it.
+     *
+     * One of each type is what auto-placement builds, but it is a guide, not
+     * a rule the student is held to: their real week may include two sittings
+     * of the same lab, or none. Adding and removing individual sittings is
+     * how the timetable stops arguing with them about it.
+     */
+    function sittingsSectionHtml(details) {
+        const options = state ? state.getOptions(details.groupId) : [];
+        if (!options.length) return '';
+
+        const attended = new Set(state.placements
+            .filter(p => p.groupId === details.groupId)
+            .map(p => p.selectedSessionId));
+
+        const rows = sessionsInTimetableOrder(options).map(session => {
+            const when = `${session.day.slice(0, 3)} ${session.startTime}-${session.endTime}`;
+            const where = [session.streamLabel, session.room].filter(Boolean).join(' · ');
+            const isViewing = session.sessionId === details.sessionId;
+            const isAttended = attended.has(session.sessionId);
+
+            let tail;
+            if (isViewing) {
+                tail = '<span class="sitting-state">This one</span>';
+            } else if (isAttended) {
+                tail = `<button type="button" class="btn btn-outline-secondary btn-sm sitting-remove"
+                    data-group-id="${escapeHtml(details.groupId)}"
+                    data-session-id="${escapeHtml(String(session.sessionId))}">Remove</button>`;
+            } else {
+                tail = `<button type="button" class="btn btn-outline-secondary btn-sm sitting-add"
+                    data-group-id="${escapeHtml(details.groupId)}"
+                    data-session-id="${escapeHtml(String(session.sessionId))}">Also attend</button>`;
+            }
+
+            return `<div class="sitting-row${isViewing ? ' viewing' : ''}">
+                <span class="sitting-when">${escapeHtml(when)}</span>
+                <span class="sitting-where">${escapeHtml(where)}</span>
+                ${tail}
+            </div>`;
+        });
+
+        const hint = options.length > 1
+            ? 'Drag the block on the grid to swap this sitting for another.'
+            : 'Only one sitting of this is published.';
+
+        return `<div class="detail-section">
+            <h4 class="detail-section-title"><i class="bi bi-collection"></i>
+                Sittings (${options.length})</h4>
+            <div class="sittings-list">${rows.join('')}</div>
+            <div class="detail-field" style="padding-top: 8px;">
+                <span class="detail-field-value empty">${escapeHtml(hint)}</span>
+            </div>
         </div>`;
     }
 
@@ -1635,18 +2089,70 @@
             .join('\n');
     }
 
-    $detailContent.addEventListener('click', event => {
-        const button = event.target.closest('.group-split, .group-merge, .group-reset');
-        if (!button || !state) return;
-        const { courseKey, type } = button.dataset;
-        const mode = button.classList.contains('group-split') ? 'split' : null;
-        state.setOptionGroupOverride(courseKey, type, mode);
-        toast(`Regrouped ${courseKey} ${String(type).toLowerCase()}.`,
-              'Saved with your timetable. Ctrl+Z to undo.');
-        // The old group ids are gone, so the panel has nothing left to show.
-        selectedGroupId = null;
+    function closeDetailPanel() {
+        selectedEventKey = null;
         $detailPlaceholder.style.display = 'flex';
         $detailContent.style.display = 'none';
+    }
+
+    $detailContent.addEventListener('click', event => {
+        if (!state) return;
+
+        const regroup = event.target.closest('.group-split, .group-merge, .group-reset');
+        if (regroup) {
+            const { courseKey, type } = regroup.dataset;
+            const mode = regroup.classList.contains('group-split') ? 'split' : null;
+            state.setOptionGroupOverride(courseKey, type, mode);
+            toast(`Regrouped ${courseKey} ${String(type).toLowerCase()}.`,
+                  'Saved with your timetable. Ctrl+Z to undo.');
+            // The old group ids are gone, so the panel has nothing left to show.
+            closeDetailPanel();
+            return;
+        }
+
+        const add = event.target.closest('.sitting-add');
+        if (add) {
+            const groupId = add.dataset.groupId;
+            const sessionId = parseSessionId(add.dataset.sessionId);
+            if (state.addSitting(groupId, sessionId)) {
+                toast('Added that sitting too.', 'Ctrl+Z takes it back off.');
+                // Re-open on the same class so the row flips to "Remove".
+                const key = selectedEventKey;
+                if (key) {
+                    const at = key.lastIndexOf(' ');
+                    showEventDetail(key.slice(0, at), parseSessionId(key.slice(at + 1)));
+                }
+            }
+            return;
+        }
+
+        const dropSitting = event.target.closest('.sitting-remove');
+        if (dropSitting) {
+            state.removePlacement(
+                dropSitting.dataset.groupId,
+                parseSessionId(dropSitting.dataset.sessionId));
+            toast('Removed that sitting.', 'Ctrl+Z puts it back.');
+            const key = selectedEventKey;
+            if (key) {
+                const at = key.lastIndexOf(' ');
+                showEventDetail(key.slice(0, at), parseSessionId(key.slice(at + 1)));
+            }
+            return;
+        }
+
+        const dropClass = event.target.closest('.detail-remove-class');
+        if (dropClass) {
+            const groupId = dropClass.dataset.groupId;
+            const removed = state.removePlacement(
+                groupId, parseSessionId(dropClass.dataset.sessionId));
+            if (removed) {
+                const gone = !state.placements.some(p => p.groupId === groupId);
+                toast('Class removed.', gone
+                    ? 'It will not come back on its own. Ctrl+Z puts it back now.'
+                    : 'Ctrl+Z puts it back.');
+                closeDetailPanel();
+            }
+        }
     });
 
     window.toggleRawData = function(btn) {
@@ -1667,27 +2173,36 @@
         'no-improvement': 'Every alternative runs into something else.',
     };
 
-    function conflictItemHtml(c) {
+    //: What renderConflicts last drew, so a Resolve button can hand its
+    //: whole conflict to the dialog instead of re-deriving it from ids.
+    let currentConflicts = [];
+
+    function conflictItemHtml(c, index) {
         // A null week list means neither side publishes weeks, which is every
         // uploaded PDF, so it reads as "whenever they both run".
         const weeks = c.weeks === null
             ? ''
             : `<div class="conflict-weeks">Clashes in ${c.weeks.length === 1 ? 'week' : 'weeks'} ${c.weeks.join(', ')}</div>`;
 
-        const action = c.resolvable
-            ? `<button type="button" class="btn btn-sm btn-outline-info conflict-fix"
-                    data-group-id="${escapeHtml(c.fix.groupId)}"
-                    data-session-id="${escapeHtml(String(c.fix.sessionId))}">
-                    Move ${escapeHtml(c.fix.courseKey)} ${escapeHtml(String(c.fix.type || '').toLowerCase())}
-                    to ${escapeHtml(c.fix.day)} ${escapeHtml(c.fix.startTime)}
-               </button>`
+        // The dialog is offered even when nothing clears the clash outright:
+        // seeing both classes' sittings side by side is how a student decides
+        // which trade-off to take, and a pinned class is still theirs to
+        // move by hand.
+        const stuck = c.resolvable
+            ? ''
             : `<span class="conflict-stuck">${escapeHtml(NO_FIX_REASON[c.reason] || '')}</span>`;
 
         return `<div class="conflict-item">
             <div><strong>${escapeHtml(c.courseA)}</strong> clashes with <strong>${escapeHtml(c.courseB)}</strong></div>
             <div class="conflict-when">${escapeHtml(c.day)} ${escapeHtml(c.timeA)} vs ${escapeHtml(c.timeB)}</div>
             ${weeks}
-            <div class="conflict-action">${action}</div>
+            <div class="conflict-action">
+                <button type="button" class="btn btn-sm btn-outline-info conflict-resolve"
+                        data-conflict-index="${index}">
+                    Resolve side by side
+                </button>
+                ${stuck}
+            </div>
         </div>`;
     }
 
@@ -1709,22 +2224,26 @@
 
         conflictsPanel.style.display = 'block';
         conflictsCount.textContent = conflicts.length;
+        currentConflicts = conflicts;
 
         // Split rather than sorted, because the two kinds ask different things
-        // of a student: one is a button, the other is a decision about which
-        // course to keep.
+        // of a student: one has a clean way out, the other is a decision
+        // about which course gives way.
+        let html = '';
         const fixable = conflicts.filter(c => c.resolvable);
         const stuck = conflicts.filter(c => !c.resolvable);
-
-        let html = '';
         if (fixable.length) {
             html += `<h4 class="conflict-heading">${fixable.length} can be fixed</h4>`;
-            html += fixable.map(conflictItemHtml).join('');
         }
+        html += conflicts
+            .map((c, i) => (c.resolvable ? conflictItemHtml(c, i) : ''))
+            .join('');
         if (stuck.length) {
             html += `<h4 class="conflict-heading stuck">${stuck.length} cannot be avoided</h4>`;
-            html += stuck.map(conflictItemHtml).join('');
         }
+        html += conflicts
+            .map((c, i) => (!c.resolvable ? conflictItemHtml(c, i) : ''))
+            .join('');
         conflictsContent.innerHTML = html;
     }
 
@@ -1733,15 +2252,97 @@
     };
 
     document.getElementById('conflictsContent').addEventListener('click', event => {
-        const button = event.target.closest('.conflict-fix');
+        const button = event.target.closest('.conflict-resolve');
         if (!button || !state) return;
-        const group = state.getGroup(button.dataset.groupId);
-        const raw = button.dataset.sessionId;
-        const sessionId = group && group.sessions.some(s => s.sessionId === Number(raw))
-            ? Number(raw)
-            : raw;
-        state.applyFix({ groupId: button.dataset.groupId, sessionId });
-        toast('Moved it out of the way.', 'It stays there now. Ctrl+Z to undo.');
+        const conflict = currentConflicts[Number(button.dataset.conflictIndex)];
+        if (conflict) openResolveDialog(conflict);
+    });
+
+    // The resolve dialog
+
+    //: Where focus goes back to when the dialog closes.
+    let resolveReturnFocus = null;
+
+    /**
+     * Show a clash with both classes' options at once.
+     *
+     * The alternative was already there: drag the block. But on the grid the
+     * two clashing blocks share the same hour, and on a phone the one under
+     * the student's finger is as likely the wrong one. The dialog lays the
+     * choice out flat; dragging keeps working for everyone who prefers it.
+     */
+    function openResolveDialog(conflict) {
+        closeResolveDialog();
+        const model = buildResolveModel(
+            conflict,
+            state.placements,
+            state.groupIndex,
+            key => {
+                const course = state.getCourse(key);
+                return course && course.title !== key ? course.title : null;
+            }
+        );
+
+        const overlay = document.createElement('div');
+        overlay.className = 'resolve-overlay';
+        overlay.innerHTML =
+            `<div class="resolve-dialog" role="dialog" aria-modal="true"
+                 aria-label="Resolve the clash between ${escapeHtml(model.sides[0].courseKey)} and ${escapeHtml(model.sides[1].courseKey)}">
+                ${renderResolveDialog(model)}
+            </div>`;
+        document.body.appendChild(overlay);
+
+        resolveReturnFocus = document.activeElement;
+        const first = overlay.querySelector('button.resolve-option')
+            || overlay.querySelector('.resolve-close');
+        if (first) first.focus();
+
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay || event.target.closest('.resolve-close')) {
+                closeResolveDialog();
+                return;
+            }
+            const option = event.target.closest('button.resolve-option');
+            if (!option || !state) return;
+            state.moveEvent(
+                option.dataset.groupId,
+                parseSessionId(option.dataset.sessionId),
+                parseSessionId(option.dataset.fromSessionId)
+            );
+            toast('Moved it.', 'It stays where you put it. Ctrl+Z to undo.');
+            closeResolveDialog();
+        });
+    }
+
+    function closeResolveDialog() {
+        const overlay = document.querySelector('.resolve-overlay');
+        if (!overlay) return;
+        overlay.remove();
+        if (resolveReturnFocus && document.contains(resolveReturnFocus)) {
+            resolveReturnFocus.focus();
+        }
+        resolveReturnFocus = null;
+    }
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeResolveDialog();
+    });
+
+    // The badge on a clashing block is the shortest path in: the block
+    // itself may be half a lane wide with another class beside it, but the
+    // badge is always on top and always hittable.
+    calendarWrapper.addEventListener('click', event => {
+        const badge = event.target.closest('.clash-badge');
+        if (!badge || !state) return;
+        event.stopPropagation();
+        const block = badge.closest('.calendar-event');
+        if (!block) return;
+        const groupId = block.dataset.groupId;
+        const sessionId = parseSessionId(block.dataset.sessionId);
+        const conflict = state.getClassifiedConflicts().find(c =>
+            (c.a.groupId === groupId && c.a.sessionId === sessionId) ||
+            (c.b.groupId === groupId && c.b.sessionId === sessionId));
+        if (conflict) openResolveDialog(conflict);
     });
 
     // Main Render
@@ -1775,55 +2376,89 @@
             if (el) el.innerHTML = '';
             if ($detailPlaceholder) $detailPlaceholder.style.display = 'flex';
             if ($detailContent) $detailContent.style.display = 'none';
-            selectedGroupId = null;
+            selectedEventKey = null;
             return;
         }
 
         if (calendarWrapper) calendarWrapper.style.display = '';
 
+        // Which placements are in a genuine clash, so their blocks can say so
+        // and offer the way in to resolving it.
+        const clashKeys = new Set();
+        state.getConflicts().forEach(c => {
+            clashKeys.add(eventKeyOf(c.a.groupId, c.a.sessionId));
+            clashKeys.add(eventKeyOf(c.b.groupId, c.b.sessionId));
+        });
+
+        // Laid out a day at a time so blocks sharing an hour split the width
+        // instead of covering each other. Visual overlap, not genuine clash:
+        // a lecture and its other-week relocation never collide, but both
+        // still need to be reachable.
+        const byDay = new Map();
         events.forEach(event => {
             const dayIdx = DAYS.indexOf(event.day);
             if (dayIdx === -1) return;
-
-            const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
-            if (!col) return;
-
-            // Nothing in the current publication starts before 08:00 or runs
-            // past 21:00, but an uploaded PDF or a future semester can, and an
-            // unclamped block is positioned off the grid and simply disappears
-            // (E7). Clamping keeps it visible and says what was cut.
-            const rawStart = timeToSlot(event.startTime);
-            const rawEnd = timeToSlot(event.endTime);
-            const startSlot = Math.max(0, rawStart);
-            const endSlot = Math.min(TOTAL_SLOTS, Math.max(rawEnd, startSlot + 1));
-            const clipped = rawStart < 0 || rawEnd > TOTAL_SLOTS;
-
-            const el = document.createElement('div');
-            el.className = `calendar-event ${typeClassOf(event.type)}`
-                + (clipped ? ' clipped' : '');
-            el.style.top = `${slotToTop(startSlot)}px`;
-            el.style.height = `${Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT)}px`;
-            el.dataset.groupId = event.groupId;
-            if (clipped) {
-                // A short block has no room for the note below, so the reason
-                // is on the block itself too.
-                el.title = `${event.startTime}-${event.endTime}, which runs outside `
-                    + 'the hours this grid shows';
-            }
-
-            const course = state.getCourse(event.courseKey);
-            const stale = course && course.stale;
-
-            el.innerHTML = `
-                <div class="event-course">${escapeHtml(shortLabel(event))}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
-                <div class="event-type">${escapeHtml(event.type || 'Event')}</div>
-                <div class="event-time">${escapeHtml(event.startTime)}-${escapeHtml(event.endTime)}</div>
-                ${event.room ? `<div class="event-room">${escapeHtml(event.room)}</div>` : ''}
-                ${clipped ? '<div class="event-clipped">Runs outside these hours</div>' : ''}
-            `;
-
-            col.appendChild(el);
+            if (!byDay.has(dayIdx)) byDay.set(dayIdx, []);
+            byDay.get(dayIdx).push(event);
         });
+
+        for (const [dayIdx, dayEvents] of byDay) {
+            const col = document.querySelector(`.time-slots[data-day="${dayIdx}"]`);
+            if (!col) continue;
+
+            layoutDayEvents(dayEvents).forEach(({ event, col: lane, cols }) => {
+                // Nothing in the current publication starts before 08:00 or
+                // runs past 21:00, but an uploaded PDF or a future semester
+                // can, and an unclamped block is positioned off the grid and
+                // simply disappears (E7). Clamping keeps it visible and says
+                // what was cut.
+                const rawStart = timeToSlot(event.startTime);
+                const rawEnd = timeToSlot(event.endTime);
+                const startSlot = Math.max(0, rawStart);
+                const endSlot = Math.min(TOTAL_SLOTS, Math.max(rawEnd, startSlot + 1));
+                const clipped = rawStart < 0 || rawEnd > TOTAL_SLOTS;
+                const clashing = clashKeys.has(eventKeyOf(event.groupId, event.sessionId));
+
+                const el = document.createElement('div');
+                el.className = `calendar-event ${typeClassOf(event.type)}`
+                    + (clipped ? ' clipped' : '')
+                    + (clashing ? ' clash' : '');
+                el.style.top = `${slotToTop(startSlot)}px`;
+                el.style.height = `${Math.max(25, (endSlot - startSlot) * SLOT_HEIGHT)}px`;
+                if (cols > 1) {
+                    el.style.left = `calc(${(lane / cols) * 100}% + 2px)`;
+                    el.style.width = `calc(${100 / cols}% - 4px)`;
+                }
+                el.dataset.groupId = event.groupId;
+                el.dataset.sessionId = event.sessionId;
+                el.setAttribute('tabindex', '0');
+                el.setAttribute('role', 'button');
+                el.setAttribute('aria-label',
+                    `${shortLabel(event)} ${event.type || ''} ${event.day} ${event.startTime}`);
+                if (clipped) {
+                    // A short block has no room for the note below, so the
+                    // reason is on the block itself too.
+                    el.title = `${event.startTime}-${event.endTime}, which runs outside `
+                        + 'the hours this grid shows';
+                }
+
+                const course = state.getCourse(event.courseKey);
+                const stale = course && course.stale;
+
+                el.innerHTML = `
+                    <div class="event-course">${escapeHtml(shortLabel(event))}${event.pinned ? '<i class="bi bi-pin-angle-fill event-pin" title="Placed by you"></i>' : ''}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
+                    <div class="event-type">${escapeHtml(event.type || 'Event')}</div>
+                    <div class="event-time">${escapeHtml(event.startTime)}-${escapeHtml(event.endTime)}</div>
+                    ${event.room ? `<div class="event-room">${escapeHtml(event.room)}</div>` : ''}
+                    ${clipped ? '<div class="event-clipped">Runs outside these hours</div>' : ''}
+                    ${clashing ? `<button type="button" class="clash-badge"
+                        title="Clashes with another class. Resolve it."
+                        aria-label="Resolve the clash on this class"><i class="bi bi-exclamation"></i></button>` : ''}
+                `;
+
+                col.appendChild(el);
+            });
+        }
 
         renderEventsList(events, filter);
         renderConflicts();
@@ -1840,13 +2475,28 @@
                 return;
             }
 
+            // Tapping is how details open; the badge has its own click and
+            // must not double as a tap on the block behind it.
+            interact('.calendar-event').on('tap', event => {
+                if (event.target.closest && event.target.closest('.clash-badge')) return;
+                const el = event.currentTarget;
+                if (el.dataset.groupId) {
+                    showEventDetail(el.dataset.groupId, parseSessionId(el.dataset.sessionId));
+                }
+            });
+
             interact('.calendar-event').draggable({
                 allowFrom: '.calendar-event',
+                ignoreFrom: '.clash-badge',
                 listeners: {
                     start(event) {
                         const target = event.target;
                         target.classList.add('dragging');
-                        if (target.dataset.groupId) showGhostZones(target.dataset.groupId);
+                        if (target.dataset.groupId) {
+                            showGhostZones(
+                                target.dataset.groupId,
+                                parseSessionId(target.dataset.sessionId));
+                        }
                     },
                     move(event) {
                         const target = event.target;
@@ -1877,8 +2527,12 @@
                             if (groupId && sessionId && state) {
                                 // Dragging is the student choosing, so this
                                 // pins the placement and nothing will move it
-                                // again on its own.
-                                state.moveEvent(groupId, parseSessionId(sessionId));
+                                // again on its own. The dragged block names
+                                // which of the group's placements it is.
+                                state.moveEvent(
+                                    groupId,
+                                    parseSessionId(sessionId),
+                                    parseSessionId(target.dataset.sessionId));
                             }
                             clearGhostZones();
                             target.dataset.dragX = 0;
@@ -1912,11 +2566,21 @@
         return /^-?\d+$/.test(raw) ? Number(raw) : raw;
     }
 
-    function showGhostZones(groupId) {
+    function showGhostZones(groupId, draggedSessionId) {
         clearGhostZones();
         if (!state) return;
 
-        state.getOptions(groupId).forEach(session => {
+        // A sitting another placement of the group already shows is not a
+        // drop target: landing there would fold two attended sittings into
+        // one block.
+        const taken = new Set(state.placements
+            .filter(p => p.groupId === groupId
+                && p.selectedSessionId !== draggedSessionId)
+            .map(p => p.selectedSessionId));
+
+        state.getOptions(groupId)
+            .filter(session => !taken.has(session.sessionId))
+            .forEach(session => {
             const dayIdx = DAYS.indexOf(session.day);
             if (dayIdx === -1) return;
 
@@ -2555,8 +3219,11 @@
     function unplacedGroups() {
         if (!state) return [];
         const placed = new Set(state.placements.map(p => p.groupId));
+        // A dismissed group is not unplaced: the student took it off, and a
+        // printout that lists their own removal as a failure is wrong.
+        const dismissed = new Set(state.dismissedGroups);
         return state.optionGroups
-            .filter(group => !placed.has(group.groupId))
+            .filter(group => !placed.has(group.groupId) && !dismissed.has(group.groupId))
             .map(group => ({ courseKey: group.courseKey, type: group.type }));
     }
 

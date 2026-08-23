@@ -106,6 +106,10 @@ class TimetableState {
     this.courseKeys = (savedState && savedState.courseKeys)
       || this.sourceData.courses.map(c => c.courseKey);
     this.placements = (savedState && savedState.placements) || [];
+    // Groups the student emptied on purpose. Auto-placement fills gaps on
+    // every load, so without this record a deliberately removed class would
+    // quietly come back tomorrow morning.
+    this.dismissedGroups = (savedState && savedState.dismissedGroups) || [];
     this.history = (savedState && savedState.history) || [];
     this.future = (savedState && savedState.future) || [];
     this._listeners = [];
@@ -243,8 +247,13 @@ class TimetableState {
       .filter(Boolean);
   }
 
-  getPlacedEventDetails(groupId) {
-    const placement = this.placements.find(p => p.groupId === groupId);
+  getPlacedEventDetails(groupId, sessionId) {
+    // A group can hold several placements once extra sittings exist, so the
+    // session narrows it down. Without one, the first placement is meant.
+    const placement = this.placements.find(p =>
+      p.groupId === groupId
+      && (sessionId === undefined || p.selectedSessionId === sessionId)
+    );
     if (!placement) return null;
     const group = this.getGroup(groupId);
     if (!group) return null;
@@ -265,6 +274,7 @@ class TimetableState {
       type: group.type,
       groupReason: group.reason,
       optionCount: group.sessions.length,
+      attendedCount: this.placements.filter(p => p.groupId === groupId).length,
       pinned: Boolean(placement.pinned),
       sessionId: session.sessionId,
       streamId: session.streamId,
@@ -297,7 +307,7 @@ class TimetableState {
    */
   applyFix(fix) {
     if (!fix) return false;
-    this.moveEvent(fix.groupId, fix.sessionId);
+    this.moveEvent(fix.groupId, fix.sessionId, fix.fromSessionId);
     return true;
   }
 
@@ -349,6 +359,11 @@ class TimetableState {
     this._snapshot();
     this.courseKeys = this.courseKeys.filter(k => k !== courseKey);
     this.placements = this.placements.filter(p => p.courseKey !== courseKey);
+    // Group ids start with the course key, so this drops the course's
+    // dismissals with it: re-adding the course means wanting all of it back.
+    this.dismissedGroups = this.dismissedGroups.filter(
+      id => !id.startsWith(courseKey + '|')
+    );
     this._invalidate();
     this._notify();
     return true;
@@ -370,6 +385,7 @@ class TimetableState {
     this._snapshot();
     this.courseKeys = [];
     this.placements = [];
+    this.dismissedGroups = [];
     this._invalidate();
     this._notify();
     return true;
@@ -381,14 +397,31 @@ class TimetableState {
    * Pinning is what makes adding a seventh course safe after they have spent
    * ten minutes arranging the first six.
    */
-  moveEvent(groupId, sessionId) {
+  moveEvent(groupId, sessionId, fromSessionId) {
+    const existing = this.placements.find(p =>
+      p.groupId === groupId
+      && (fromSessionId === undefined || p.selectedSessionId === fromSessionId)
+    );
+    // Landing on a session another placement of the group already shows would
+    // fold two attended sittings into one block. The drop zones for a drag
+    // exclude those, so this only guards the programmatic callers. Dropping a
+    // class back on its own slot is not that: it pins where it stands.
+    const occupied = this.placements.some(p =>
+      p !== existing
+      && p.groupId === groupId
+      && p.selectedSessionId === sessionId
+    );
+    if (occupied) return;
+
     this._snapshot();
-    const existing = this.placements.find(p => p.groupId === groupId);
     if (existing) {
-      this.placements = pinPlacement(this.placements, groupId, sessionId);
+      this.placements = pinPlacement(
+        this.placements, groupId, sessionId, fromSessionId
+      );
     } else {
       const group = this.getGroup(groupId);
       if (group) {
+        this.dismissedGroups = this.dismissedGroups.filter(id => id !== groupId);
         this.placements = [
           ...this.placements,
           {
@@ -403,6 +436,37 @@ class TimetableState {
     this._notify();
   }
 
+  /**
+   * Attend an additional sitting of a class that is already on the grid.
+   *
+   * The one-of-each rule stays what auto-placement builds from, but it is a
+   * guide, not a wall: this timetable belongs to the student, and a second
+   * sitting they choose to attend is theirs to add. It arrives pinned for the
+   * same reason a drag pins: they chose it.
+   */
+  addSitting(groupId, sessionId) {
+    const group = this.getGroup(groupId);
+    if (!group) return false;
+    if (!group.sessions.some(s => s.sessionId === sessionId)) return false;
+    if (this.placements.some(
+      p => p.groupId === groupId && p.selectedSessionId === sessionId
+    )) return false;
+
+    this._snapshot();
+    this.dismissedGroups = this.dismissedGroups.filter(id => id !== groupId);
+    this.placements = [
+      ...this.placements,
+      {
+        courseKey: group.courseKey,
+        groupId,
+        selectedSessionId: sessionId,
+        pinned: true,
+      },
+    ];
+    this._notify();
+    return true;
+  }
+
   setPinned(groupId, pinned) {
     const placement = this.placements.find(p => p.groupId === groupId);
     if (!placement) return;
@@ -413,11 +477,25 @@ class TimetableState {
     this._notify();
   }
 
-  removePlacement(groupId) {
-    if (!this.placements.some(p => p.groupId === groupId)) return;
+  /**
+   * Take one class off the grid without touching the rest of its course.
+   *
+   * Removing the group's last placement records the group as dismissed, or
+   * `placeMissing` would read the gap as an accident and refill it on the
+   * next load. Adding any sitting of the group back clears the record.
+   */
+  removePlacement(groupId, sessionId) {
+    const matches = p => p.groupId === groupId
+      && (sessionId === undefined || p.selectedSessionId === sessionId);
+    if (!this.placements.some(matches)) return false;
     this._snapshot();
-    this.placements = this.placements.filter(p => p.groupId !== groupId);
+    this.placements = this.placements.filter(p => !matches(p));
+    if (!this.placements.some(p => p.groupId === groupId)
+        && !this.dismissedGroups.includes(groupId)) {
+      this.dismissedGroups = [...this.dismissedGroups, groupId];
+    }
     this._notify();
+    return true;
   }
 
   /**
@@ -435,6 +513,13 @@ class TimetableState {
       this.overrides = { ...this.overrides };
       delete this.overrides[key];
     }
+    // Regrouping renames the type's group ids, so dismissals recorded under
+    // the old ones would never match anything again. Dropping them means the
+    // regrouped type starts fully placed, which is also the least surprising
+    // answer to changing what counts as one class.
+    this.dismissedGroups = this.dismissedGroups.filter(
+      id => !id.startsWith(`${courseKey}|${type}|`)
+    );
     this._invalidate();
 
     const stale = new Set(
@@ -459,12 +544,38 @@ class TimetableState {
   reoptimise() {
     this._snapshot();
     const pinned = this.placements.filter(p => p.pinned);
-    const pinnedGroups = new Set(pinned.map(p => p.groupId));
+
+    // Which sessions of each group the pinned placements already occupy. A
+    // group with a pinned extra sitting can still have its unpinned first
+    // placement re-chosen, but not onto a session the student already
+    // attends, or the two would collapse into one block.
+    const pinnedSessions = new Map();
+    for (const p of pinned) {
+      if (!pinnedSessions.has(p.groupId)) pinnedSessions.set(p.groupId, new Set());
+      pinnedSessions.get(p.groupId).add(p.selectedSessionId);
+    }
+    const unpinnedGroups = new Set(
+      this.placements.filter(p => !p.pinned).map(p => p.groupId)
+    );
+    const dismissed = new Set(this.dismissedGroups);
+
     const loose = this.activeCourses.map(course => ({
       courseKey: course.courseKey,
-      groups: deriveOptionGroups(course, this.overrides).filter(
-        g => !pinnedGroups.has(g.groupId)
-      ),
+      groups: deriveOptionGroups(course, this.overrides)
+        // A dismissed group was emptied on purpose; re-optimising rearranges
+        // what is there, it does not resurrect what was removed.
+        .filter(g => !dismissed.has(g.groupId))
+        // Loose means holding an unpinned placement, or none at all.
+        .filter(g => unpinnedGroups.has(g.groupId) || !pinnedSessions.has(g.groupId))
+        .map(g => pinnedSessions.has(g.groupId)
+          ? {
+              ...g,
+              sessions: g.sessions.filter(
+                s => !pinnedSessions.get(g.groupId).has(s.sessionId)
+              ),
+            }
+          : g)
+        .filter(g => g.sessions.length > 0),
     }));
     this.placements = placeCourses(pinned, loose, this.groupIndex).placements;
     this._notify();
@@ -520,11 +631,12 @@ class TimetableState {
     this.placements = this.placements.filter(p => live.has(p.groupId));
 
     const placedGroups = new Set(this.placements.map(p => p.groupId));
+    const dismissed = new Set(this.dismissedGroups);
     const gaps = this.activeCourses
       .map(course => ({
         courseKey: course.courseKey,
         groups: deriveOptionGroups(course, this.overrides)
-          .filter(g => !placedGroups.has(g.groupId)),
+          .filter(g => !placedGroups.has(g.groupId) && !dismissed.has(g.groupId)),
       }))
       .filter(c => c.groups.length > 0);
     if (gaps.length) {
@@ -561,14 +673,20 @@ class TimetableState {
     return dropped;
   }
 
-  /** Place anything on the timetable that has no placement yet. */
+  /**
+   * Place anything on the timetable that has no placement yet.
+   *
+   * Skips groups the student emptied themselves: a gap they made is a
+   * decision, not something to be repaired on the next load.
+   */
   placeMissing() {
     const placedGroups = new Set(this.placements.map(p => p.groupId));
+    const dismissed = new Set(this.dismissedGroups);
     const missing = this.activeCourses
       .map(course => ({
         courseKey: course.courseKey,
         groups: deriveOptionGroups(course, this.overrides).filter(
-          g => !placedGroups.has(g.groupId)
+          g => !placedGroups.has(g.groupId) && !dismissed.has(g.groupId)
         ),
       }))
       .filter(c => c.groups.length > 0);
@@ -587,11 +705,7 @@ class TimetableState {
   // History
 
   _snapshot() {
-    this.history.push({
-      courseKeys: [...this.courseKeys],
-      placements: JSON.parse(JSON.stringify(this.placements)),
-      overrides: { ...this.overrides },
-    });
+    this.history.push(this._current());
     this.future = [];
     if (this.history.length > MAX_HISTORY) this.history.shift();
   }
@@ -600,6 +714,8 @@ class TimetableState {
     this.courseKeys = [...snapshot.courseKeys];
     this.placements = JSON.parse(JSON.stringify(snapshot.placements));
     this.overrides = { ...snapshot.overrides };
+    // Older saved histories predate dismissals, so the field can be absent.
+    this.dismissedGroups = [...(snapshot.dismissedGroups || [])];
     this._invalidate();
   }
 
@@ -608,6 +724,7 @@ class TimetableState {
       courseKeys: [...this.courseKeys],
       placements: JSON.parse(JSON.stringify(this.placements)),
       overrides: { ...this.overrides },
+      dismissedGroups: [...this.dismissedGroups],
     };
   }
 
@@ -659,6 +776,7 @@ class TimetableState {
       courseKeys: this.courseKeys,
       optionGroupOverrides: this.overrides,
       placements: this.placements,
+      dismissedGroups: this.dismissedGroups,
       history: this.history.slice(-MAX_HISTORY),
       future: this.future.slice(-MAX_HISTORY),
       savedAt: new Date().toISOString(),

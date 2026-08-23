@@ -30,6 +30,18 @@ function indexGroups(groups) {
 }
 
 /**
+ * Names one placement, not one group.
+ *
+ * A group used to hold exactly one placement, so the group id was enough to
+ * say which class was meant. Extra sittings ended that: a student who attends
+ * two sittings of the same class has two placements in one group, and the
+ * session each one shows is what tells them apart.
+ */
+function placementKey(groupId, sessionId) {
+  return String(groupId) + ' ' + String(sessionId);
+}
+
+/**
  * The calendar event a placement resolves to, or null if the saved placement
  * points at a group or session the warehouse no longer publishes.
  */
@@ -180,13 +192,25 @@ function _repair(placements, movableGroupIds, index) {
       const group = index.get(placement.groupId);
       if (!group || group.sessions.length < 2) continue;
 
+      // Sittings the group's other placements show. A group can hold a
+      // pinned extra beside the placement being repaired, and moving onto
+      // its sitting would collapse the two into a duplicate.
+      const occupied = new Set(
+        current
+          .filter((p) => p !== placement && p.groupId === placement.groupId)
+          .map((p) => p.selectedSessionId)
+      );
+
       for (const session of sessionsInTimetableOrder(group.sessions)) {
         if (session.sessionId === placement.selectedSessionId) continue;
+        if (occupied.has(session.sessionId)) continue;
         if (attempts >= REPAIR_ATTEMPT_CAP) break;
         attempts += 1;
 
+        // Only this placement moves, never its group-mates: the group id
+        // stopped naming a single placement once extra sittings existed.
         const trial = current.map((p) =>
-          p.groupId === placement.groupId
+          p === placement
             ? { ...p, selectedSessionId: session.sessionId }
             : p
         );
@@ -284,7 +308,13 @@ function classifyConflicts(placements, index) {
   if (!conflicts.length) return [];
 
   const total = conflicts.length;
-  const pinned = new Set(placements.filter(p => p.pinned).map(p => p.groupId));
+  // Pinning is per placement, not per group: a student can pin an extra
+  // sitting while auto-placement still owns the group's first one.
+  const pinned = new Set(
+    placements
+      .filter(p => p.pinned)
+      .map(p => placementKey(p.groupId, p.selectedSessionId))
+  );
 
   return conflicts.map(conflict => {
     let fix = null;
@@ -295,12 +325,22 @@ function classifyConflicts(placements, index) {
       const group = index.get(side.groupId);
       if (!group || group.sessions.length < 2) continue;
       alternativesExist = true;
-      if (pinned.has(side.groupId)) continue;
+      if (pinned.has(placementKey(side.groupId, side.sessionId))) continue;
+
+      // Sessions the group's other placements already show. Moving onto one
+      // of those would collapse two attended sittings into a duplicate.
+      const occupied = new Set(
+        placements
+          .filter(p => p.groupId === side.groupId
+            && p.selectedSessionId !== side.sessionId)
+          .map(p => p.selectedSessionId)
+      );
 
       for (const session of sessionsInTimetableOrder(group.sessions)) {
         if (session.sessionId === side.sessionId) continue;
+        if (occupied.has(session.sessionId)) continue;
         const trial = placements.map(p =>
-          p.groupId === side.groupId
+          p.groupId === side.groupId && p.selectedSessionId === side.sessionId
             ? { ...p, selectedSessionId: session.sessionId }
             : p
         );
@@ -310,6 +350,9 @@ function classifyConflicts(placements, index) {
             courseKey: side.courseKey,
             type: side.type,
             sessionId: session.sessionId,
+            // Which of the group's placements moves, since there can now be
+            // more than one.
+            fromSessionId: side.sessionId,
             day: session.day,
             startTime: session.startTime,
             endTime: session.endTime,
@@ -330,7 +373,9 @@ function classifyConflicts(placements, index) {
         ? 'fixable'
         : !alternativesExist
           ? 'no-alternative'
-          : [conflict.a, conflict.b].every(s => pinned.has(s.groupId))
+          : [conflict.a, conflict.b].every(
+              s => pinned.has(placementKey(s.groupId, s.sessionId))
+            )
             ? 'pinned'
             : 'no-improvement',
     };
@@ -341,18 +386,25 @@ function classifyConflicts(placements, index) {
  * Mark a placement as the student's own, so nothing moves it again.
  *
  * Called when they drag a class to another slot or pick an option by hand.
+ * `fromSessionId` says which of the group's placements moves; a group holds
+ * more than one once extra sittings exist. Left undefined, the group's first
+ * placement is meant, which is the only one older callers could have.
  */
-function pinPlacement(placements, groupId, selectedSessionId) {
-  return placements.map((p) =>
-    p.groupId === groupId
-      ? {
-          ...p,
-          selectedSessionId:
-            selectedSessionId === undefined
-              ? p.selectedSessionId
-              : selectedSessionId,
-          pinned: true,
-        }
-      : p
-  );
+function pinPlacement(placements, groupId, selectedSessionId, fromSessionId) {
+  let moved = false;
+  return placements.map((p) => {
+    if (moved || p.groupId !== groupId) return p;
+    if (fromSessionId !== undefined && p.selectedSessionId !== fromSessionId) {
+      return p;
+    }
+    moved = true;
+    return {
+      ...p,
+      selectedSessionId:
+        selectedSessionId === undefined
+          ? p.selectedSessionId
+          : selectedSessionId,
+      pinned: true,
+    };
+  });
 }
