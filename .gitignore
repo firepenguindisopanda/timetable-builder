@@ -12,6 +12,12 @@ wheels/
 downloaded_pdfs/
 downloaded_pdfs_all/
 
+# Resources UWI has withdrawn from finder.xml. Corpus data like the above, so
+# not tracked - but the README is the only record of what each file was, and
+# these PDFs cannot be re-downloaded.
+withdrawn_pdfs/*
+!withdrawn_pdfs/README.md
+
 # Design docs / specs
 docs/
 

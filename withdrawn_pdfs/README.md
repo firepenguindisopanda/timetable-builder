@@ -24,7 +24,28 @@ registry — which is the gate doing its job.
 
 ## What is here
 
-Withdrawn between the publications of 6 August and 14 August 2026:
+### Withdrawn between the publications of 14 August and 21 August 2026
+
+| File | Was |
+|---|---|
+| `m1668.pdf` | COMS 2202, Principles of Mass Communication |
+| `m2413.pdf` | LING 2006, Speech & Hearing Science |
+| `m2439.pdf` | LING 6105, Principles & Approaches in TESOL |
+| `m2480.pdf` | LITS 6007, Modern Cultural & Critical Theory |
+| `m2485.pdf` | LITS 6201, Women's Writing & Feminist Theory |
+| `m34166.pdf` | LING 6804, Language Acquisition in Creole Contexts |
+| `m69565.pdf` | CLL DELE PREP, CLL DELE PREP |
+| `staff/s105482.pdf` | RAMSAROOP, Rabindranath |
+| `staff/s105939.pdf` | WHITTIER, Simone |
+| `staff/s97914.pdf` | HAQUE, Shirin |
+
+None of these is a rename. The same republish added nine module resources
+(COMP 6104, COMP 6801, LITS 6005, LITS 6691, MGMT 8014 and GEOG 0101-0104)
+and one staff resource, and no added course code matches a withdrawn one.
+`m2479.pdf`/`m2480.pdf` and `m2413.pdf`/`m62936.pdf` share a department and
+faculty id and look like re-keyings, but they carry different courses.
+
+### Withdrawn between the publications of 6 August and 14 August 2026
 
 | File | Was |
 |---|---|
@@ -41,5 +62,7 @@ Withdrawn between the publications of 6 August and 14 August 2026:
 the same republish, so its resource is still published and was re-downloaded
 normally.
 
-The sessions these files produced are not lost either way: they belong to
-publication 1, which stays queryable in the warehouse.
+The sessions these files produced are not lost either way: each batch belongs
+to the last publication that carried it — publication 1 for the 6-to-14 August
+withdrawals, publication 2 for the 14-to-21 August ones — and every publication
+stays queryable in the warehouse.
