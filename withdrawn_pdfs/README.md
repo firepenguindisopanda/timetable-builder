@@ -24,6 +24,55 @@ registry — which is the gate doing its job.
 
 ## What is here
 
+### Withdrawn between the publications of 21 August and 27 August 2026
+
+| File | Was |
+|---|---|
+| `staff/s104423.pdf` | RAGBIR, Adrianna |
+| `staff/s104424.pdf` | HARRIS, Shemwyn |
+| `staff/s98195.pdf` | GUNAKALA, Rao |
+
+All three are `staff` resources from one department, and all three had been
+published since publication 1. None still teaches in publication 4: they held
+1, 6 and 2 sessions respectively in publication 3 and none in 4, so these are
+people leaving the timetable rather than a staff page being withdrawn from
+under someone still teaching.
+
+**This batch is the reason neither existing check is sufficient.** The same
+republish added 13 resources while removing these 3, so the corpus stood at
+1,643 against a 1,640-entry registry — a mismatch, but one that an addition of
+exactly 3 would have cancelled out silently.
+
+**A withdrawn `staff` PDF is invisible to the gate, and a withdrawn `course`
+PDF is not.** This asymmetry is the part worth knowing, and it is why the two
+earlier batches were caught by `validate_corpus.py` while this one was not. A
+withdrawn course PDF carries a course code that is no longer in the registry,
+so the gate's unknown-code check fails and exits 1. A withdrawn staff PDF
+carries the *courses that lecturer taught* — `s104424.pdf` yields six entries
+across `MATH 1115` and `MATH 1194` — and both are still published, so every
+code in it resolves cleanly and the gate sees nothing wrong. The staff stray is
+invisible because it is plausible, not because it is empty.
+
+Loading `s104424.pdf` into publication 4 would have done two things:
+
+- **Re-attached a departed lecturer.** Five of its six classes still exist in
+  publication 4, so they would merge rather than duplicate — but each would
+  gain HARRIS,Shemwyn as staff. Publication 4 currently attributes those
+  MATH 1115 classes to ALEXANDER,Rhea, DYAANAND,Kiran and LATCHMAN,Gyshan, and
+  has no link to HARRIS at all.
+- **Resurrected a class that moved.** The MATH 1194 Lab ran Monday 13:00-15:00
+  in publication 3 and runs Monday 16:00-18:00 in publication 4. The stale file
+  would have reinserted the 13:00 sitting *alongside* the real 16:00 one, which
+  is precisely the "moved classes insert alongside their old rows" failure the
+  stale-registry rule in CLAUDE.md describes — reached here through a stale
+  *file* rather than a stale registry. A student would see two labs and no way
+  to tell which is real, and the stale entry would also raise the session's
+  cross-confirmation count, making the phantom look better attested.
+
+They were found by diffing the registry's `link=` attributes against the
+filenames on disk, which is the check STATUS.md now prescribes. That diff is
+the only one of the three that catches a staff withdrawal.
+
 ### Withdrawn between the publications of 14 August and 21 August 2026
 
 | File | Was |
@@ -64,5 +113,5 @@ normally.
 
 The sessions these files produced are not lost either way: each batch belongs
 to the last publication that carried it — publication 1 for the 6-to-14 August
-withdrawals, publication 2 for the 14-to-21 August ones — and every publication
-stays queryable in the warehouse.
+withdrawals, publication 2 for the 14-to-21 August ones, publication 3 for the
+21-to-27 August ones — and every publication stays queryable in the warehouse.
