@@ -855,12 +855,15 @@ body.explore {
     border-top: 1px solid var(--rule-soft);
 }
 
+/* The wash is the block, not a bar down one side of it: the whole surface
+   carries the gold and the hairline is the same gold at reading strength, so
+   the shape reads as one object rather than a rule with content beside it. */
 .tt-block {
     position: absolute;
     display: block;
     background: var(--gold-soft);
-    border-left: 3px solid var(--gold);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--gold-soft));
+    border-radius: var(--r-sm);
     padding: 0.25rem 0.4rem;
     font-size: 0.71rem;
     line-height: 1.25;
