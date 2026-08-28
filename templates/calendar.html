@@ -12,6 +12,30 @@
 -->
 <link rel="stylesheet" href="/assets/css/print.css?v={{ asset_version }}">
 <style>
+/*
+  The activity types are a categorical scale: the colour is a key that says
+  which of the three a block is, not a meaning in its own right. They get
+  their own tokens because the site's five-hue palette had already spent teal
+  on rooms and green on "added", and two categories drawn from hues this
+  close read as one colour once both are washed back to a tint a student can
+  read text on. Tutorial moved off green to violet for the distance; --green
+  still means "added" everywhere else, including the API dot and the success
+  alert. Lecture and lab keep teal and gold, which were never in conflict.
+*/
+:root {
+    --type-lecture:  var(--teal);
+    --type-lab:      var(--gold);
+    /* Gold is the one hue too light to read as small text on its own wash. */
+    --type-lab-ink:  var(--gold-ink);
+    --type-tutorial: #5B44A8;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --type-tutorial: #A38CEC;
+    }
+}
+
 /* Events Master-Detail Panel */
 .events-master-detail {
     display: flex;
@@ -90,10 +114,15 @@
     outline-offset: -2px;
 }
 
+/* Selection is a deeper wash of the same teal the hover state hints at, so
+   it outranks hover without a rule down the edge shifting the row's text. */
 .event-list-item.selected {
-    background: var(--accent-cyan-dim);
-    border-left: 3px solid var(--accent-cyan);
-    padding-left: 11px;
+    background: color-mix(in srgb, var(--accent-cyan) 24%, transparent);
+}
+
+/* The time sits in tertiary ink, which the deeper wash swallows. */
+.event-list-item.selected .event-list-time {
+    color: var(--text-secondary);
 }
 
 .event-list-item[aria-selected="true"] {
@@ -107,9 +136,9 @@
     flex-shrink: 0;
 }
 
-.event-dot.lecture { background: var(--accent-cyan); }
-.event-dot.lab { background: var(--accent-amber); }
-.event-dot.tutorial { background: var(--accent-green); }
+.event-dot.lecture { background: var(--type-lecture); }
+.event-dot.lab { background: var(--type-lab); }
+.event-dot.tutorial { background: var(--type-tutorial); }
 .event-dot.other { background: var(--text-tertiary); }
 
 .event-list-time {
@@ -220,9 +249,9 @@
     border-radius: 4px;
 }
 
-.detail-type-badge.lecture { background: color-mix(in srgb, var(--accent-cyan) 15%, transparent); color: var(--accent-cyan); }
-.detail-type-badge.lab { background: color-mix(in srgb, var(--accent-amber) 15%, transparent); color: var(--accent-amber-ink); }
-.detail-type-badge.tutorial { background: color-mix(in srgb, var(--accent-green) 15%, transparent); color: var(--accent-green); }
+.detail-type-badge.lecture { background: color-mix(in srgb, var(--type-lecture) 15%, transparent); color: var(--type-lecture); }
+.detail-type-badge.lab { background: color-mix(in srgb, var(--type-lab) 15%, transparent); color: var(--type-lab-ink); }
+.detail-type-badge.tutorial { background: color-mix(in srgb, var(--type-tutorial) 15%, transparent); color: var(--type-tutorial); }
 .detail-type-badge.other { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--text-secondary); }
 
 /* Detail field groups */
@@ -434,6 +463,34 @@
     line-height: 1.5;
 }
 
+/* The grid used to sit in a 1000px card inside a page measure half again as
+   wide, which read as the calendar being inset from everything above it and
+   left seven columns about 138px each — narrow enough that the room name
+   truncated on almost every block. It now takes the full page measure, the
+   same width as the events panel it sits under. */
+.calendar-card {
+    padding: 8px;
+}
+
+/* And that measure keeps going. Bootstrap's container stops growing at
+   1320px, which on a 1920px monitor strands 300px either side of a
+   seven-day grid that would happily use it. Widening the page rather than
+   the card alone keeps the grid and the events panel above it on one edge;
+   a calendar wider than the panel it belongs to reads as a mistake. */
+@media (min-width: 1600px) {
+    main.container {
+        max-width: min(1600px, calc(100vw - 8rem));
+    }
+
+    /* The list is capped at 420px so it cannot swallow a narrow page. On a
+       wide one that cap is what truncates the course title while the detail
+       column beside it runs half empty, so past here the 38% split does the
+       dividing instead. */
+    .events-list-column {
+        max-width: 620px;
+    }
+}
+
 .calendar-wrapper {
     position: relative;
     display: flex;
@@ -461,11 +518,12 @@
     border-radius: 3px;
 }
 
+/* The column is square. Its radius was what rounded the day heading, which
+   the clip inherited rather than the heading asking for it. */
 .day-column {
     flex: 1;
     min-width: 100px;
     background: var(--bg-surface);
-    border-radius: 6px;
     overflow: hidden;
 }
 
@@ -501,14 +559,17 @@
 }
 
 /* Blocks used to be 20% washes of their accent with accent-coloured text,
-   which read as ghosts over the grid lines. Solid surfaces with an accent
-   edge keep the type colour system while the text sits on real ground. */
+   which read as ghosts over the grid lines. The fix was a solid surface with
+   a 3px accent edge down the left, but a bar on one side is decoration doing
+   a job the surface can do: the wash now carries the activity type on its
+   own, deep enough to name the type at a glance and to hold the block's
+   ground against the grid, with the border an even hairline of the same
+   accent. Every text colour on a block is checked against the deeper wash. */
 .calendar-event {
     position: absolute;
     left: 2px;
     right: 2px;
     padding: 4px 6px;
-    border-radius: 5px;
     font-size: 0.62rem;
     cursor: grab;
     z-index: 2;
@@ -522,7 +583,6 @@
     transition: box-shadow 0.15s ease, transform 0.1s ease, filter 0.15s ease;
     color: var(--text-primary);
     border: 1px solid transparent;
-    border-left-width: 3px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
@@ -554,34 +614,27 @@
     border-top: 2px solid var(--accent-cyan);
 }
 
-/* The color-mix line wins where supported; the hex is the same mix baked in
-   for anything older, so the block is never transparent either way. */
-.calendar-event.lecture {
-    background: var(--bg-surface);
-    background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-surface));
-    border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
-    border-left-color: var(--accent-cyan);
-}
-
-.calendar-event.lab {
-    background: var(--bg-surface);
-    background: color-mix(in srgb, var(--accent-amber) 16%, var(--bg-surface));
-    border-color: color-mix(in srgb, var(--accent-amber) 35%, transparent);
-    border-left-color: var(--accent-amber);
-}
-
+/* Each type names its hue and this one rule builds the surface from it. The
+   plain background line first is the fallback for anything without
+   color-mix, so a block is never transparent over the grid lines. */
+.calendar-event.lecture,
+.calendar-event.lab,
 .calendar-event.tutorial {
     background: var(--bg-surface);
-    background: color-mix(in srgb, var(--accent-green) 16%, var(--bg-surface));
-    border-color: color-mix(in srgb, var(--accent-green) 35%, transparent);
-    border-left-color: var(--accent-green);
+    background: color-mix(in srgb, var(--type-hue) 24%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--type-hue) 58%, transparent);
 }
 
+.calendar-event.lecture  { --type-hue: var(--type-lecture); }
+.calendar-event.lab      { --type-hue: var(--type-lab); }
+.calendar-event.tutorial { --type-hue: var(--type-tutorial); }
+
+/* "Other" is the absence of a type rather than a fourth one, so it stays ink
+   at a weight that reads as unclassified next to three that carry a hue. */
 .calendar-event.other {
     background: var(--bg-surface);
-    background: color-mix(in srgb, var(--ink) 6%, var(--bg-surface));
+    background: color-mix(in srgb, var(--ink) 10%, var(--bg-surface));
     border-color: var(--border-medium);
-    border-left-color: var(--text-tertiary);
 }
 
 .calendar-event .event-course {
@@ -593,36 +646,47 @@
     gap: 4px;
 }
 
+/* The label sits on a wash of its own hue, so the raw hue is too close to its
+   ground to read at this size. Mixing toward --ink darkens it on the light
+   theme and lightens it on the dark one, the direction that gains contrast
+   in both. */
 .calendar-event .event-type {
     font-size: 0.54rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    color: color-mix(in srgb, var(--type-hue) 78%, var(--ink));
 }
 
-.calendar-event.lecture .event-type { color: var(--accent-cyan); }
-.calendar-event.lab .event-type { color: var(--accent-amber-ink); }
-.calendar-event.tutorial .event-type { color: var(--accent-green); }
+/* Gold at 78% is still too light on its own wash, so lab takes the ink shade
+   instead. "Other" has no hue to mix, so it takes secondary ink. */
+.calendar-event.lab .event-type { color: var(--type-lab-ink); }
 .calendar-event.other .event-type { color: var(--text-secondary); }
+
+/* Secondary ink on the deeper amber wash measured 4.45:1, just under AA at
+   0.58rem. Pulling it a third of the way to --text-primary darkens it on the
+   light theme and lightens it on the dark one, clearing AA on every wash. */
+.calendar-event .event-time,
+.calendar-event .event-room,
+.calendar-event .event-pin {
+    color: color-mix(in srgb, var(--text-secondary) 70%, var(--text-primary));
+}
 
 .calendar-event .event-time,
 .calendar-event .event-room {
     font-size: 0.58rem;
-    color: var(--text-secondary);
 }
 
 .calendar-event .event-pin {
     font-size: 0.55rem;
-    color: var(--text-secondary);
     flex-shrink: 0;
 }
 
 /* A block that genuinely collides with another. The ring says "clash"; the
    badge is the way in when the block itself is half-hidden or finger-sized. */
 .calendar-event.clash {
-    border-color: color-mix(in srgb, var(--accent-red) 60%, transparent);
-    border-left-color: var(--accent-red);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--accent-red) 35%, transparent);
+    border-color: color-mix(in srgb, var(--accent-red) 70%, transparent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--accent-red) 50%, transparent);
     /* Room for the badge, so it does not sit on the course code. */
     padding-right: 20px;
 }
@@ -1653,7 +1717,7 @@ button.resolve-option:focus-visible {
     </div>
 
     <!-- Calendar -->
-    <div class="surface-card" style="max-width: 1000px; margin: 0 auto; padding: 8px;">
+    <div class="surface-card calendar-card">
         <div class="calendar-scroll-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <div id="calendarWrapper" class="calendar-wrapper" style="min-width: 700px;">
                 <!-- 7 day columns -->
@@ -1675,9 +1739,9 @@ button.resolve-option:focus-visible {
     <!-- Legend -->
     <div class="mt-3 text-center">
         <span style="font-size: 0.7rem; color: var(--text-secondary);">
-            <span class="legend-dot" style="background: var(--accent-cyan);"></span>Lecture
-            <span class="legend-dot" style="background: var(--accent-amber); margin-left: 8px;"></span>Lab
-            <span class="legend-dot" style="background: var(--accent-green); margin-left: 8px;"></span>Tutorial
+            <span class="legend-dot" style="background: var(--type-lecture);"></span>Lecture
+            <span class="legend-dot" style="background: var(--type-lab); margin-left: 8px;"></span>Lab
+            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: 8px;"></span>Tutorial
             <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
             <i class="bi bi-pin-angle-fill" style="margin-left: 8px;"></i> Placed by you
             <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
