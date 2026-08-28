@@ -39,7 +39,7 @@ function change(over) {
 test('a class on a different day says where it went', () => {
   const line = describeChange(change());
   assert.equal(line.code, 'COMP 1601');
-  assert.equal(line.text, 'Lecture Mon 09:00 → Fri 09:00');
+  assert.equal(line.text, 'Lecture moved from Mon 09:00 to Fri 09:00');
   assert.equal(line.severity, 'act');
 });
 
@@ -144,7 +144,7 @@ test('a renamed course is filed under the code the student is holding', () => {
 
 test('a class with no activity type still reads as a sentence', () => {
   const line = describeChange(change({ activityType: null }));
-  assert.equal(line.text, 'class Mon 09:00 → Fri 09:00');
+  assert.equal(line.text, 'class moved from Mon 09:00 to Fri 09:00');
 });
 
 test('a confirmation with no room named does not print undefined', () => {

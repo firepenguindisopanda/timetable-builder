@@ -609,6 +609,23 @@
     cursor: grabbing;
 }
 
+/* A dragged block has to leave its column, and two things in the grid stop
+   it. The column clips its own overflow, so the block was cut off at the
+   column edge; and a flex item paints atomically, so the block's z-index
+   could not lift it over a sibling column laid out after it. Between them a
+   block dragged toward a free sitting one day over slid under the next
+   column's opaque surface exactly when the student needed to see where it
+   was going. The column that holds the block being dragged is the only
+   ancestor doing either, so both are lifted on that one column, for as long
+   as the drag lasts: the clip goes, and a z-index raises the whole column
+   over its siblings. Raising it is safe because columns never overlap - only
+   the block that has left one does. */
+.day-column:has(.calendar-event.dragging) {
+    overflow: visible;
+    position: relative;
+    z-index: 10;
+}
+
 .time-slot.drop-target {
     background: color-mix(in srgb, var(--accent-cyan) 15%, transparent);
     border-top: 2px solid var(--accent-cyan);
@@ -745,7 +762,6 @@
     left: 8px;
     right: 8px;
     border: 2px dashed color-mix(in srgb, var(--accent-cyan) 30%, transparent);
-    border-radius: 6px;
     background: color-mix(in srgb, var(--accent-cyan) 5%, transparent);
     z-index: 1;
     pointer-events: none;
@@ -1579,7 +1595,8 @@ button.resolve-option:focus-visible {
              hidden rather than blocking on the request. -->
         <ul id="staleChanges" class="stale-changes" hidden></ul>
         <a id="staleSeeAll" class="stale-see-all"
-           href="/explore/changes?from=calendar" hidden>See everything that changed →</a>
+           href="/explore/changes?from=calendar" hidden>See everything that changed<i
+               class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
     </div>
 
     <!-- Two ways in, offered only while the calendar is empty (9.1) -->
@@ -2504,7 +2521,12 @@ button.resolve-option:focus-visible {
 
                         target.dataset.dragX = x;
                         target.dataset.dragY = y;
-                        target.style.transform = `translate(${x}px, ${y}px)`;
+                        // The lift cue is the scale in `.calendar-event.dragging`,
+                        // and this inline transform outranks it, so writing the
+                        // translate alone killed the cue on the first pointer
+                        // move: a block was lifted for a frame and then flat for
+                        // the whole drag. It is carried here instead.
+                        target.style.transform = `translate(${x}px, ${y}px) scale(1.02)`;
 
                         document.querySelectorAll('.drop-zone.active').forEach(z => z.classList.remove('active'));
                         const zone = getGhostZoneAt(event.clientX, event.clientY);
