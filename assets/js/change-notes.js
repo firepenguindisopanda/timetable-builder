@@ -65,7 +65,7 @@ function _describeMove(change, type, before, after) {
     }
     return { severity: ACT, text: type + ' changed' };
   }
-  return { severity: ACT, text: type + ' ' + _at(b) + ' → ' + _at(a) };
+  return { severity: ACT, text: type + ' moved from ' + _at(b) + ' to ' + _at(a) };
 }
 
 /**
