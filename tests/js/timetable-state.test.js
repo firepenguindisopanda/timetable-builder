@@ -591,6 +591,49 @@ test('a placement whose class is gone is refilled, not left dangling', () => {
   assert.ok(state.placements.every((p) => ids.has(p.groupId)));
 });
 
+test('a class that moves while its group survives is refilled, not stranded', () => {
+  /**
+   * The 28 August 2026 republish. `refreshFromWarehouse` used to drop
+   * placements whose *group* had gone, which misses the ordinary case: UWI
+   * moves one sitting, the group stays, and the placement is left pointing at
+   * a session id the new publication does not have. It rendered nothing, held
+   * its group against the refill below, and reported nothing had changed.
+   * Ten of a student's twelve blocks disappeared until they reloaded.
+   */
+  const state = stateOf('COMP 1601');
+  const group = state.optionGroups.find((g) => g.sessions.length > 1);
+  const placed = state.placements.find((p) => p.groupId === group.groupId);
+
+  // The same class at a new time, which is a new row and so a new id. The
+  // group still exists because its other sittings are untouched.
+  const moved = TimetableState.fromWarehouseResponse(response('COMP 1601'));
+  const target = moved.courses[0].sessions.find(
+    (s) => s.sessionId === placed.selectedSessionId
+  );
+  target.sessionId = 999001;
+  target.day = 'Thursday';
+  target.streamId = api.get('computeStreamId')(
+    target.type, target.day, target.startTime, target.endTime, target.streamLabel
+  );
+
+  const result = state.refreshFromWarehouse(moved.courses, [], 2);
+
+  assert.equal(result.moved, 1, 'the moved class is reported, not silently kept');
+
+  const still = state.placements.find((p) => p.groupId === group.groupId);
+  assert.ok(still, 'the group is refilled rather than left empty');
+  assert.notEqual(still.selectedSessionId, placed.selectedSessionId);
+
+  // Every placement resolves to something the student can actually see.
+  const index = state.groupIndex;
+  for (const p of state.placements) {
+    assert.notEqual(
+      api.get('eventForPlacement')(p, index), null,
+      p.groupId + ' renders nothing'
+    );
+  }
+});
+
 test('a refresh does not disturb anything the student pinned', () => {
   const state = stateOf('COMP 1601');
   const menu = state.optionGroups.find((g) => g.sessions.length > 1);
