@@ -626,9 +626,17 @@ class TimetableState {
     this.publishedAt = publishedAt || this.publishedAt;
     this._invalidate();
 
-    const live = new Set(this.optionGroups.map(g => g.groupId));
-    const dropped = this.placements.filter(p => !live.has(p.groupId)).length;
-    this.placements = this.placements.filter(p => live.has(p.groupId));
+    // Resolve each placement rather than only checking that its group
+    // survived. A moved class leaves the group standing and takes the session
+    // with it, so a group-only check keeps a placement that renders nothing,
+    // still occupies its group, and therefore stops the refill below from
+    // filling the gap. On the 28 August 2026 republish that emptied ten of a
+    // student's twelve blocks while the toast said nothing had changed, and
+    // it only came back because opening the page again prunes.
+    const index = this.groupIndex;
+    const kept = this.placements.filter(p => eventForPlacement(p, index) !== null);
+    const dropped = this.placements.length - kept.length;
+    this.placements = kept;
 
     const placedGroups = new Set(this.placements.map(p => p.groupId));
     const dismissed = new Set(this.dismissedGroups);
