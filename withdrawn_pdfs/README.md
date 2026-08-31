@@ -24,6 +24,33 @@ registry — which is the gate doing its job.
 
 ## What is here
 
+### Withdrawn between the publications of 27 August and 28 August 2026
+
+| File | Was |
+|---|---|
+| `rooms/r76085.pdf` | UWI SPEC RM# 77 (Sports & Physical Education) |
+| `staff/s105463.pdf` | SOOKRAM, Sheldon (Law) |
+| `staff/s99343.pdf` | CHIN, Tricia (Law) |
+
+**The first withdrawn `room` resource.** Every earlier batch was modules and
+staff, which is why `withdrawn_pdfs/` had no `rooms/` subdirectory until this
+one. A withdrawn room is the same failure as a withdrawn staff PDF and not the
+one the gate catches: the room's PDF carries the courses that met there, all of
+which are still published, so every code in it resolves and the gate passes.
+
+The two staff resources are both Law, both `dept="6397" faculty="5079"`.
+
+This batch removed 3 and added 3 — `m112498.pdf` (MDSC 3401, Applied
+Paraclinical Sciences I), `m112499.pdf` (MDSC 3402, Applied Paraclinical
+Sciences II) and `m6792.pdf` (HIST 2008, Colonial Latin America). The registry
+count was therefore **1,640 both before and after**, an unchanged total across a
+republish that changed six resources. Nothing about the registry size hints
+that anything moved.
+
+None of the three additions is a rename of a withdrawal: two are Medical
+Sciences modules and one is History, against two Law staff and a Sports &
+Physical Education room.
+
 ### Withdrawn between the publications of 21 August and 27 August 2026
 
 | File | Was |
