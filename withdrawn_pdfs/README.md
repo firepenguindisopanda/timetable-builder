@@ -24,6 +24,70 @@ registry — which is the gate doing its job.
 
 ## What is here
 
+### Withdrawn between the publications of 4 September and 11 September 2026
+
+| File | Was |
+|---|---|
+| `m112677.pdf` | NURS 1110, Biochemistry |
+| `m2271.pdf` | HIST 2201, History of the U.S.A to 1865 |
+| `m2298.pdf` | HIST 3613, Modern Indian Diaspora |
+
+**All three are course PDFs, which is the kind the gate catches.** Had step 3
+been skipped, `validate_corpus.py` would have exited 1 on `NURS 1110`,
+`HIST 2201` and `HIST 3613` rather than passing. It exited 0 because the sweep
+ran first — the same order, and the same reason, as the 28 August batch.
+
+The warehouse diff agrees independently: publication 8 records exactly three
+`course_dropped` entries, and they are these three. Filenames against the
+registry and sessions against the previous publication are computed from
+different sources, and naming the same three courses is the strongest
+confirmation the sweep was complete.
+
+This batch removed 3 and added 1 — `m99788.pdf` (ENGR 3002, Engineering
+Internship). The registry went 1,642 to 1,640 while the corpus stood at 1,643
+against it, so `disk - registry = 3` gave the withdrawal count exactly.
+
+The addition is not a rename of any withdrawal: `ENGR 3002` is an engineering
+internship against a Biochemistry course and two History ones. `HIST 2201` and
+`HIST 3613` share `dept="20" faculty="5077"`; `NURS 1110` and the added
+`ENGR 3002` both carry `dept="0" faculty="0"`, which is the registry's
+placeholder rather than a shared department.
+
+### Withdrawn between the publications of 28 August and 2 September 2026
+
+| File | Was |
+|---|---|
+| `m1937.pdf` | EDLA 3111, Principles, Approaches & Methods in Teaching Standard Engl (School of Education) |
+| `m2232.pdf` | GOVT 6002, Methods of Political Research (Behavioural Sciences) |
+
+**The first course withdrawals in three republishes** — the 21-to-27 August
+batch was staff only and the 27-to-28 August one was staff and a room — and the
+first batch that is *only* courses. That matters for the gate: a withdrawn
+course PDF is the one kind the unknown-code check catches, so had step 3 been
+skipped, `validate_corpus.py` would have exited 1 on `EDLA 3111` and
+`GOVT 6002` rather than passing silently. It exited 0 here because the sweep
+ran first, which is the runbook's order and the reason to keep it.
+
+The warehouse diff agrees independently: publication 6 records exactly two
+`course_dropped` entries, `EDLA 3111` and `GOVT 6002`. Two checks computed from
+different sources — filenames against the registry, sessions against the
+previous publication — naming the same two courses is the strongest
+confirmation the sweep was complete.
+
+This batch removed 2 and added 5: `m3033.pdf` (SPMA 5000, Management in
+Sports) and four rooms — `r3478.pdf`, `r3479.pdf` and `r3480.pdf`
+(FHE SOE N 11, N 12 and N 13, School of Education) and `r3529.pdf`
+(FST CSL3). The registry went 1,640 to 1,643 and the corpus stood at 1,645
+against it, so `disk - registry = 2` gave the withdrawal count exactly.
+
+Neither withdrawal is a rename. `EDLA 3111` is School of Education and
+`GOVT 6002` Behavioural Sciences, against one Social Sciences module and four
+rooms added; the School of Education appears on both sides of this batch, but
+as three added *rooms*, not a re-keyed course. The rename that did happen this
+republish — `EDFL 11 **` to `EDFL 1145` — is not here, for the same reason
+`EDMA 11**` was not: the resource is still published and was re-downloaded
+normally.
+
 ### Withdrawn between the publications of 27 August and 28 August 2026
 
 | File | Was |

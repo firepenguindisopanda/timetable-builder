@@ -133,6 +133,26 @@ def test_the_page_names_both_publications(client):
     assert "6 August 2026" in body
 
 
+def test_a_single_digit_day_carries_no_leading_zero(client):
+    """
+    The assertion above cannot catch this: "06 August 2026" contains
+    "6 August 2026". The page once used `strftime("%-d")` for exactly this
+    rendering, which is glibc-only and crashed every test here on Windows, so
+    the portable replacement has to be held to the same output.
+    """
+    body = client.get(CHANGES_URL).text
+    assert "06 August" not in body
+
+
+def test_long_date_drops_the_leading_zero_on_every_platform():
+    assert explore_router.long_date(AUGUST_6) == "6 August 2026"
+    assert explore_router.long_date(AUGUST_14) == "14 August 2026"
+
+
+def test_long_date_can_leave_the_year_off():
+    assert explore_router.long_date(AUGUST_6, year=False) == "6 August"
+
+
 def test_every_kind_of_change_reaches_the_page(client):
     body = client.get(CHANGES_URL).text
     for expected in (

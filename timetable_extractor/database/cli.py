@@ -123,6 +123,9 @@ def main() -> int:
                 print(f"PDFs read    : {stats.pdfs_read}  (failed: {stats.pdfs_failed})")
                 print(f"Raw records  : {stats.raw_records}")
                 print(f"Sessions     : {stats.sessions} after merging")
+                if stats.horizon:
+                    print(f"Weeks from   : W{stats.horizon}  "
+                          f"(past weeks carried onto {stats.weeks_carried} sessions)")
                 print(f"Links        : {stats.staff_links} staff, {stats.source_links} sources")
                 print(f"Changes      : {stats.changes} vs the previous publication"
                       f"{'  (first publication, nothing to compare)' if not stats.changes else ''}")

@@ -16,6 +16,7 @@ import logging
 import threading
 import time
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import quote
@@ -39,8 +40,24 @@ logger = get_logger("timetable.explore")
 #: aggregates all run well under 500ms against a warm database.
 SLOW_QUERY_MS = 500.0
 
+
+def long_date(value: datetime, year: bool = True) -> str:
+    """Render a date as "11 September 2026", with no leading zero on the day.
+
+    The obvious spelling is ``strftime("%-d %B %Y")``, and that is what the
+    changes page used until it was run on Windows. ``%-d`` is a glibc
+    extension: it works on the Linux deployment and raises ``ValueError:
+    Invalid format string`` on Windows' CRT, so every one of the 13
+    `/explore/changes` tests failed on a developer machine while the live page
+    rendered perfectly. Formatting the day separately is portable.
+    """
+    tail = value.strftime("%B %Y") if year else value.strftime("%B")
+    return f"{value.day} {tail}"
+
+
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
 templates.env.filters["urlpath"] = lambda value: quote(str(value), safe="")
+templates.env.filters["long_date"] = long_date
 templates.env.globals["asset_version"] = static_version.asset_version()
 # Positioning a week grid is arithmetic, not markup, so the template calls into
 # Python for it rather than doing minute maths in Jinja.
