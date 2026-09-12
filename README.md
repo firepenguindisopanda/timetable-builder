@@ -284,6 +284,27 @@ leaving the class on both days. Re-load with `--replace`:
 uv run python -m timetable_extractor.database.cli load --replace
 ```
 
+The old sessions are cleared in the same transaction as the insert, so the live
+site keeps serving them until the re-extraction commits.
+
+### Weeks that have passed
+
+CELCAT exports each timetable from the current teaching week on, and says so in
+every PDF title: `(Wks W2-W12)` in week 2. `load` reads that horizon and takes
+each session's earlier weeks back from the previous publication's sitting in
+the same slot, so a W1-W12 class stays W1-W12 all semester instead of losing a
+week per republish. It prints what it did:
+
+```
+Weeks from   : W2  (past weeks carried onto 2790 sessions)
+```
+
+A class with no earlier sitting in its slot — new, or moved — keeps what the
+PDF prints. `past_weeks_ambiguous` is logged when several earlier sittings
+could be the source and none matches exactly; those are left as printed.
+`export_horizon_mixed` means the PDFs in one pull disagree on the horizon.
+The logic and its reasons are in `timetable_extractor/database/horizon.py`.
+
 ---
 
 ## The Timetable Explorer

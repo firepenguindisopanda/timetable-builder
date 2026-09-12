@@ -20,13 +20,18 @@ import psycopg
 
 from timetable_extractor.database.changes import previous_publication, store_diff
 from timetable_extractor.database.courses import build_code_index, resolve_course_code
+from timetable_extractor.database.horizon import carry_past_weeks, earlier_sittings
 from timetable_extractor.database.people import build_name_index, resolve_name
 from timetable_extractor.database.records import (
     SessionRecord,
     merge_records,
     records_from_extraction,
 )
+from timetable_extractor.database.weeks import export_horizon
 from timetable_extractor.extract import extract_timetable
+from timetable_extractor.observability import Diagnostics, get_logger
+
+logger = get_logger(__name__)
 
 # "Published 06-Aug-26 2:22:58 PM - University of the West Indies St. Augustine"
 _PUBLISHED = re.compile(
@@ -57,6 +62,11 @@ class LoadStats:
     #: Changes recorded against the previous publication. Zero on the first
     #: load, when there is nothing to compare against.
     changes: int = 0
+    #: The first teaching week these PDFs cover, from their titles. None when
+    #: no title said.
+    horizon: int | None = None
+    #: Sessions that took their past weeks back from the previous publication.
+    weeks_carried: int = 0
 
 
 def parse_published_at(xml_text: str) -> datetime | None:
@@ -464,7 +474,13 @@ def load_all(
     changing the extractor. Sessions are keyed on their content, so a fix that
     moves a class to a different day inserts a corrected row without removing
     the wrong one, leaving the class on both days. Replacing clears the
-    publication's sessions first so the reload is a true re-extraction.
+    publication's sessions so the reload is a true re-extraction.
+
+    The clear happens in the same transaction as the insert, after extraction
+    rather than before it. Replacing the *current* publication used to delete
+    its sessions and commit straight away, and then spend ten minutes reading
+    PDFs, so the live site served that publication with no classes at all for
+    the whole extraction.
     """
     xml_bytes = finder_xml.read_bytes()
     resource_count = len(ET.fromstring(xml_bytes).findall("resource"))
@@ -477,22 +493,14 @@ def load_all(
         resource_count=resource_count,
     )
 
-    if replace and reused:
-        with conn.cursor() as cur:
-            # session_staff and session_sources cascade from sessions.
-            cur.execute(
-                "DELETE FROM sessions WHERE publication_id = %s", (publication_id,)
-            )
-            removed = cur.rowcount
-        conn.commit()
-        if progress:
-            print(f"  replaced: cleared {removed} existing sessions", flush=True)
-
     index_counts = load_index(conn, xml_bytes, publication_id)
 
     paths = iter_pdfs(pdf_dirs)
     raw: list[SessionRecord] = []
     read = failed = 0
+    #: Each PDF's export horizon, keyed by filename as `SessionRecord.sources` is.
+    horizons: dict[str, int | None] = {}
+    diagnostics = Diagnostics(source=finder_xml.name)
 
     for position, path in enumerate(paths, 1):
         if progress and position % 100 == 0:
@@ -504,6 +512,9 @@ def load_all(
             print(f"  ! {path.name}: {type(exc).__name__}: {exc}", flush=True)
             continue
         read += 1
+        horizons[path.name] = export_horizon(result.get("course_title"))
+        if horizons[path.name] is None:
+            diagnostics.add("export_horizon_missing", source=path.name)
         raw.extend(records_from_extraction(result, source=path.name))
 
     pdf_ids = register_pdfs(conn, paths)
@@ -524,6 +535,46 @@ def load_all(
         )
 
     merged = merge_records(raw)
+
+    # The PDFs only print weeks from the current teaching week on. Weeks that
+    # have passed are taken back from the publication before this one, or the
+    # diff reports every class as moved each week. See horizon.py.
+    distinct = sorted({h for h in horizons.values() if h is not None})
+    if len(distinct) > 1:
+        diagnostics.add("export_horizon_mixed", horizons=distinct)
+    # The diff takes the lowest, so no week a PDF still printed counts as past.
+    # Carrying is decided per record from its own sources, so it only needs to
+    # know whether any PDF has moved past week 1.
+    horizon = distinct[0] if distinct else None
+
+    previous = previous_publication(conn, publication_id)
+    weeks_carried = 0
+    if previous and distinct and distinct[-1] > 1:
+        weeks_carried = carry_past_weeks(
+            merged, earlier_sittings(conn, previous), horizons, diagnostics
+        )
+    if progress and horizon:
+        print(
+            f"  weeks from W{horizon}: past weeks carried onto {weeks_carried} sessions",
+            flush=True,
+        )
+    diagnostics.emit(logger)
+    if progress:
+        for finding, count in sorted(diagnostics.findings.items()):
+            print(f"  ! {finding}: {count}", flush=True)
+
+    if replace and reused:
+        with conn.cursor() as cur:
+            # session_staff and session_sources cascade from sessions. Not
+            # committed here: write_sessions commits the insert, and readers
+            # see the old rows until then.
+            cur.execute(
+                "DELETE FROM sessions WHERE publication_id = %s", (publication_id,)
+            )
+            removed = cur.rowcount
+        if progress:
+            print(f"  replacing {removed} existing sessions", flush=True)
+
     written, staff_links, source_links = write_sessions(
         conn, publication_id, merged, pdf_ids
     )
@@ -536,8 +587,7 @@ def load_all(
     # What this republish changed, computed now rather than on every page view.
     # A `--replace` reload rewrites the sessions the stored diff was derived
     # from, so this recomputes rather than appending.
-    previous = previous_publication(conn, publication_id)
-    changes = store_diff(conn, previous, publication_id) if previous else 0
+    changes = store_diff(conn, previous, publication_id, horizon=horizon) if previous else 0
     if progress and previous:
         print(f"  changes vs publication {previous}: {changes}", flush=True)
 
@@ -556,4 +606,6 @@ def load_all(
         source_links=source_links,
         reused_publication=reused,
         changes=changes,
+        horizon=horizon,
+        weeks_carried=weeks_carried,
     )

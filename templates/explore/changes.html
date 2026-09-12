@@ -69,18 +69,18 @@
       <h1>Nothing changed</h1>
       <p class="detail-sub">
         UWI republished the timetable on
-        <time datetime="{{ changes.to_published_at }}">{{ changes.to_published_at.strftime('%-d %B %Y') }}</time>,
+        <time datetime="{{ changes.to_published_at }}">{{ changes.to_published_at | long_date }}</time>,
         but no course or class is different from the version published on
-        {{ changes.from_published_at.strftime('%-d %B %Y') }}.
+        {{ changes.from_published_at | long_date }}.
       </p>
     {% else %}
-      <h1>What moved in the {{ changes.to_published_at.strftime('%-d %B') }} timetable</h1>
+      <h1>What moved in the {{ changes.to_published_at | long_date(year=False) }} timetable</h1>
       <p class="detail-sub">
         UWI republished the whole timetable on
-        {{ changes.to_published_at.strftime('%-d %B %Y') }}. Most of it is
+        {{ changes.to_published_at | long_date }}. Most of it is
         unchanged. These are the {{ changes.total }} course{{ 's' if changes.total != 1 }} and
         class{{ 'es' if changes.total != 1 }} that are not, measured against the
-        version published on {{ changes.from_published_at.strftime('%-d %B %Y') }}.
+        version published on {{ changes.from_published_at | long_date }}.
       </p>
 
       <div class="figures">

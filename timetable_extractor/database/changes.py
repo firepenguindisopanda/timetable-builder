@@ -27,6 +27,8 @@ from typing import Any, Iterable
 import psycopg
 from psycopg.types.json import Json
 
+from timetable_extractor.database.weeks import expand_weeks
+
 #: Rooms CELCAT publishes when it has not allocated one yet. A class going
 #: from one of these to a real room has not moved; its venue was confirmed,
 #: which is good news and is reported as its own kind so the page can say so.
@@ -114,8 +116,18 @@ def _is_venue_confirmation(
     return _is_placeholder_room(b["room"]) and not _is_placeholder_room(a["room"])
 
 
+def _finished_before(row: dict[str, Any], horizon: int | None) -> bool:
+    """Whether every week a session ran in falls before the export horizon."""
+    if not horizon:
+        return False
+    weeks = expand_weeks(row.get("weeks_raw"))
+    return bool(weeks) and max(weeks) < horizon
+
+
 def diff_sessions(
-    before_rows: list[dict[str, Any]], after_rows: list[dict[str, Any]]
+    before_rows: list[dict[str, Any]],
+    after_rows: list[dict[str, Any]],
+    horizon: int | None = None,
 ) -> list[Change]:
     """
     The changes between two publications' session rows.
@@ -124,9 +136,19 @@ def diff_sessions(
     database. Each row needs `code`, `title`, `activity_type`, `stream_label`,
     `day`, `start_min`, `end_min`, `room`, `weeks_raw` and `resource_id`.
 
+    `horizon` is the first teaching week the newer publication's PDFs cover
+    (see `horizon.py`). An earlier session whose weeks all fall before it has
+    finished, not been withdrawn, and is left out rather than reported as a
+    removal: ten week-1-only classes would otherwise have been on the
+    11 September page. Only the loader knows the horizon, so a live diff
+    between publications that are not neighbours runs without it, and there a
+    finished class can still read as removed.
+
     Output order is stable, so re-running a diff produces the same rows in the
     same order and a stored diff can be compared against a fresh one.
     """
+    before_rows = [row for row in before_rows if not _finished_before(row, horizon)]
+
     titles: dict[str, str | None] = {}
     resources: dict[str, Any] = {}
     for row in [*before_rows, *after_rows]:
@@ -301,17 +323,24 @@ def previous_publication(conn: psycopg.Connection, publication_id: int) -> int |
 
 
 def diff_publications(
-    conn: psycopg.Connection, from_publication_id: int, to_publication_id: int
+    conn: psycopg.Connection,
+    from_publication_id: int,
+    to_publication_id: int,
+    horizon: int | None = None,
 ) -> list[Change]:
     """The changes between two publications, in either direction of time."""
     return diff_sessions(
         _session_rows(conn, from_publication_id),
         _session_rows(conn, to_publication_id),
+        horizon=horizon,
     )
 
 
 def store_diff(
-    conn: psycopg.Connection, from_publication_id: int, to_publication_id: int
+    conn: psycopg.Connection,
+    from_publication_id: int,
+    to_publication_id: int,
+    horizon: int | None = None,
 ) -> int:
     """
     Compute and persist a diff, replacing any already stored for the pair.
@@ -320,7 +349,9 @@ def store_diff(
     was computed from, and a diff describing rows that no longer exist is worse
     than no diff.
     """
-    changes = diff_publications(conn, from_publication_id, to_publication_id)
+    changes = diff_publications(
+        conn, from_publication_id, to_publication_id, horizon=horizon
+    )
     with conn.cursor() as cur:
         cur.execute(
             """
