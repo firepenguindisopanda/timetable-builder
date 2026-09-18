@@ -481,20 +481,25 @@ def load_all(
     its sessions and commit straight away, and then spend ten minutes reading
     PDFs, so the live site served that publication with no classes at all for
     the whole extraction.
+
+    Nothing is written until every PDF has been read, for the same reason: a
+    new publication becomes the current one the moment its row is committed,
+    and a publication with no sessions yet is an empty timetable. Extraction
+    needs no database, so it runs first and the writes follow it.
     """
     xml_bytes = finder_xml.read_bytes()
     resource_count = len(ET.fromstring(xml_bytes).findall("resource"))
 
-    publication_id, reused = upsert_publication(
-        conn,
-        xml_bytes,
-        http_last_modified=http_last_modified,
-        http_etag=http_etag,
-        resource_count=resource_count,
-    )
-
-    index_counts = load_index(conn, xml_bytes, publication_id)
-
+    # Read the PDFs before the publication row exists. `latest_publication`
+    # picks the newest publication and `current_sessions` reads only that one,
+    # so a publication row created up front is current for the whole twenty
+    # minutes of extraction while it still has no sessions - the live site
+    # serves an empty timetable, exactly as the `--replace` path used to.
+    # On 17 Sep 2026 the connection dropped mid-extraction and the load never
+    # reached `write_sessions`, so that window stayed open: /explore/ops.json
+    # reported 0 sessions and 0 courses until the publication was reloaded.
+    # Extraction needs no database, so it happens first and a crash here now
+    # leaves the previous publication current.
     paths = iter_pdfs(pdf_dirs)
     raw: list[SessionRecord] = []
     read = failed = 0
@@ -516,6 +521,16 @@ def load_all(
         if horizons[path.name] is None:
             diagnostics.add("export_horizon_missing", source=path.name)
         raw.extend(records_from_extraction(result, source=path.name))
+
+    publication_id, reused = upsert_publication(
+        conn,
+        xml_bytes,
+        http_last_modified=http_last_modified,
+        http_etag=http_etag,
+        resource_count=resource_count,
+    )
+
+    index_counts = load_index(conn, xml_bytes, publication_id)
 
     pdf_ids = register_pdfs(conn, paths)
 
