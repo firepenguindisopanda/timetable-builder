@@ -287,8 +287,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS publication_changes_identity_idx
 
 -- Convenience views
 
+-- The publication students are served: the newest one that actually has
+-- sessions. The EXISTS is not cosmetic. A publication row is committed before
+-- its sessions are written, so without it a load still in progress is already
+-- "current" while empty, and current_sessions - which every student-facing
+-- query reads - returns nothing at all. On 17 September 2026 a load died
+-- between the two commits and the live site served an empty timetable until it
+-- was run again. loader.load_all now extracts before it writes anything, which
+-- shrinks that window to the final insert; this closes it wherever a load
+-- stops. The cost is an index lookup on sessions_publication_idx.
 CREATE OR REPLACE VIEW latest_publication AS
-    SELECT * FROM publications ORDER BY COALESCE(published_at, discovered_at) DESC LIMIT 1;
+    SELECT * FROM publications p
+     WHERE EXISTS (SELECT 1 FROM sessions s WHERE s.publication_id = p.id)
+     ORDER BY COALESCE(p.published_at, p.discovered_at) DESC LIMIT 1;
 
 -- The timetable as it currently stands, flattened for querying.
 CREATE OR REPLACE VIEW current_sessions AS
