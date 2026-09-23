@@ -47,9 +47,9 @@ browser against the local dev server.
       Files: none committed.
 
 ### Checkpoint A
-- [ ] You pick the theme.
-- [ ] Spec §4.3–§4.5 are corrected to the names the spike proved.
-- [ ] Create a branch for phase B (`git checkout -b fullcalendar-grid`).
+- [x] You pick the theme. *Forma, 22 Sep 2026.*
+- [x] Spec §4.3–§4.5 are corrected to the names the spike proved.
+- [x] Create a branch for phase B (`git checkout -b fullcalendar-grid`).
 
 ## Phase B: parity
 
