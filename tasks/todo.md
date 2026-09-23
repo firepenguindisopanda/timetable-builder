@@ -17,7 +17,7 @@ browser against the local dev server.
 
 ## Phase A: groundwork
 
-- [ ] **1** Docs.
+- [x] **1** Docs. *Done 22 Sep 2026; the docs are not tracked in git, so nothing to commit but this tick.*
       ~~Add `FULLCALENDAR-SPEC.md` and this plan to CLAUDE.md's doc table~~
       (done 22 Sep 2026, when this replaced the picker's plan). Rewrite ICS-EXPORT-SPEC §3.3 from "unresolved"
       to decided: reading 1, week 1 begins Mon 31 Aug 2026 for Semester 1 and
