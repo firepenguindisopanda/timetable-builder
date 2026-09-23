@@ -87,7 +87,7 @@ browser against the local dev server.
       S. Needs 3.
       Files: `templates/calendar.html`
 
-- [ ] **5** Drag to an alternative. *Built and committed 23 Sep 2026; one real drag verified (5 zones, moved, pinned, zones cleared). **Still to check with the browser pane visible:** a refused drop, the two-rooms case, touch. Found on the way: under prefers-reduced-motion a refused drop left the drag stuck (fixed with `dragRevertDuration: 0`), and v7 renamed `slotLabelFormat` to `slotHeaderFormat`.*
+- [x] **5** Drag to an alternative. *Done 23 Sep 2026, checked with real mouse and touch input in headless Chrome: 5 zones, move and pin, refused drop, two rooms (first wins), undo, with and without reduced motion. Without `dragRevertDuration: 0`, a refused drop under reduced motion left the zones and a floating copy on screen and killed the next drag; proven, then fixed. Touch: a quick swipe scrolls, a 1 s hold drags. v7 renamed `slotLabelFormat` to `slotHeaderFormat`.*
       Add `dropTargets` and `resolveDrop` to `calendar-events.js`, with tests
       (spec §4.2 and §6). Set `editable: true` and
       `eventDurationEditable: false`. `eventDragStart` adds the targets as
@@ -106,10 +106,10 @@ browser against the local dev server.
       `tests/js/calendar-events.test.js`, `templates/calendar.html`
 
 ### Checkpoint B
-- [ ] Both suites pass.
-- [ ] Manual checks 1–6 and 10–12 pass.
-- [ ] Touch drag delay reported; your call if it needs changing.
-- [ ] Review with you before styling.
+- [x] Both suites pass.
+- [x] Manual checks 1–6 and 10–12 pass.
+- [x] Touch drag delay reported; your call if it needs changing. *FullCalendar's default 1 s long press, kept.*
+- [x] Review with you before styling. *Replaced by a self-check: you chose to stop only at the theme.*
 
 ## Phase C: finish
 
