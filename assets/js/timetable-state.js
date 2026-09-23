@@ -29,7 +29,10 @@ function _formatTime(t) {
  * A course code as it would be published, or null if the text is not one.
  *
  * CELCAT titles read "COMP 2601, Computer Architecture", so the code is
- * whatever precedes the first comma. The shape test is deliberately strict:
+ * whatever precedes the first comma. A course PDF's title as /extract returns
+ * it also opens with "Course timetable - ", which hid the code in every real
+ * upload, so that prefix is skipped. Only that one: a staff or room
+ * timetable is not a course. The shape test is deliberately strict:
  * mistaking "IENG 3017 LALLA" for a code would key an uploaded course onto
  * something the warehouse never published, and a course that quietly fails to
  * match is better than one that quietly matches the wrong thing.
@@ -40,9 +43,12 @@ function _formatTime(t) {
  */
 const COURSE_CODE_SHAPE = /^[A-Z]{2,6} ?\d{2,4}[A-Z]?( \([^()]*\))?$/;
 
+//: How CELCAT opens a course PDF's title: "Course timetable - LAW 0101, ...".
+const COURSE_TIMETABLE_PREFIX = /^\s*course timetable\s*-\s*/i;
+
 function courseCodeFromTitle(title) {
   if (!title) return null;
-  const head = String(title).split(',')[0];
+  const head = String(title).replace(COURSE_TIMETABLE_PREFIX, '').split(',')[0];
   const cleaned = head.trim().replace(/\s+/g, ' ').toUpperCase();
   return COURSE_CODE_SHAPE.test(cleaned) ? cleaned : null;
 }
