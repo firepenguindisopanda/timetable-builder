@@ -156,3 +156,85 @@ test('a class ending exactly on the hour does not add an empty hour', () => {
 
   assert.equal(range.slotMaxTime, '23:00');
 });
+
+// Dragging a class to one of its alternatives
+
+const { dropTargets, resolveDrop, toDropZones } =
+  api.take('dropTargets', 'resolveDrop', 'toDropZones');
+
+function sitting(sessionId, day, startTime, endTime, room = 'FST C1') {
+  return { sessionId, day, startTime, endTime, room };
+}
+
+test('every sitting of the dragged class\'s group is somewhere it can land, its own included', () => {
+  const options = [sitting(1, 'Monday', '09:00', '10:00'), sitting(2, 'Tuesday', '09:00', '10:00')];
+  const placements = [{ groupId: 'g', selectedSessionId: 1 }];
+
+  assert.deepEqual(dropTargets(options, placements, 'g', 1).map(s => s.sessionId), [1, 2]);
+});
+
+test('a sitting another placement of the group already shows is not a target', () => {
+  const options = [
+    sitting(1, 'Monday', '09:00', '10:00'),
+    sitting(2, 'Tuesday', '09:00', '10:00'),
+    sitting(3, 'Wednesday', '09:00', '10:00'),
+  ];
+  // An extra sitting: the group shows 1 and 2, and 1 is being dragged.
+  const placements = [
+    { groupId: 'g', selectedSessionId: 1 },
+    { groupId: 'g', selectedSessionId: 2 },
+    { groupId: 'other', selectedSessionId: 3 },
+  ];
+
+  assert.deepEqual(dropTargets(options, placements, 'g', 1).map(s => s.sessionId), [1, 3]);
+});
+
+test('a drop whose middle lands inside a sitting picks that sitting', () => {
+  const targets = [sitting(1, 'Monday', '09:00', '10:00'), sitting(2, 'Wednesday', '12:00', '13:00')];
+
+  // Dropped at 11:30 for an hour: its middle is 12:00, inside the Wednesday sitting.
+  assert.equal(resolveDrop(targets, 'Wednesday', 11 * 60 + 30, 60), 2);
+});
+
+test('a drop on the right hour of the wrong day lands nowhere', () => {
+  const targets = [sitting(2, 'Wednesday', '12:00', '13:00')];
+
+  assert.equal(resolveDrop(targets, 'Thursday', 12 * 60, 60), null);
+});
+
+test('a drop between two sittings lands nowhere rather than snapping to the nearer', () => {
+  const targets = [sitting(1, 'Monday', '09:00', '10:00'), sitting(2, 'Monday', '14:00', '15:00')];
+
+  assert.equal(resolveDrop(targets, 'Monday', 11 * 60, 60), null);
+});
+
+test('a middle exactly on a sitting\'s end belongs to the next, not to it', () => {
+  const targets = [sitting(1, 'Monday', '09:00', '10:00'), sitting(2, 'Monday', '10:00', '11:00')];
+
+  assert.equal(resolveDrop(targets, 'Monday', 9 * 60 + 30, 60), 2);
+});
+
+test('two rooms running the same sitting: the first in option order, as the old zones did', () => {
+  const targets = [
+    sitting(1, 'Tuesday', '12:00', '13:00', 'LRC A'),
+    sitting(2, 'Tuesday', '12:00', '13:00', 'LRC B'),
+  ];
+
+  assert.equal(resolveDrop(targets, 'Tuesday', 12 * 60, 60), 1);
+});
+
+test('12-hour sitting times from an uploaded PDF resolve like 24-hour ones', () => {
+  const targets = [sitting('COMP-L2', 'Friday', '2:00 PM', '3:00 PM')];
+
+  assert.equal(resolveDrop(targets, 'Friday', 14 * 60, 60), 'COMP-L2');
+});
+
+test('drop zones are background events in the anchor week, styled as drop zones', () => {
+  const zones = toDropZones([sitting(2, 'Wednesday', '12:00', '13:00'), sitting(9, 'Funday', '12:00', '13:00')]);
+
+  assert.equal(zones.length, 1);
+  assert.equal(zones[0].start, '2026-09-02T12:00:00');
+  assert.equal(zones[0].end, '2026-09-02T13:00:00');
+  assert.equal(zones[0].display, 'background');
+  assert.equal(zones[0].className, 'drop-zone');
+});

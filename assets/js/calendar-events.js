@@ -117,3 +117,52 @@ function visibleRange(placedEvents) {
   const lastHour = Math.min(24, Math.ceil(last / 60));
   return { slotMinTime: _clock(firstHour * 60), slotMaxTime: _clock(lastHour * 60) };
 }
+
+// Dragging a class to one of its alternatives
+
+/**
+ * Where a dragged class may land: its option group's sittings, minus any that
+ * another placement of the same group already shows.
+ *
+ * Landing on one of those would fold two attended sittings into one block.
+ * The dragged class's own sitting stays a target, because dropping a class
+ * back where it stands is how a student pins it there.
+ */
+function dropTargets(options, placements, groupId, draggedSessionId) {
+  const taken = new Set(placements
+    .filter(p => p.groupId === groupId && p.selectedSessionId !== draggedSessionId)
+    .map(p => p.selectedSessionId));
+  return options.filter(session => !taken.has(session.sessionId));
+}
+
+/**
+ * The sitting a drop landed on, or null to put the class back.
+ *
+ * The drop counts where its middle lands, as the hand-built grid counted the
+ * centre of the block. A drop between sittings lands nowhere rather than on
+ * the nearer one: snapping would move a class somewhere the student did not
+ * aim. Two rooms running the same sitting both contain the middle, and the
+ * first in option order wins, as the first drop zone did before.
+ */
+function resolveDrop(targets, droppedDay, droppedStartMins, durationMins) {
+  const middle = droppedStartMins + durationMins / 2;
+  const hit = targets.find(session => session.day === droppedDay
+    && timeToMins(session.startTime) <= middle
+    && middle < timeToMins(session.endTime));
+  return hit ? hit.sessionId : null;
+}
+
+/** Drop targets as FullCalendar background events in the anchor week. */
+function toDropZones(targets, anchorMonday = ANCHOR_MONDAY) {
+  return targets
+    .filter(session => DAYS.includes(session.day))
+    .map(session => {
+      const date = _dateOfDay(anchorMonday, DAYS.indexOf(session.day));
+      return {
+        start: `${date}T${_clock(timeToMins(session.startTime))}:00`,
+        end: `${date}T${_clock(timeToMins(session.endTime))}:00`,
+        display: 'background',
+        className: 'drop-zone',
+      };
+    });
+}
