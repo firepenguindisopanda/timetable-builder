@@ -29,7 +29,7 @@ browser against the local dev server.
       XS. No dependencies.
       Files: `CLAUDE.md`, `ICS-EXPORT-SPEC.md`
 
-- [ ] **2** Spike: theme and v7 API check.
+- [x] **2** Spike: theme and v7 API check. *Done 22 Sep 2026; Forma recommended, findings go into the spec at checkpoint A.*
       Scratch page in the scratchpad, not the repo, loading
       `fullcalendar@7.1.0/all/global.js`, with a dozen fake events copied from
       the fixture's shape. For each of the four themes: light and dark, and
