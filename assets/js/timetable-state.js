@@ -846,15 +846,21 @@ function migrateV2toV3(v2Data) {
     || [];
 
   // v2 courses carry `streams` and a title-derived `courseId`; v3 wants
-  // `sessions` and a course code where the title offers one.
+  // `sessions` and a course code where the title offers one. A payload
+  // straight out of migrateV1toV2 already has v3 courses with a `courseKey`
+  // and no `courseId`, and that key is kept: rebuilding it from the code alone
+  // left an upload whose title has none keyed `undefined`, and JSON then lost
+  // the key on save, so the course fell off the timetable on the next load.
   const remap = new Map();
   const courses = sourceData.courses.map(course => {
-    const courseKey = courseCodeFromTitle(course.title) || course.courseId;
+    const code = course.code !== undefined ? course.code : courseCodeFromTitle(course.title);
+    const courseKey = course.courseKey || code || course.courseId
+      || titleDerivedKey(course.title);
     remap.set(course.courseId, courseKey);
     return {
       courseKey,
       origin: 'upload',
-      code: courseCodeFromTitle(course.title),
+      code,
       title: course.title,
       faculty: null,
       department: null,
@@ -931,7 +937,7 @@ function readSavedState(storage) {
   };
 
   const v3 = parse(STORAGE_KEY_V3);
-  if (v3 && v3.version === 3) return v3;
+  if (v3 && v3.version === 3) return repairLostCourseKeys(v3);
 
   const v2 = parse(STORAGE_KEY_V2);
   if (v2 && v2.version === 2) return migrateV2toV3(v2);
@@ -940,6 +946,74 @@ function readSavedState(storage) {
   if (v1) return migrateV2toV3(migrateV1toV2(v1));
 
   return null;
+}
+
+//: The group-id and override prefix of a course whose key was lost.
+const LOST_KEY_PREFIX = 'undefined|';
+
+/**
+ * Give back the keys a v1 migration lost, in a timetable saved while it did.
+ *
+ * migrateV2toV3 used to key an upload with no recognisable code `undefined`.
+ * JSON then dropped the key from the course and wrote `null` into
+ * courseKeys, so on the next load the course matched nothing and vanished,
+ * while its placements, dismissals and overrides stayed filed under
+ * "undefined|". Each keyless course gets the key the extract reader would
+ * have given it. With one such course everything under "undefined|" is its
+ * own and is renamed, keeping any class the student placed by hand. With
+ * several, they had already collided under that prefix and which course owned
+ * what is gone, so those entries are dropped and auto-placement refills them.
+ * A course is put back on the timetable only where a `null` in courseKeys says
+ * it was on it: removing it had filtered the undefined out entirely.
+ *
+ * Undo history is cleared when anything is repaired, since every snapshot in
+ * it still names the old groups.
+ */
+function repairLostCourseKeys(saved) {
+  const courses = saved.courses || [];
+  if (courses.every(c => c.courseKey)) return saved;
+
+  const repaired = [];
+  const fixedCourses = courses.map(c => {
+    if (c.courseKey) return c;
+    const courseKey = c.code || courseCodeFromTitle(c.title) || titleDerivedKey(c.title);
+    repaired.push(courseKey);
+    return { ...c, courseKey };
+  });
+
+  const wasOnTimetable = (saved.courseKeys || []).includes(null);
+  const courseKeys = (saved.courseKeys || [])
+    .filter(k => typeof k === 'string')
+    .concat(wasOnTimetable ? repaired : []);
+
+  const only = repaired.length === 1 ? repaired[0] : null;
+  const rename = id => only + '|' + id.slice(LOST_KEY_PREFIX.length);
+  const lost = id => String(id).startsWith(LOST_KEY_PREFIX);
+
+  const placements = (saved.placements || []).flatMap(p => {
+    if (!lost(p.groupId)) return [p];
+    return only ? [{ ...p, courseKey: only, groupId: rename(p.groupId) }] : [];
+  });
+  const dismissedGroups = (saved.dismissedGroups || []).flatMap(id => {
+    if (!lost(id)) return [id];
+    return only ? [rename(id)] : [];
+  });
+  const optionGroupOverrides = {};
+  for (const [key, mode] of Object.entries(saved.optionGroupOverrides || {})) {
+    if (!lost(key)) optionGroupOverrides[key] = mode;
+    else if (only) optionGroupOverrides[rename(key)] = mode;
+  }
+
+  return {
+    ...saved,
+    courses: fixedCourses,
+    courseKeys,
+    placements,
+    dismissedGroups,
+    optionGroupOverrides,
+    history: [],
+    future: [],
+  };
 }
 
 /**
