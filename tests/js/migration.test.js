@@ -300,3 +300,126 @@ test('the publication is saved, so a reload can spot a republish', () => {
 
   assert.equal(state.toSaved().publicationId, 7);
 });
+
+// An upload whose title carries no code the reader recognises
+
+/**
+ * What /extract saves for LAW 0101 (downloaded_pdfs/m103865.pdf), trimmed.
+ * Passing another title stands in for an upload with no code at all, whose
+ * key has to come from the title instead.
+ */
+function lawUploadV1(title = 'Course timetable - LAW 0101, Introduction to Commonwealth Caribbean Legal Systems (Wks W3-W12)') {
+  return {
+    extractedAt: '2026-09-23T04:00:00.000Z',
+    results: [
+      {
+        course_title: title,
+        source_file: 'm103865.pdf',
+        entries: [
+          { type: 'Lecture', day: 'Tuesday', start_time: '10:00', end_time: '12:00', room: 'FFA B', weeks: 'W3-W12' },
+          { type: 'Tutorial', day: 'Tuesday', start_time: '15:00', end_time: '16:00', room: 'FFA B', weeks: 'W3-W12' },
+          { type: 'Tutorial', day: 'Friday', start_time: '13:00', end_time: '14:00', room: 'TCB 31', weeks: 'W3-W12' },
+        ],
+      },
+    ],
+    total_files: 1,
+    total_entries: 3,
+  };
+}
+
+const LAW_KEY = 'LAW 0101';
+const CODELESS_TITLE = 'Course timetable - Moot Court Workshop (Wks W3-W12)';
+const CODELESS_KEY = 'COURSE-TIMETABLE---MOOT-COURT-WORKSHOP-WKS-W3-W12';
+
+test('a real CELCAT upload is keyed by its course code', () => {
+  const v3 = migrateV2toV3(migrateV1toV2(lawUploadV1()));
+
+  assert.equal(v3.courses[0].courseKey, LAW_KEY);
+  assert.equal(v3.courses[0].code, LAW_KEY);
+});
+
+test('an upload with no recognisable code keeps the key the extract reader gave it', () => {
+  const v3 = migrateV2toV3(migrateV1toV2(lawUploadV1(CODELESS_TITLE)));
+
+  assert.equal(v3.courses[0].courseKey, CODELESS_KEY);
+  assert.deepEqual(v3.courseKeys, [CODELESS_KEY]);
+});
+
+test('an uploaded course is still on the timetable after a save and a reload', () => {
+  const first = readSavedState(fakeStorage({ celcat_timetable_data: JSON.stringify(lawUploadV1(CODELESS_TITLE)) }));
+  const state = new TimetableState({ courses: first.courses }, first);
+  state.placeMissing();
+  const placedBefore = state.getPlacedEvents().length;
+
+  // What the page does: save through JSON, then read it back on the next load.
+  const storage = fakeStorage({ celcat_timetable_v3: JSON.stringify(state.toSaved()) });
+  const saved = readSavedState(storage);
+  const reloaded = new TimetableState({ courses: saved.courses }, saved);
+  reloaded.pruneDanglingPlacements();
+  reloaded.placeMissing();
+
+  assert.equal(placedBefore, 2);
+  assert.equal(reloaded.getPlacedEvents().length, 2);
+  assert.ok(reloaded.getPlacedEvents().every(e => e.groupId.startsWith(CODELESS_KEY + '|')));
+});
+
+/**
+ * A v3 timetable saved while the bug was live: the course lost its key to
+ * JSON, courseKeys holds the null that undefined became, and the placements
+ * name groups under "undefined". The student had dragged the tutorial.
+ */
+function savedWithLostKey() {
+  const v3 = migrateV2toV3(migrateV1toV2(lawUploadV1()));
+  const course = { ...v3.courses[0] };
+  delete course.courseKey;
+  const tutorials = course.sessions.filter(s => s.type === 'Tutorial');
+  return JSON.parse(JSON.stringify({
+    ...v3,
+    courses: [course],
+    courseKeys: [null],
+    placements: [
+      { groupId: 'undefined|Lecture|all', selectedSessionId: course.sessions[0].sessionId, pinned: false },
+      { groupId: 'undefined|Tutorial|all', selectedSessionId: tutorials[1].sessionId, pinned: true },
+    ],
+  }));
+}
+
+test('a timetable saved with the lost key loads with its uploaded course back on it', () => {
+  const saved = readSavedState(fakeStorage({ celcat_timetable_v3: JSON.stringify(savedWithLostKey()) }));
+  const state = new TimetableState({ courses: saved.courses }, saved);
+  state.pruneDanglingPlacements();
+  state.placeMissing();
+
+  assert.equal(saved.courses[0].courseKey, LAW_KEY);
+  assert.deepEqual(saved.courseKeys, [LAW_KEY]);
+  assert.equal(state.getPlacedEvents().length, 2);
+});
+
+test('repairing the lost key keeps the class the student placed by hand', () => {
+  const saved = readSavedState(fakeStorage({ celcat_timetable_v3: JSON.stringify(savedWithLostKey()) }));
+  const state = new TimetableState({ courses: saved.courses }, saved);
+  state.pruneDanglingPlacements();
+
+  const tutorial = state.getPlacedEvents().find(e => e.type === 'Tutorial');
+  assert.equal(tutorial.day, 'Friday');
+  assert.equal(tutorial.pinned, true);
+});
+
+test('a v3 timetable with every key intact is returned untouched', () => {
+  const intact = migrateV2toV3(migrateV1toV2(lawUploadV1()));
+  const raw = JSON.stringify(intact);
+
+  assert.equal(JSON.stringify(readSavedState(fakeStorage({ celcat_timetable_v3: raw }))), raw);
+});
+
+test('a course the student removed while its key was lost stays removed once repaired', () => {
+  // Removing it filtered undefined out of courseKeys, so no null is left behind.
+  const removed = { ...savedWithLostKey(), courseKeys: [], placements: [] };
+  const saved = readSavedState(fakeStorage({ celcat_timetable_v3: JSON.stringify(removed) }));
+  const state = new TimetableState({ courses: saved.courses }, saved);
+  state.placeMissing();
+
+  assert.equal(saved.courses[0].courseKey, LAW_KEY);
+  assert.deepEqual(saved.courseKeys, []);
+  assert.equal(state.getPlacedEvents().length, 0);
+});
