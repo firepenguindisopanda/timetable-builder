@@ -305,15 +305,15 @@ test('the publication is saved, so a reload can spot a republish', () => {
 
 /**
  * What /extract saves for LAW 0101 (downloaded_pdfs/m103865.pdf), trimmed.
- * The "Course timetable - " prefix is how CELCAT titles the PDF, and it is
- * why no code is found: the key has to come from the title instead.
+ * Passing another title stands in for an upload with no code at all, whose
+ * key has to come from the title instead.
  */
-function lawUploadV1() {
+function lawUploadV1(title = 'Course timetable - LAW 0101, Introduction to Commonwealth Caribbean Legal Systems (Wks W3-W12)') {
   return {
     extractedAt: '2026-09-23T04:00:00.000Z',
     results: [
       {
-        course_title: 'Course timetable - LAW 0101, Introduction to Commonwealth Caribbean Legal Systems (Wks W3-W12)',
+        course_title: title,
         source_file: 'm103865.pdf',
         entries: [
           { type: 'Lecture', day: 'Tuesday', start_time: '10:00', end_time: '12:00', room: 'FFA B', weeks: 'W3-W12' },
@@ -327,17 +327,26 @@ function lawUploadV1() {
   };
 }
 
-const LAW_KEY = 'COURSE-TIMETABLE---LAW-0101-INTRODUCTION-TO-COMMONWEALTH-CARIBBEAN-LEGAL-SYSTEMS-WKS-W3-W12';
+const LAW_KEY = 'LAW 0101';
+const CODELESS_TITLE = 'Course timetable - Moot Court Workshop (Wks W3-W12)';
+const CODELESS_KEY = 'COURSE-TIMETABLE---MOOT-COURT-WORKSHOP-WKS-W3-W12';
 
-test('an upload with no recognisable code keeps the key the extract reader gave it', () => {
+test('a real CELCAT upload is keyed by its course code', () => {
   const v3 = migrateV2toV3(migrateV1toV2(lawUploadV1()));
 
   assert.equal(v3.courses[0].courseKey, LAW_KEY);
-  assert.deepEqual(v3.courseKeys, [LAW_KEY]);
+  assert.equal(v3.courses[0].code, LAW_KEY);
+});
+
+test('an upload with no recognisable code keeps the key the extract reader gave it', () => {
+  const v3 = migrateV2toV3(migrateV1toV2(lawUploadV1(CODELESS_TITLE)));
+
+  assert.equal(v3.courses[0].courseKey, CODELESS_KEY);
+  assert.deepEqual(v3.courseKeys, [CODELESS_KEY]);
 });
 
 test('an uploaded course is still on the timetable after a save and a reload', () => {
-  const first = readSavedState(fakeStorage({ celcat_timetable_data: JSON.stringify(lawUploadV1()) }));
+  const first = readSavedState(fakeStorage({ celcat_timetable_data: JSON.stringify(lawUploadV1(CODELESS_TITLE)) }));
   const state = new TimetableState({ courses: first.courses }, first);
   state.placeMissing();
   const placedBefore = state.getPlacedEvents().length;
@@ -351,7 +360,7 @@ test('an uploaded course is still on the timetable after a save and a reload', (
 
   assert.equal(placedBefore, 2);
   assert.equal(reloaded.getPlacedEvents().length, 2);
-  assert.ok(reloaded.getPlacedEvents().every(e => e.groupId.startsWith(LAW_KEY + '|')));
+  assert.ok(reloaded.getPlacedEvents().every(e => e.groupId.startsWith(CODELESS_KEY + '|')));
 });
 
 /**
