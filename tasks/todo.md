@@ -1,6 +1,6 @@
 # FullCalendar grid, phase 1: task list
 
-**Not started.** Proposed 22 September 2026. Reasoning is in
+**Built 23 September 2026 on `fullcalendar-grid`; awaiting your merge and deploy.** Proposed 22 September 2026. Reasoning is in
 [plan.md](plan.md); requirements are in
 [FULLCALENDAR-SPEC.md](../FULLCALENDAR-SPEC.md).
 
@@ -128,7 +128,7 @@ browser against the local dev server.
       Files: `templates/calendar.html` (styles), possibly
       `assets/css/explore.css`
 
-- [ ] **7** Record it.
+- [x] **7** Record it. *Done 23 Sep 2026 (docs are untracked, so only this tick is committed). Check 11 run too: an uploaded course renders and drags; it surfaced an undefined `courseKey` on uploads that is already on `main`, flagged as its own task.*
       STATUS.md: what shipped, JS test count before and after and why it
       moved. CLAUDE.md: the test counts, the frontend paragraph (interact.js
       gone, FullCalendar in), the inline-script line count. Spec status line:
@@ -139,7 +139,7 @@ browser against the local dev server.
       Files: `STATUS.md`, `CLAUDE.md`, `FULLCALENDAR-SPEC.md`
 
 ### Checkpoint C
-- [ ] All 13 manual checks pass.
-- [ ] Both suites pass; counts recorded.
-- [ ] Spec §8 all ticked.
+- [x] All 13 manual checks pass.
+- [x] Both suites pass; counts recorded. *487 Python, 326 JS.*
+- [x] Spec §8 all ticked.
 - [ ] You approve the merge and the deploy.
