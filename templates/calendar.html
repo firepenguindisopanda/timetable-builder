@@ -1803,12 +1803,26 @@ button.resolve-option:focus-visible {
             },
             allDaySlot: false,
             slotDuration: '00:30',
-            slotLabelFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short' },
+            slotHeaderFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short' },
             // Side by side, never stacked. A class hidden behind another
             // could not be reached, which made the commonest clash
             // impossible to fix by hand.
             slotEventOverlap: false,
-            editable: false,
+            // A class can move but never be resized, and only onto one of
+            // its own sittings: anywhere else FullCalendar refuses it, so it
+            // never looks as if it landed where it cannot go.
+            editable: true,
+            eventDurationEditable: false,
+            eventAllow: (span, moving) => Boolean(moving) && dropFor(moving, span.start) !== null,
+            // A refused drop returns instantly. FullCalendar animates it back
+            // and ends the drag on transitionend, and explore.css turns every
+            // transition off under prefers-reduced-motion, so for those
+            // students the event never fired: the drag never ended, and the
+            // drop zones and a floating copy of the class stayed on screen.
+            dragRevertDuration: 0,
+            eventDragStart: onDragStart,
+            eventDragStop: onDragStop,
+            eventDrop: onDrop,
             // Every block becomes a focusable button, and FullCalendar
             // fires eventClick on Enter and Space as well as a tap.
             eventInteractive: true,
@@ -1849,6 +1863,45 @@ button.resolve-option:focus-visible {
             return;
         }
         openDetailDialog(groupId, sessionId);
+    }
+
+    // The sittings the class being dragged may land on, and their shaded
+    // zones. FullCalendar fires eventDragStop before eventDrop, so a drop
+    // resolves from these targets, never from the zones, which are gone by
+    // then.
+    let dragTargets = [];
+    let dragZones = [];
+
+    function onDragStart(info) {
+        if (!state) return;
+        const { groupId, sessionId } = info.event.extendedProps;
+        dragTargets = dropTargets(state.getOptions(groupId), state.placements, groupId, sessionId);
+        dragZones = toDropZones(dragTargets).map(zone => calendar.addEvent(zone));
+    }
+
+    function onDragStop() {
+        dragZones.forEach(zone => zone.remove());
+        dragZones = [];
+    }
+
+    /** The sitting a class dragged to `start` would land on, or null. */
+    function dropFor(event, start) {
+        const durationMins = (event.end - event.start) / 60000;
+        return resolveDrop(dragTargets, DAYS[(start.getDay() + 6) % 7],
+            start.getHours() * 60 + start.getMinutes(), durationMins);
+    }
+
+    function onDrop(info) {
+        const target = dropFor(info.event, info.event.start);
+        // FullCalendar has already moved the block. Put it back either way,
+        // so the grid only ever shows what the state holds: a move the state
+        // declined would otherwise leave the block where it was dropped.
+        info.revert();
+        if (target === null || !state) return;
+        const { groupId, sessionId } = info.event.extendedProps;
+        // Dragging is the student choosing, so this pins the placement and
+        // nothing will move it again on its own.
+        state.moveEvent(groupId, target, sessionId);
     }
 
     /** One block's face: what the hand-built grid printed, in the same order. */

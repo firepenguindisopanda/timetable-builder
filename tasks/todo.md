@@ -87,7 +87,7 @@ browser against the local dev server.
       S. Needs 3.
       Files: `templates/calendar.html`
 
-- [ ] **5** Drag to an alternative.
+- [ ] **5** Drag to an alternative. *Built and committed 23 Sep 2026; one real drag verified (5 zones, moved, pinned, zones cleared). **Still to check with the browser pane visible:** a refused drop, the two-rooms case, touch. Found on the way: under prefers-reduced-motion a refused drop left the drag stuck (fixed with `dragRevertDuration: 0`), and v7 renamed `slotLabelFormat` to `slotHeaderFormat`.*
       Add `dropTargets` and `resolveDrop` to `calendar-events.js`, with tests
       (spec §4.2 and §6). Set `editable: true` and
       `eventDurationEditable: false`. `eventDragStart` adds the targets as
