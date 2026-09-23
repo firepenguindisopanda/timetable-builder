@@ -76,7 +76,7 @@ browser against the local dev server.
       `assets/js/grid-layout.js` (deleted), `tests/js/grid-layout.test.js`
       (deleted)
 
-- [ ] **4** Tap, keyboard and clash badge.
+- [x] **4** Tap, keyboard and clash badge. *Done 22 Sep 2026. One `eventClick` handles both, since the badge's click bubbles through the block; Enter on a focused badge opens exactly one resolver.*
       `eventClick` opens the detail dialog, except on `.clash-badge`. The
       delegated badge handler reads `groupId`/`sessionId` from the event rather
       than `dataset`. Enter or Space on a focused class opens the dialog. The

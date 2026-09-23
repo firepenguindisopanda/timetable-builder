@@ -1816,6 +1816,7 @@ button.resolve-option:focus-visible {
             // The date is not real, so a "now" line would lie.
             nowIndicator: false,
             eventContent: blockContent,
+            eventClick: onBlockClick,
             eventDidMount: arg => {
                 const p = arg.event.extendedProps;
                 arg.el.setAttribute('aria-label',
@@ -1824,6 +1825,30 @@ button.resolve-option:focus-visible {
         });
         calendar.render();
         return calendar;
+    }
+
+    /**
+     * A tap, a click, or Enter or Space on a focused block.
+     *
+     * A grid tap opens the dialog rather than the panel: the block that was
+     * tapped can be a whole viewport below the panel, and the dialog appears
+     * where the student already is. The badge on a clashing block is the
+     * shortest path in: the block may be half a lane wide with another class
+     * beside it, but the badge is always on top and always hittable. It sits
+     * inside the block, so its click arrives here too.
+     */
+    function onBlockClick(info) {
+        if (!state) return;
+        const { groupId, sessionId } = info.event.extendedProps;
+        const target = info.jsEvent && info.jsEvent.target;
+        if (target && target.closest && target.closest('.clash-badge')) {
+            const conflict = state.getClassifiedConflicts().find(c =>
+                (c.a.groupId === groupId && c.a.sessionId === sessionId) ||
+                (c.b.groupId === groupId && c.b.sessionId === sessionId));
+            if (conflict) openResolveDialog(conflict);
+            return;
+        }
+        openDetailDialog(groupId, sessionId);
     }
 
     /** One block's face: what the hand-built grid printed, in the same order. */
@@ -2322,23 +2347,6 @@ button.resolve-option:focus-visible {
         } else {
             closeDetailDialog();
         }
-    });
-
-    // The badge on a clashing block is the shortest path in: the block
-    // itself may be half a lane wide with another class beside it, but the
-    // badge is always on top and always hittable.
-    calendarWrapper.addEventListener('click', event => {
-        const badge = event.target.closest('.clash-badge');
-        if (!badge || !state) return;
-        event.stopPropagation();
-        const block = badge.closest('.calendar-event');
-        if (!block) return;
-        const groupId = block.dataset.groupId;
-        const sessionId = parseSessionId(block.dataset.sessionId);
-        const conflict = state.getClassifiedConflicts().find(c =>
-            (c.a.groupId === groupId && c.a.sessionId === sessionId) ||
-            (c.b.groupId === groupId && c.b.sessionId === sessionId));
-        if (conflict) openResolveDialog(conflict);
     });
 
     // Main Render
