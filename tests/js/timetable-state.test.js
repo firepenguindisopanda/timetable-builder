@@ -79,6 +79,22 @@ test('a title with a lecturer glued on is not mistaken for a code', () => {
   assert.equal(courseCodeFromTitle('IENG 3017 LALLA,TERRENCE'), null);
 });
 
+test('the code is read past the "Course timetable - " prefix every CELCAT course PDF carries', () => {
+  // The title /extract returns for downloaded_pdfs/m103865.pdf.
+  assert.equal(
+    courseCodeFromTitle('Course timetable - LAW 0101, Introduction to Commonwealth Caribbean Legal Systems (Wks W3-W12)'),
+    'LAW 0101'
+  );
+  assert.equal(
+    courseCodeFromTitle('Course timetable - FOUN 1001 (FULL & PART-TIME), Caribbean Civilisation (Wks W1-W12)'),
+    'FOUN 1001 (FULL & PART-TIME)'
+  );
+});
+
+test('only the course timetable prefix is skipped, so a staff timetable is still no course', () => {
+  assert.equal(courseCodeFromTitle('Staff timetable - IENG 3017, Lalla Terrence'), null);
+});
+
 test('a title with no code at all falls back rather than guessing', () => {
   assert.equal(courseCodeFromTitle('Timetable for the week'), null);
 });
