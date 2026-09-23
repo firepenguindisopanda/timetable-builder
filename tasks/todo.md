@@ -113,7 +113,7 @@ browser against the local dev server.
 
 ## Phase C: finish
 
-- [ ] **6** Styling.
+- [x] **6** Styling. *Done 23 Sep 2026. Most of it carried over in task 3; this removed the dead `.drop-zone.active`/`.same-slot` states. Light, dark, mid-drag, 375px and print checked by screenshot in headless Chrome; no literal colours added on the branch. Noticed: on a phone a one-hour class clips the bottom of its room line.*
       Re-point `.calendar-event*`, `.clash`, `.drop-zone` and the type colours
       onto FullCalendar's event elements; apply the theme overrides from task
       2; delete the CSS for `.day-column`, `.time-slot`, `.clipped` and
