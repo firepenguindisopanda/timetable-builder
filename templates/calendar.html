@@ -478,6 +478,53 @@
     padding: 8px;
 }
 
+/* Full screen lays the calendar card over the whole page rather than putting
+   the card itself into the browser's full screen: the detail and resolve
+   dialogs and the toasts hang off the body, and they have to stay above it,
+   so the card sits under their z-index (1080, 1090) and over everything else. */
+.calendar-fullscreen-bar {
+    display: none;
+}
+
+body.calendar-fullscreen {
+    overflow: hidden;
+}
+
+body.calendar-fullscreen .calendar-card {
+    position: fixed;
+    inset: 0;
+    z-index: 1070;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px 12px;
+    background: var(--bg-surface);
+}
+
+body.calendar-fullscreen .calendar-fullscreen-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 2px 8px;
+}
+
+.calendar-fullscreen-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* The page caps the grid at 70vh so the controls stay in reach; full screen
+   gives it every pixel the bar does not use. */
+body.calendar-fullscreen .calendar-scroll-wrapper {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+}
+
 /* And that measure keeps going. Bootstrap's container stops growing at
    1320px, which on a 1920px monitor strands 300px either side of a
    seven-day grid that would happily use it. Widening the page rather than
@@ -1663,6 +1710,10 @@ button.resolve-option:focus-visible {
                         title="Print, or save as a PDF from the print dialog">
                     <i class="bi bi-printer"></i> Print
                 </button>
+                <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
+                        title="Show the timetable on its own, filling the screen">
+                    <i class="bi bi-arrows-fullscreen"></i> Full screen
+                </button>
                 <!--
                   Last in the row and the only destructive one here, so a
                   mis-aimed click on the everyday actions cannot land on it.
@@ -1680,6 +1731,13 @@ button.resolve-option:focus-visible {
 
     <!-- Calendar -->
     <div class="surface-card calendar-card">
+        <div class="calendar-fullscreen-bar">
+            <span class="calendar-fullscreen-title">Your timetable</span>
+            <button type="button" id="exitFullscreenBtn" class="btn btn-outline-info btn-sm"
+                    title="Back to the page (Esc)">
+                <i class="bi bi-fullscreen-exit"></i> Exit full screen
+            </button>
+        </div>
         <div class="calendar-scroll-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <div id="calendarWrapper" class="calendar-wrapper" style="min-width: 700px;">
                 <!-- 7 day columns -->
@@ -1743,6 +1801,8 @@ button.resolve-option:focus-visible {
     const $redoBtn = document.getElementById('redoBtn');
     const $clearBtn = document.getElementById('clearBtn');
     const $printBtn = document.getElementById('printBtn');
+    const $fullscreenBtn = document.getElementById('fullscreenBtn');
+    const $exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
     const $clearAllBtn = document.getElementById('clearAllBtn');
     const $searchBox = document.getElementById('searchBox');
     const $emptyState = document.getElementById('emptyState');
@@ -2386,15 +2446,63 @@ button.resolve-option:focus-visible {
 
     // Escape closes the topmost surface: the resolve dialog can sit over
     // the page after being opened from the detail dialog's clash button, so
-    // it goes first and a second press clears the details.
+    // it goes first and a second press clears the details. With neither
+    // open it leaves full screen, where the browser has not already: in the
+    // browser's own full screen Esc belongs to the browser, which leaves it
+    // and says so through fullscreenchange below.
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
         if (document.querySelector('.resolve-overlay')) {
             closeResolveDialog();
-        } else {
+        } else if (document.querySelector('.detail-overlay')) {
             closeDetailDialog();
+        } else if (isCalendarFullscreen()) {
+            exitCalendarFullscreen();
         }
     });
+
+    // Full screen
+    //
+    // The whole page goes into the browser's full screen, not the calendar
+    // card: an element in full screen hides everything outside it, and the
+    // detail and resolve dialogs are attached to the body, so a tapped class
+    // would open a dialog nobody could see. A class on the body lays the card
+    // over the page instead. Where the browser has no Fullscreen API, as on
+    // an iPhone, or refuses the request, the class alone still gives the
+    // calendar the whole window.
+    function isCalendarFullscreen() {
+        return document.body.classList.contains('calendar-fullscreen');
+    }
+
+    function setCalendarFullscreenClass(on) {
+        document.body.classList.toggle('calendar-fullscreen', on);
+        const target = on ? $exitFullscreenBtn : $fullscreenBtn;
+        if (target && !target.disabled) target.focus();
+    }
+
+    function enterCalendarFullscreen() {
+        setCalendarFullscreenClass(true);
+        const root = document.documentElement;
+        if (root.requestFullscreen && !document.fullscreenElement) {
+            root.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function exitCalendarFullscreen() {
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+        setCalendarFullscreenClass(false);
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isCalendarFullscreen()) {
+            setCalendarFullscreenClass(false);
+        }
+    });
+
+    if ($fullscreenBtn) $fullscreenBtn.addEventListener('click', enterCalendarFullscreen);
+    if ($exitFullscreenBtn) $exitFullscreenBtn.addEventListener('click', exitCalendarFullscreen);
 
     // Main Render
     function renderEvents() {
@@ -2407,6 +2515,7 @@ button.resolve-option:focus-visible {
         // calendar also clears the sheet rather than leaving the last
         // printable version behind it.
         if ($printBtn) $printBtn.disabled = currentEvents.length === 0;
+        if ($fullscreenBtn) $fullscreenBtn.disabled = currentEvents.length === 0;
         // Keyed off chosen courses rather than placed classes: a course whose
         // classes could not be placed is still a course to clear.
         if ($clearAllBtn) {
@@ -2415,6 +2524,7 @@ button.resolve-option:focus-visible {
         buildPrintSheet();
 
         if (!events || events.length === 0) {
+            if (isCalendarFullscreen()) exitCalendarFullscreen();
             if ($emptyState) $emptyState.style.display = 'block';
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
