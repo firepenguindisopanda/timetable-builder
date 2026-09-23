@@ -53,7 +53,7 @@ browser against the local dev server.
 
 ## Phase B: parity
 
-- [ ] **3** Render placed classes with FullCalendar, read-only.
+- [x] **3** Render placed classes with FullCalendar, read-only. *Done 22 Sep 2026. All the interact.js drag code went here too, not just its handlers: the ghost-zone helpers called the deleted `timeToSlot`, so task 5 only adds FullCalendar's drag.*
       New `assets/js/calendar-events.js` with `toCalendarEvents` and
       `visibleRange`, plus tests (spec §4.2 and §6). Add the pinned script tag
       and the chosen theme. Build the calendar with spec §4.3's options and an
