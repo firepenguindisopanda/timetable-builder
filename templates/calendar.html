@@ -708,6 +708,10 @@
     margin-right: 3px;
 }
 
+/* The sittings a dragged class can land on, drawn as FullCalendar background
+   events. Forma leaves those transparent, so the wash is ours. There is no
+   highlight for the zone under the pointer any more: eventAllow refuses
+   every other spot, so the class itself only appears where it can land. */
 .drop-zone {
     position: absolute;
     left: 8px;
@@ -716,16 +720,6 @@
     background: color-mix(in srgb, var(--accent-cyan) 5%, transparent);
     z-index: 1;
     pointer-events: none;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-.drop-zone.active {
-    border-color: color-mix(in srgb, var(--accent-cyan) 80%, transparent);
-    background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
-    border-style: solid;
-}
-.drop-zone.same-slot {
-    border-color: color-mix(in srgb, var(--ink) 22%, transparent);
-    background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 /* The resolve dialog: both sides of a clash at once, options and all.
