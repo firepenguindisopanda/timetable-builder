@@ -1,206 +1,145 @@
-# Course picker: task list
+# FullCalendar grid, phase 1: task list
 
-**Complete and deployed, 10 August 2026.** All seven phases done; see
-[STATUS.md](../STATUS.md) for where things stand. Full reasoning is in
-[plan.md](plan.md), with its section 4 marked superseded.
+**Built 23 September 2026 on `fullcalendar-grid`; awaiting your merge and deploy.** Proposed 22 September 2026. Reasoning is in
+[plan.md](plan.md); requirements are in
+[FULLCALENDAR-SPEC.md](../FULLCALENDAR-SPEC.md).
 
-Two corrections landed after the phases, both from the deployed app:
+Verification commands, used throughout:
 
-- **The grouping rule.** Section 4's whole premise was that the data could say
-  whether a course's sittings are alternatives or obligations. It cannot. A
-  student attends one lecture, one lab and one tutorial per course per week,
-  which is institutional and is now stated in `option-groups.js` rather than
-  inferred.
-- **Asset caching.** A deploy changed a script without changing the `?v=` that
-  asked for it, and returning students got new HTML against a stale cached
-  script, which rendered a blank calendar. Asset URLs are now content-hashed.
+```bash
+node --test 'tests/js/**/*.test.js'
+uv run --group test pytest
+uv run uvicorn main:app --reload --port 8000
+```
 
-## Phase 1: the sessions API
+The manual checks refer to spec §6 by number. Run them in the in-app
+browser against the local dev server.
 
-- [x] **1.1** Course code resolution that survives the real spellings.
-      Exact match before normalising, so `WW101` and
-      `FOUN 1001 (FULL & PART-TIME)` stop landing in `notFound`.
+## Phase A: groundwork
+
+- [x] **1** Docs. *Done 22 Sep 2026; the docs are not tracked in git, so nothing to commit but this tick.*
+      ~~Add `FULLCALENDAR-SPEC.md` and this plan to CLAUDE.md's doc table~~
+      (done 22 Sep 2026, when this replaced the picker's plan). Rewrite ICS-EXPORT-SPEC §3.3 from "unresolved"
+      to decided: reading 1, week 1 begins Mon 31 Aug 2026 for Semester 1 and
+      Mon 18 Jan 2027 for Semester 2, confirmed by the owner 22 Sep 2026. Update
+      its open question 1 to match.
+      *Accept:* both files say the same dates as spec §2; nothing says
+      "blocking" about the week 1 date any more.
+      *Verify:* grep both files for `31 Aug` and `18 Jan`.
+      XS. No dependencies.
+      Files: `CLAUDE.md`, `ICS-EXPORT-SPEC.md`
+
+- [x] **2** Spike: theme and v7 API check. *Done 22 Sep 2026; Forma recommended, findings go into the spec at checkpoint A.*
+      Scratch page in the scratchpad, not the repo, loading
+      `fullcalendar@7.1.0/all/global.js`, with a dozen fake events copied from
+      the fixture's shape. For each of the four themes: light and dark, and
+      whether its colours can come from `explore.css` variables. In the same
+      page, confirm the exact v7 name and behaviour of: the per-event class
+      property, `eventContent` returning DOM nodes, `slotEventOverlap: false`
+      (side by side), `eventDragStart`/`eventDrop`/`eventDragStop` and
+      `info.revert()`, adding and removing `display: 'background'` events
+      mid-drag, `dayHeaderFormat` hiding the date, and whether an event can
+      take keyboard focus.
+      *Accept:* a short written report with the theme recommendation and its
+      override list, and every name above either confirmed or corrected.
+      *Verify:* screenshots of the chosen theme in light and dark.
       S. No dependencies.
-      Files: `explore_queries.py`, `tests/test_explore_queries.py`
-- [x] **1.2** `sessions_for_courses(conn, codes)`, one query not N, emitting the
-      field names `computeStreamId` expects and real `weeks`.
-      S. Needs 1.1.
-      Files: `explore_queries.py`
-- [x] **1.3** `GET /api/timetable/sessions`, second `APIRouter` in
-      `explore_router.py`, public and read-only, pool and cache reused, 40-code
-      cap, `notFound` not 404.
-      S. Needs 1.2.
-      Files: `explore_router.py`, `main.py`
-- [x] **1.4** Endpoint tests with fixtures captured from the warehouse
-      (`COMP 1601`, `BIOL 1262`, `FOUN 1101`), `query` faked so no database is
-      needed.
-      S. Needs 1.3.
-      Files: `tests/test_timetable_api.py`,
-      `tests/fixtures/warehouse_sessions.json`
+      Files: none committed.
 
-### Checkpoint: phase 1 (done)
+### Checkpoint A
+- [x] You pick the theme. *Forma, 22 Sep 2026.*
+- [x] Spec §4.3–§4.5 are corrected to the names the spike proved.
+- [x] Create a branch for phase B (`git checkout -b fullcalendar-grid`).
 
-- [x] `uv run pytest` green, 238 to 312, nothing removed
-- [x] `/calendar`, `/extract` and `/explore` unchanged, all 200
-- [x] STATUS.md updated
-- [x] Bonus: the same resolution bug fixed in `/explore/course/{code}` and
-      `cli course`, which open question 4 had left open
+## Phase B: parity
 
-## Phase 2: pure logic, tested, not yet wired in
+- [x] **3** Render placed classes with FullCalendar, read-only. *Done 22 Sep 2026. All the interact.js drag code went here too, not just its handlers: the ghost-zone helpers called the deleted `timeToSlot`, so task 5 only adds FullCalendar's drag.*
+      New `assets/js/calendar-events.js` with `toCalendarEvents` and
+      `visibleRange`, plus tests (spec §4.2 and §6). Add the pinned script tag
+      and the chosen theme. Build the calendar with spec §4.3's options and an
+      `eventContent` that renders code, pin, stale icon, type, time, room and
+      badge, escaping every string. `renderEvents` replaces the calendar's
+      events instead of building divs. Delete `buildGrid`, `timeToSlot`,
+      `slotToTop`, the block-building loop, the clipped state, and
+      `grid-layout.js` with its test. If `FullCalendar` is undefined, say so in
+      the card. Drag is off (`editable: false`) until task 5, and the
+      interact.js drag handlers go in this task, because they target
+      `.calendar-event`.
+      *Accept:* the same classes appear as on the live site for the same
+      courses; two classes at one hour sit side by side; a 07:00 or 22:30
+      class shows in full.
+      *Verify:* both suites; manual checks 1, 2, 10, 12; grep that
+      `time-slots`, `layoutDayEvents` and `timeToSlot` are gone.
+      M. Needs 2.
+      Files: `assets/js/calendar-events.js`,
+      `tests/js/calendar-events.test.js`, `templates/calendar.html`,
+      `assets/js/grid-layout.js` (deleted), `tests/js/grid-layout.test.js`
+      (deleted)
 
-- [x] **2.0** JS test harness: `node --test tests/js/`, CommonJS export only
-      when `module` exists, and a pytest shim that runs it and skips without
-      node. S. No dependencies, can run alongside phase 1.
-      Files: `tests/js/`, `tests/test_js_suite.py`, `calendar-utils.js`
-- [x] **2.1** Option grouping: ceiling rule, merged partial labels, then overlap
-      clustering. `MENU_CEILING_HOURS` defined once with its derivation beside
-      it. Stable group ids. M. Needs 2.0.
-      Files: `assets/js/option-groups.js`, `tests/js/`
-      - [x] Run over all 1,082 live courses: 2,323 groups from 3,603
-            sessions, 1,280 blocks kept off the grid, five-course load down
-            from 82 placements / 99h to 21 / 31h
-- [x] **2.2** Week-aware `findConflicts`: weeks must intersect, empty weeks
-      means every week, same-course clashes now reported, shared weeks in the
-      result. S. Needs 2.0.
-      Files: `calendar-utils.js`, `tests/js/conflicts.test.js`
-      - [x] E6 fixture is the real `BIOL 1262` pair, Lecture Thu 16:00
-            W2/4/6/8/12 against Lecture Relocated Thu 16:00 W10
-- [x] **2.3** Incremental placement (8.1): never moves an existing placement,
-      deterministic tie-breaks, returns a summary. M. Needs 2.1, 2.2.
-      Files: `assets/js/placement.js`, `tests/js/placement.test.js`
-- [x] **2.4** Bulk placement (8.2): most-constrained-first, bounded repair over
-      this batch only, honest reporting. M. Needs 2.3.
-      Files: `assets/js/placement.js`, `tests/js/placement.test.js`
-
-### Checkpoint: phase 2 (done)
-
-- [x] `node --test` green at 64, `uv run pytest` green at 313
-- [x] No template touched. Browser check: a seeded v2 timetable still places
-      3 blocks, the conflict panel still reports its clash, console clean,
-      dark at 390px unchanged
-- [x] `deriveOptionGroups` and `placeGroups` are absent from the page, so
-      nothing new is reachable yet
-- [x] STATUS.md updated
-- [x] Carried into phase 4 and settled there: `/calendar` is dark only, and
-      the picker is styled in its variables rather than importing
-      `explore.css`. Giving the calendar a light theme is still open
-
-## Phase 3: state and persistence
-
-- [x] **3.1** `TimetableState` on option groups and `courseKey`, both sources
-      producing one shape, pinning honoured everywhere, `autoPlaceAll` becomes
-      an explicit re-optimise. M. Needs 2.3.
-      Files: `timetable-state.js`, `tests/js/timetable-state.test.js`
-- [x] **3.2** v3 persistence and `migrateV2toV3`, v1 and v2 readers kept,
-      `publicationId` stored, storage failure surfaced (E14). M. Needs 3.1.
-      Files: `timetable-state.js`, `tests/js/migration.test.js`
-- [x] **3.3** Rewire `calendar.html` to the new state. No new UI. Drag now pins.
-      M. Needs 3.2.
+- [x] **4** Tap, keyboard and clash badge. *Done 22 Sep 2026. One `eventClick` handles both, since the badge's click bubbles through the block; Enter on a focused badge opens exactly one resolver.*
+      `eventClick` opens the detail dialog, except on `.clash-badge`. The
+      delegated badge handler reads `groupId`/`sessionId` from the event rather
+      than `dataset`. Enter or Space on a focused class opens the dialog. The
+      tap handler from interact.js is removed.
+      *Accept:* all three paths open the right class's dialog; Escape still
+      closes the resolve dialog first, then the details.
+      *Verify:* manual checks 5 and 6; both suites.
+      S. Needs 3.
       Files: `templates/calendar.html`
-      - [x] Browser: v2 and v1 payloads upgrade and render, a real drag
-            moves and pins across four alternatives, re-optimise spares
-            the pinned one, undo and redo walk back, console clean,
-            dark at 390px. No light theme exists to check
 
-### Checkpoint: phase 3 (done)
+- [x] **5** Drag to an alternative. *Done 23 Sep 2026, checked with real mouse and touch input in headless Chrome: 5 zones, move and pin, refused drop, two rooms (first wins), undo, with and without reduced motion. Without `dragRevertDuration: 0`, a refused drop under reduced motion left the zones and a floating copy on screen and killed the next drag; proven, then fixed. Touch: a quick swipe scrolls, a 1 s hold drags. v7 renamed `slotLabelFormat` to `slotHeaderFormat`.*
+      Add `dropTargets` and `resolveDrop` to `calendar-events.js`, with tests
+      (spec §4.2 and §6). Set `editable: true` and
+      `eventDurationEditable: false`. `eventDragStart` adds the targets as
+      background events with class `drop-zone`; `eventDrop` resolves, then
+      either calls `state.moveEvent` or `info.revert()`; `eventDragStop` clears
+      the targets. Delete `setupDragDrop`, `showGhostZones`, `clearGhostZones`,
+      `getGhostZoneAt`, `resetDragPosition` and the interact.js script tag.
+      Measure touch drag on a phone-sized viewport.
+      *Accept:* a drop on an alternative moves and pins the class and Undo
+      reverts it; any other drop leaves state untouched; a sitting another
+      placement already shows is never a target.
+      *Verify:* both suites; manual checks 3, 4, 11; grep that `interact` is
+      gone from `calendar.html`.
+      M. Needs 3 (and 4, since they edit the same file).
+      Files: `assets/js/calendar-events.js`,
+      `tests/js/calendar-events.test.js`, `templates/calendar.html`
 
-- [x] Upload mode fully working: loading a saved timetable makes no request to
-      the warehouse, verified from the network log
-- [x] A saved v2 timetable survives the upgrade, and so does a v1 one
-- [x] `uv run pytest` green at 313, `node --test` green at 107
-- [x] STATUS.md updated
+### Checkpoint B
+- [x] Both suites pass.
+- [x] Manual checks 1–6 and 10–12 pass.
+- [x] Touch drag delay reported; your call if it needs changing. *FullCalendar's default 1 s long press, kept.*
+- [x] Review with you before styling. *Replaced by a self-check: you chose to stop only at the theme.*
 
-## Phase 4: picker UI, one course at a time
+## Phase C: finish
 
-- [x] **4.1** Mode chooser and empty state (9.1), picker first, only when empty.
-      S. Needs 3.3. Files: `templates/calendar.html`
-- [x] **4.2** Course search over `/explore/courses.json`, reusing `explore.js`
-      matching, explorer-style rows with the week meter, honest offline message
-      (E17). M. Needs 4.1. Files: `templates/calendar.html`, `explore.js`
-- [x] **4.3** Add and remove one course through 8.1, immediate, with a toast.
-      Duplicate add is a no-op with a message (E2). Removing leaves the rest put
-      (UC6). M. Needs 4.2. Files: `templates/calendar.html`
+- [x] **6** Styling. *Done 23 Sep 2026. Most of it carried over in task 3; this removed the dead `.drop-zone.active`/`.same-slot` states. Light, dark, mid-drag, 375px and print checked by screenshot in headless Chrome; no literal colours added on the branch. Noticed: on a phone a one-hour class clips the bottom of its room line.*
+      Re-point `.calendar-event*`, `.clash`, `.drop-zone` and the type colours
+      onto FullCalendar's event elements; apply the theme overrides from task
+      2; delete the CSS for `.day-column`, `.time-slot`, `.clipped` and
+      `.dragging` that nothing uses any more. Only design-system variables, no
+      literal colours. Check that print.css's
+      `body > *:not(#printView)` still hides the calendar.
+      *Accept:* type colours, clash ring, pin and focus ring all match today in
+      light and dark; no horizontal overflow beyond today's 700px wrapper.
+      *Verify:* manual checks 7, 8, 9, 13; grep the new CSS for `#` hex and
+      `rgb(` literals.
+      M. Needs 5.
+      Files: `templates/calendar.html` (styles), possibly
+      `assets/css/explore.css`
 
-### Checkpoint: phase 4 (done)
+- [x] **7** Record it. *Done 23 Sep 2026 (docs are untracked, so only this tick is committed). Check 11 run too: an uploaded course renders and drags; it surfaced an undefined `courseKey` on uploads that is already on `main`, flagged as its own task.*
+      STATUS.md: what shipped, JS test count before and after and why it
+      moved. CLAUDE.md: the test counts, the frontend paragraph (interact.js
+      gone, FullCalendar in), the inline-script line count. Spec status line:
+      phase 1 shipped. Tick spec §8.
+      *Accept:* no doc says interact.js, `grid-layout.js` or the old counts.
+      *Verify:* grep for `interact`, `grid-layout`, `308 JS`.
+      XS. Needs 6.
+      Files: `STATUS.md`, `CLAUDE.md`, `FULLCALENDAR-SPEC.md`
 
-- [x] A timetable can be built without touching a PDF
-- [x] Upload mode still offered everywhere the picker is, and still the only
-      route with no network
-- [x] Offline: saved timetable renders in full, picker says what is broken,
-      PDF route stays, undo still works
-- [x] `uv run pytest` green at 313, `node --test` green at 124
-- [x] The explorer's own search verified unchanged after sharing its matcher
-- [x] STATUS.md updated
-
-## Phase 5: bulk
-
-- [x] **5.1** Checkboxes in results with a running "Add N courses", one batch is
-      one undo step (E19). S. Needs 4.3. Files: `templates/calendar.html`
-- [x] **5.2** Paste box with a parse preview, batching past 40 (E12), junk lines
-      listed not swallowed (E13), normalisation on entry (E18), punctuated codes
-      parsed correctly. M. Needs 5.1. Files: `templates/calendar.html`
-
-### Checkpoint: phase 5 (done)
-
-- [x] UC2 (paste a whole semester) and UC3 (multi-select) work end to end
-- [x] One Ctrl+Z takes a whole batch back, verified at 4 courses and at 45
-- [x] 45 codes split into 2 requests of 40 and 5, still one undo step
-- [x] All 1,082 published codes round-trip through the paste parser
-- [x] No horizontal overflow at 390px with the paste box and selection bar open
-- [x] `uv run pytest` green at 313, `node --test` green at 138
-- [x] STATUS.md updated
-
-## Phase 6: conflict UX
-
-- [x] **6.1** Resolvable versus unavoidable, weeks shown, "Fix" only where an
-      alternative exists and never moving a pinned placement. M. Needs 5.2.
-      Files: `templates/calendar.html`
-- [x] **6.2** The option group override the spec requires: merge or split a
-      group, stored per course, surviving reload. A ceiling-created menu says so
-      and can be expanded. M. Needs 6.1.
-      Files: `templates/calendar.html`, `timetable-state.js`
-
-### Checkpoint: phase 6 (done)
-
-- [x] UC8 (see which classes clash, and in which weeks) and UC9 (be told when
-      a clash cannot be avoided) both work
-- [x] A fix is offered only when it lowers the total, and never by moving a
-      pinned placement
-- [x] The section 4 default is correctable, and the correction survives a
-      reload and can be undone
-- [x] `uv run pytest` green at 313, `node --test` green at 150
-- [x] STATUS.md updated
-
-## Phase 7: polish
-
-- [x] **7.1** Shareable `/calendar?codes=...` placed through 8.2 (UC11), codes
-      with spaces and punctuation surviving the round trip. S. Needs 6.2.
-- [x] **7.2** Stale data prompt on `publicationId` mismatch (E16), unpublished
-      course kept and marked stale (E15). S. Needs 7.1.
-- [x] **7.3** Clamp and flag a session outside the grid (E7), confirm Saturday
-      and Sunday are not hidden (E8), "Not published" for a missing room or
-      staff (E9). S. Needs 7.2.
-
-### Checkpoint: complete (done)
-
-- [x] All 12 use cases and all 20 edge cases accounted for
-- [x] `uv run pytest` green at 314, `node --test` green at 156
-- [x] Browser verified at 390px and desktop. No light theme exists to check,
-      which is recorded in STATUS.md rather than silently skipped
-- [x] Upload path verified: offline, migrated from v1 and v2, and folded into
-      an existing timetable (which was broken and is now fixed)
-- [x] STATUS.md and README.md updated
-
-## Standing bar
-
-Held for every task above, and for anything added later. Not a checklist to
-complete; a bar to clear each time.
-
-- House style: no em dashes, en dashes, emoji or rule lines, including in
-  comments. Comments say why, not what
-- Tests read as statements about behaviour, fixtures pulled from the warehouse
-  rather than invented
-- The upload path still works with no network
-- No automatic placement moves anything the student set by hand
-- New API routes stay public and read-only, sharing the explorer's pool and
-  cache
+### Checkpoint C
+- [x] All 13 manual checks pass.
+- [x] Both suites pass; counts recorded. *487 Python, 326 JS.*
+- [x] Spec §8 all ticked.
+- [ ] You approve the merge and the deploy.
