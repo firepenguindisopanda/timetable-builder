@@ -19,6 +19,10 @@ _TOKEN = re.compile(r"(?:SUM\s*)?(?:S\d+)?W(\d+)", re.I)
 #: title: "Course timetable - ACCT 1003, Intro. to Cost ... (Wks W2-W12)".
 _TITLE_RANGE = re.compile(r"\(\s*Wks?\s+(?:SUM\s*)?(?:S\d+)?W(\d+)", re.I)
 
+#: A date range in a title, "31-Aug-26 - 16-Nov-26". Only the "Inspection
+#: Copy" template prints one, and it exports the whole semester.
+_TITLE_DATES = re.compile(r"\d{1,2}-[A-Za-z]{3}-\d{2}\s*-\s*\d{1,2}-[A-Za-z]{3}-\d{2}")
+
 
 def expand_weeks(weeks_raw: str | None) -> list[int]:
     """
@@ -80,9 +84,15 @@ def export_horizon(title: str | None) -> int | None:
     PDFs all carry it.
 
     Returns None when the title has no range, so a caller cannot mistake a
-    missing horizon for week 1.
+    missing horizon for week 1. Also None for a title that prints the
+    semester's dates, "(Wks W1-W12 (Semester 1), 31-Aug-26 - 16-Nov-26)": that
+    template exports the whole semester whatever the current week, so its W1
+    says nothing about which weeks have passed. PHPP 0301 arrived in it in
+    week 5 (29 Sep 2026), and read as W1 it dragged the corpus's lowest
+    horizon down with it, so the diff counted every class that had finished
+    in W3-W4 as removed.
     """
-    if not title:
+    if not title or _TITLE_DATES.search(title):
         return None
     match = _TITLE_RANGE.search(title)
     return int(match.group(1)) if match else None

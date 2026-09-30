@@ -50,6 +50,18 @@ def test_a_title_without_a_range_has_no_horizon_rather_than_week_one(title):
     assert export_horizon(title) is None
 
 
+def test_a_dated_whole_semester_export_has_no_horizon():
+    # The "Inspection Copy" template PHPP 0301 arrived in on 29 Sep 2026, in
+    # week 5, prints the semester's dates after its range. It covers the whole
+    # semester whatever the current week, so its W1 is not evidence that week
+    # 1 has not passed. Read as a horizon it dragged the corpus's lowest to W1,
+    # and the diff then reported every class that had finished in W3-W4 as
+    # removed.
+    title = ("Course timetable - PHPP 0301, English for Pre-Health Science I "
+             "(Wks W1-W12 (Semester 1), 31-Aug-26 - 16-Nov-26)")
+    assert export_horizon(title) is None
+
+
 # Writing weeks back out
 
 
