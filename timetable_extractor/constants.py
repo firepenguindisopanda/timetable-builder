@@ -6,6 +6,9 @@ Constants used throughout the timetable extraction package.
 REVERSED_DAYS: dict[str, str] = {
     "yadnoM": "Monday",
     "noM": "Monday",  # abbreviated (reversed "Mon")
+    # Two letters, as the "Inspection Copy" template prints it. PHPP 0301 arrived
+    # in that template on 29 Sep 2026; unmatched, its Monday row went unbuilt.
+    "oM": "Monday",
     "yadseuT": "Tuesday",
     "euT": "Tuesday",  # abbreviated (reversed "Tue")
     "yadsendeW": "Wednesday",  # full ("Wednesday" reversed - note the capital W)

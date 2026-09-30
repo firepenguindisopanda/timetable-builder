@@ -24,6 +24,22 @@ registry — which is the gate doing its job.
 
 ## What is here
 
+### Withdrawn between the publications of 17 September and 29 September 2026
+
+| File | Was |
+|---|---|
+| `m49214.pdf` | FSTF 1000, Study Skills for the Sciences |
+| `m6792.pdf` | HIST 2008, Colonial Latin America |
+| `rooms/r3479.pdf` | FHE SOE N 12 |
+| `rooms/r3517.pdf` | FST Chemistry Computer Laboratory |
+| `rooms/r48519.pdf` | TLC Postgraduate Lounge |
+
+Swept on 30 Sep 2026, before loading. The registry went 1,634 to 1,631 while
+the corpus stood at 1,636 against it; this batch removed 5 and added 2
+(`rooms/r64253.pdf`, Law Tutorial Room 2, and `staff/s25178.pdf`, KING,
+Graham). The registry-against-disk name diff was empty both ways after the
+move. The strays were last pulled on 17 Sep and still read `(Wks W3-W12)`.
+
 ### Withdrawn between the publications of 4 September and 11 September 2026
 
 | File | Was |
