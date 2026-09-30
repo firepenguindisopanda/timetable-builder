@@ -40,6 +40,9 @@ class TestReversedDayLabels:
         "label,day",
         [
             ("noM", "Monday"),
+            # Regression: the "Inspection Copy" template PHPP 0301 arrived in
+            # on 29 Sep 2026 abbreviates Monday to two letters.
+            ("oM", "Monday"),
             ("euT", "Tuesday"),
             ("eW", "Wednesday"),
             # Regression: "Wed" reversed was absent from the table. About one

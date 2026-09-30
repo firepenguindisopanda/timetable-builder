@@ -2,6 +2,7 @@
 Class block detection functions for timetable extraction.
 """
 
+import re
 from typing import Any
 
 from timetable_extractor.config.models import CourseConfig
@@ -10,6 +11,10 @@ from timetable_extractor.constants import (
     MAX_BLOCK_HEIGHT,
     MAX_HEADER_BAR_GAP,
 )
+
+#: A time-axis label, "08:00AM". A block made of nothing else is an hour cell
+#: of the time axis, not a class.
+_TIME_LABEL = re.compile(r"^\d{1,2}:\d{2}\s?[AP]M$", re.IGNORECASE)
 
 
 def identify_class_blocks(
@@ -104,7 +109,14 @@ def identify_class_blocks(
             and w["x0"] > block_left_bound
             and (day_col_x_max is None or w["x1"] <= day_col_x_max)
         ]
-        if block_words:
+        # The "Inspection Copy" template shades its time axis like a class
+        # header bar and labels each hour cell with its start and end time, so
+        # every cell clustered into a block of its own: about 56 untyped
+        # classes per PDF with impossible "09:00 AM-09:00 AM" ranges (PHPP 0301,
+        # 29 Sep 2026). A block whose every word is a time label is one of
+        # those cells. Judged by content, not by y, so it holds wherever a
+        # template puts its axis.
+        if block_words and not all(_TIME_LABEL.match(w["text"]) for w in block_words):
             blocks.append(
                 {
                     "x0": c["x0"],
