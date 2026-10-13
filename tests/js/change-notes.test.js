@@ -15,7 +15,7 @@ const assert = require('node:assert');
 const { load } = require('./harness');
 
 const { describeChange, summariseChanges } =
-  load('change-notes.js').take('describeChange', 'summariseChanges');
+  load('calendar-utils.js', 'change-notes.js').take('describeChange', 'summariseChanges');
 
 function slot(over) {
   return Object.assign({
@@ -39,7 +39,7 @@ function change(over) {
 test('a class on a different day says where it went', () => {
   const line = describeChange(change());
   assert.equal(line.code, 'COMP 1601');
-  assert.equal(line.text, 'Lecture moved from Mon 09:00 to Fri 09:00');
+  assert.equal(line.text, 'Lecture moved from Mon 9am to Fri 9am');
   assert.equal(line.severity, 'act');
 });
 
@@ -104,7 +104,7 @@ test('an extra sitting is not called a move', () => {
   const line = describeChange(change({
     displayKind: 'sitting_added', before: [], after: [slot({ day: 'Tuesday' })],
   }));
-  assert.equal(line.text, 'extra Lecture — Tue 09:00');
+  assert.equal(line.text, 'extra Lecture — Tue 9am');
   assert.equal(line.severity, 'info');
 });
 
@@ -112,7 +112,7 @@ test('a dropped sitting says which one it was', () => {
   const line = describeChange(change({
     displayKind: 'sitting_removed', before: [slot({ day: 'Tuesday' })], after: [],
   }));
-  assert.equal(line.text, 'one Lecture sitting dropped — was Tue 09:00');
+  assert.equal(line.text, 'one Lecture sitting dropped — was Tue 9am');
   assert.equal(line.severity, 'act');
 });
 
@@ -144,7 +144,7 @@ test('a renamed course is filed under the code the student is holding', () => {
 
 test('a class with no activity type still reads as a sentence', () => {
   const line = describeChange(change({ activityType: null }));
-  assert.equal(line.text, 'class moved from Mon 09:00 to Fri 09:00');
+  assert.equal(line.text, 'class moved from Mon 9am to Fri 9am');
 });
 
 test('a confirmation with no room named does not print undefined', () => {

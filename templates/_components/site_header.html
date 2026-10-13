@@ -1,0 +1,22 @@
+{% macro site_header(active) %}
+{#
+  The student-facing masthead, shared by the explorer and the timetable
+  builder so the two read as one site. The builder used to wear the
+  extractor's header instead ("CELCAT Extractor v1.0.0", Upload, API Online,
+  API Docs, Meme), so a student moving between them met two products.
+#}
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" href="/explore">
+      Timetable <span class="campus">UWI St. Augustine</span>
+    </a>
+    <nav class="masthead-nav" aria-label="Sections">
+      <a href="/explore" {% if active == 'explore' %}aria-current="page"{% endif %}>Courses</a>
+      <a href="/explore/rooms" {% if active == 'rooms' %}aria-current="page"{% endif %}>Rooms</a>
+      <a href="/explore/staff" {% if active == 'staff' %}aria-current="page"{% endif %}>Lecturers</a>
+      <a href="/explore/changes" {% if active == 'changes' %}aria-current="page"{% endif %}>Updates</a>
+    </nav>
+    <a class="masthead-tool" href="/calendar" {% if active == 'calendar' %}aria-current="page"{% endif %}>Build a timetable</a>
+  </div>
+</header>
+{% endmacro %}

@@ -65,6 +65,31 @@ function timeLabel(mins) {
   return displayH + ":" + String(m).padStart(2, "0") + " " + period;
 }
 
+/**
+ * A time as the page shows it: "9am", "12pm", "2:30pm".
+ *
+ * One format for the whole page. Blocks and the class list printed 24-hour
+ * ("14:00"), the axis 12-hour ("2:00pm") and the detail view "2:00 PM", so the
+ * same class read three ways. Times are stored 24-hour; only display changes.
+ */
+function displayTime(time) {
+  if (!time) return '';
+  const mins = timeToMins(time);
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return hour12 + (m ? ':' + String(m).padStart(2, '0') : '') + (h < 12 ? 'am' : 'pm');
+}
+
+/** "9–11am", "11am–12:30pm": am or pm said once when both ends share it. */
+function displayTimeRange(start, end) {
+  const from = displayTime(start);
+  const to = displayTime(end);
+  if (!from || !to) return from || to;
+  const shared = from.slice(-2) === to.slice(-2);
+  return (shared ? from.slice(0, -2) : from) + '–' + to;
+}
+
 function timesOverlap(aStart, aEnd, bStart, bEnd) {
   return timeToMins(aStart) < timeToMins(bEnd) && timeToMins(bStart) < timeToMins(aEnd);
 }

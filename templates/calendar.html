@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Calendar - CELCAT Timetable Extractor{% endblock %}
+{% block title %}My timetable · UWI St. Augustine{% endblock %}
+
+{% block footer %}
+<p>Built from the published UWI St. Augustine timetable. Your timetable is saved in this browser only.</p>
+<p>Always check with your department before relying on a class time. <a href="/explore">Find classes</a> · <a href="/explore/changes">What changed</a></p>
+{% endblock %}
 
 {% block extra_head %}
 <!--
@@ -511,6 +516,12 @@
 .week-today:focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
+}
+
+.calendar-legend {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin: 0 4px 10px;
 }
 
 .week-absent {
@@ -1682,7 +1693,7 @@ button.resolve-option:focus-visible {
             <span class="text-accent">My</span> Timetable
         </h1>
         <p class="page-subtitle">
-            Tap a class for its details, drag it to another sitting.
+            Tap a class for its details, or drag it to another of its times.
             Anything you place yourself stays put.
         </p>
     </div>
@@ -1776,69 +1787,17 @@ button.resolve-option:focus-visible {
         </div>
     </div>
 
-    <!-- Conflicts Warning -->
-    <div id="conflictsPanel" class="conflicts-panel" style="display: none;">
-        <button type="button" id="conflictsToggle" class="conflicts-header"
-                aria-expanded="true" aria-controls="conflictsContent"
-                onclick="toggleConflicts()">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-            <span id="conflictsSummary"><span id="conflictsCount">0</span> clashes</span>
-            <i class="bi bi-chevron-down ms-auto" aria-hidden="true"></i>
-        </button>
-        <div id="conflictsContent" class="conflicts-content open">
-            <!-- Conflict items will be rendered here -->
-        </div>
-    </div>
-
-    <!-- Exams and other one-offs, by date -->
-    <section id="comingUpPanel" class="coming-up-panel" aria-labelledby="comingUpTitle" hidden>
-        <h2 id="comingUpTitle" class="coming-up-title">
-            <i class="bi bi-calendar-event" aria-hidden="true"></i>
-            Coming up: exams and one-off classes
-        </h2>
-        <p class="coming-up-hint" id="comingUpHint">These run in particular weeks, so they are listed here rather than drawn on the weekly grid.</p>
-        <ul id="comingUpList" class="coming-up-list"></ul>
-    </section>
-
-    <!-- Events Master-Detail Panel -->
-    <div class="surface-card mb-3" style="margin: 0 auto;">
-        <div class="events-master-detail">
-            <!-- Left: Event List -->
-            <div class="events-list-column">
-                <div class="events-list-header">
-                    <span><i class="bi bi-list me-1"></i> All Events (<span id="eventCount">0</span>)</span>
-                    <input type="text" id="searchBox" placeholder="Search..." style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; width: 120px;">
-                </div>
-                <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="Event list" tabindex="0">
-                    <!-- Event list items rendered by JS -->
-                </div>
-            </div>
-
-            <!-- Right: Detail Panel -->
-            <div class="events-detail-column">
-                <div id="detailPlaceholder" class="detail-placeholder">
-                    <i class="bi bi-hand-index"></i>
-                    <p>No event selected</p>
-                    <p class="hint">Select a class here or tap one on the grid</p>
-                </div>
-                <div id="detailContent" class="detail-content" style="display: none;" role="region" aria-label="Event details" aria-live="polite">
-                    <!-- Detail content rendered by JS -->
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Controls -->
     <div class="container mt-3">
         <div class="row align-items-center mb-2">
             <div class="col-auto">
-                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">&larrhk; Undo</button>
-                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">&larrhk; Redo</button>
+                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Undo</button>
+                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Redo</button>
                 <button id="addCoursesBtn" class="btn btn-accent btn-sm">
                     <i class="bi bi-plus-lg me-1"></i> Add courses
                 </button>
                 <button id="clearBtn" class="btn btn-outline-warning btn-sm"
-                        title="May move classes you did not place yourself">&crarr; Re-optimise</button>
+                        title="May move classes you did not place yourself">&crarr; Re-arrange</button>
                 <button id="shareBtn" class="btn btn-outline-info btn-sm"
                         title="Copy a link that rebuilds this timetable">
                     <i class="bi bi-link-45deg"></i> Share
@@ -1861,8 +1820,22 @@ button.resolve-option:focus-visible {
                 </button>
             </div>
             <div class="col">
-                <small class="text-muted">Drag a class to any of its alternatives. Anything you move yourself stays put.</small>
+                <small class="text-muted">Drag a class to another of its times. Anything you move stays where you put it.</small>
             </div>
+        </div>
+    </div>
+
+    <!-- Conflicts Warning -->
+    <div id="conflictsPanel" class="conflicts-panel" style="display: none;">
+        <button type="button" id="conflictsToggle" class="conflicts-header"
+                aria-expanded="true" aria-controls="conflictsContent"
+                onclick="toggleConflicts()">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <span id="conflictsSummary"><span id="conflictsCount">0</span> clashes</span>
+            <i class="bi bi-chevron-down ms-auto" aria-hidden="true"></i>
+        </button>
+        <div id="conflictsContent" class="conflicts-content open">
+            <!-- Conflict items will be rendered here -->
         </div>
     </div>
 
@@ -1888,6 +1861,15 @@ button.resolve-option:focus-visible {
             <button type="button" class="btn btn-outline-info btn-sm week-today" id="weekToday">This week</button>
         </nav>
         <p class="week-absent" id="weekAbsent" hidden></p>
+        <!-- Legend, beside the grid it explains -->
+        <p class="calendar-legend">
+            <span class="legend-dot" style="background: var(--type-lecture);"></span>Lecture
+            <span class="legend-dot" style="background: var(--type-lab); margin-left: 8px;"></span>Lab
+            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: 8px;"></span>Tutorial
+            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
+            <i class="bi bi-pin-angle-fill" style="margin-left: 8px;" aria-hidden="true"></i> Locked (you chose this)
+            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
+        </p>
         <div class="calendar-scroll-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <div id="calendarWrapper" class="calendar-wrapper" style="min-width: 700px;">
                 <!-- 7 day columns -->
@@ -1903,20 +1885,47 @@ button.resolve-option:focus-visible {
         </p>
     </div>
 
+    <!-- Exams and other one-offs, by date -->
+    <section id="comingUpPanel" class="coming-up-panel" aria-labelledby="comingUpTitle" hidden>
+        <h2 id="comingUpTitle" class="coming-up-title">
+            <i class="bi bi-calendar-event" aria-hidden="true"></i>
+            Coming up: exams and one-off classes
+        </h2>
+        <p class="coming-up-hint" id="comingUpHint">These run in particular weeks, so they are listed here rather than drawn on the weekly grid.</p>
+        <ul id="comingUpList" class="coming-up-list"></ul>
+    </section>
+
+    <!-- Events Master-Detail Panel -->
+    <div class="surface-card mb-3" id="eventsPanel" style="margin: 0 auto;">
+        <div class="events-master-detail">
+            <!-- Left: Event List -->
+            <div class="events-list-column">
+                <div class="events-list-header">
+                    <span><i class="bi bi-list me-1"></i> My classes (<span id="eventCount">0</span>)</span>
+                    <input type="text" id="searchBox" placeholder="Search..." style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; width: 120px;">
+                </div>
+                <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="Event list" tabindex="0">
+                    <!-- Event list items rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Right: Detail Panel -->
+            <div class="events-detail-column">
+                <div id="detailPlaceholder" class="detail-placeholder">
+                    <i class="bi bi-hand-index"></i>
+                    <p>No event selected</p>
+                    <p class="hint">Select a class here or tap one on the grid</p>
+                </div>
+                <div id="detailContent" class="detail-content" style="display: none;" role="region" aria-label="Event details" aria-live="polite">
+                    <!-- Detail content rendered by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toasts -->
     <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 
-    <!-- Legend -->
-    <div class="mt-3 text-center">
-        <span style="font-size: 0.7rem; color: var(--text-secondary);">
-            <span class="legend-dot" style="background: var(--type-lecture);"></span>Lecture
-            <span class="legend-dot" style="background: var(--type-lab); margin-left: 8px;"></span>Lab
-            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: 8px;"></span>Tutorial
-            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
-            <i class="bi bi-pin-angle-fill" style="margin-left: 8px;"></i> Placed by you
-            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
-        </span>
-    </div>
 </div>
 {% endblock %}
 
@@ -1984,6 +1993,8 @@ button.resolve-option:focus-visible {
     // many weeks there are. Null when the semester is not known, and then the
     // grid is the undated week it was before dates existed.
     const teaching = {{ teaching_calendar | tojson }};
+    //: The extractor's raw fields in the class details: for debugging only.
+    const showRawData = {{ 'true' if dev_tools_enabled else 'false' }};
     const weekOne = teaching ? teaching.weekOne : null;
     const totalWeeks = teaching ? teaching.totalWeeks : null;
     //: The week the grid shows. It opens on the current teaching week.
@@ -2028,7 +2039,7 @@ button.resolve-option:focus-visible {
             },
             allDaySlot: false,
             slotDuration: '00:30',
-            slotHeaderFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short' },
+            slotHeaderFormat: { hour: 'numeric', minute: '2-digit', omitZeroMinute: true, meridiem: 'short' },
             // Side by side, never stacked. A class hidden behind another
             // could not be reached, which made the commonest clash
             // impossible to fix by hand.
@@ -2059,10 +2070,10 @@ button.resolve-option:focus-visible {
             eventClick: onBlockClick,
             eventDidMount: arg => {
                 const p = arg.event.extendedProps;
-                const bits = [p.label, p.type || '', `${p.day} ${p.startTime} to ${p.endTime}`];
+                const bits = [p.label, p.type || '', `${p.day} ${displayTime(p.startTime)} to ${displayTime(p.endTime)}`];
                 if (p.room) bits.push(p.room);
                 if (p.clash) bits.push('clash');
-                if (p.pinned) bits.push('placed by you');
+                if (p.pinned) bits.push('locked, you chose this');
                 arg.el.setAttribute('aria-label', bits.filter(Boolean).join(', '));
             },
         });
@@ -2139,9 +2150,9 @@ button.resolve-option:focus-visible {
         const course = state && state.getCourse(p.courseKey);
         const stale = course && course.stale;
         return { html: `
-            <div class="event-course">${escapeHtml(p.label)}${p.pinned ? '<i class="bi bi-pin-angle-fill event-pin" title="Placed by you"></i>' : ''}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
+            <div class="event-course">${escapeHtml(p.label)}${p.pinned ? '<i class="bi bi-pin-angle-fill event-pin" title="Locked: you chose this time"></i>' : ''}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
             <div class="event-type">${escapeHtml(p.type || 'Event')}</div>
-            <div class="event-time">${escapeHtml(p.startTime)}-${escapeHtml(p.endTime)}</div>
+            <div class="event-time">${escapeHtml(displayTimeRange(p.startTime, p.endTime))}</div>
             ${p.room ? `<div class="event-room">${escapeHtml(p.room)}</div>` : ''}
             ${p.clash ? `<button type="button" class="clash-badge"
                 title="Clashes with another class. Resolve it."
@@ -2193,9 +2204,9 @@ button.resolve-option:focus-visible {
                 aria-selected="${isSelected}"
                 tabindex="0">
                 <span class="event-dot ${typeClass}"></span>
-                <span class="event-list-time">${event.day.substring(0,3)} ${event.startTime}</span>
+                <span class="event-list-time">${event.day.substring(0,3)} ${escapeHtml(displayTime(event.startTime))}</span>
                 <span class="event-list-course">${escapeHtml(event.courseTitle || '?')}</span>
-                <span class="event-list-type">${escapeHtml(event.type || 'Event')}${event.pinned ? ' <i class="bi bi-pin-angle-fill" title="Placed by you"></i>' : ''}</span>
+                <span class="event-list-type">${escapeHtml(event.type || 'Event')}${event.pinned ? ' <i class="bi bi-pin-angle-fill" title="Locked: you chose this time"></i>' : ''}</span>
             </div>`;
         });
 
@@ -2249,6 +2260,8 @@ button.resolve-option:focus-visible {
                 .map(p => p.selectedSessionId),
             clashing,
             idSuffix,
+            weekOne,
+            showRawData,
         };
     }
 
@@ -2323,7 +2336,7 @@ button.resolve-option:focus-visible {
         if (add) {
             if (state.addSitting(add.dataset.groupId,
                     parseSessionId(add.dataset.sessionId))) {
-                toast('Added that sitting too.', 'Ctrl+Z takes it back off.');
+                toast('Added that time too.', 'Ctrl+Z takes it back off.');
                 // Redrawn so the row flips to "Remove".
                 ctx.rerender();
             }
@@ -2335,7 +2348,7 @@ button.resolve-option:focus-visible {
             state.removePlacement(
                 dropSitting.dataset.groupId,
                 parseSessionId(dropSitting.dataset.sessionId));
-            toast('Removed that sitting.', 'Ctrl+Z puts it back.');
+            toast('Removed that time.', 'Ctrl+Z puts it back.');
             ctx.rerender();
             return;
         }
@@ -2463,7 +2476,7 @@ button.resolve-option:focus-visible {
      * Why a clash has no Fix button, in words rather than by omission.
      */
     const NO_FIX_REASON = {
-        'no-alternative': 'Neither class has another sitting published.',
+        'no-alternative': 'Neither class is published at another time.',
         'pinned': 'Both of these are where you put them. Move one to free it up.',
         'no-improvement': 'Every alternative runs into something else.',
     };
@@ -2489,12 +2502,12 @@ button.resolve-option:focus-visible {
 
         return `<div class="conflict-item">
             <div><strong>${escapeHtml(c.courseA)}</strong> clashes with <strong>${escapeHtml(c.courseB)}</strong></div>
-            <div class="conflict-when">${escapeHtml(c.day)} ${escapeHtml(c.timeA)} vs ${escapeHtml(c.timeB)}</div>
+            <div class="conflict-when">${escapeHtml(c.day)} ${escapeHtml(displayTimeRange(c.a.startTime, c.a.endTime))} vs ${escapeHtml(displayTimeRange(c.b.startTime, c.b.endTime))}</div>
             ${weeks}
             <div class="conflict-action">
                 <button type="button" class="btn btn-sm btn-outline-info conflict-resolve"
                         data-conflict-index="${index}">
-                    Resolve side by side
+                    Fix this clash
                 </button>
                 ${stuck}
             </div>
@@ -2531,7 +2544,7 @@ button.resolve-option:focus-visible {
         document.getElementById('conflictsSummary').innerHTML =
             `<span id="conflictsCount">${conflicts.length}</span> ${conflicts.length === 1 ? 'clash' : 'clashes'}`
             + (only
-                ? ` <span class="conflicts-summary-detail">· ${escapeHtml(only.day)} ${escapeHtml(only.timeA)}${escapeHtml(onlyWeeks)}</span>`
+                ? ` <span class="conflicts-summary-detail">· ${escapeHtml(only.day)} ${escapeHtml(displayTimeRange(only.a.startTime, only.a.endTime))}${escapeHtml(onlyWeeks)}</span>`
                 : '');
         setConflictsOpen(!conflictsCollapsed);
 
@@ -2789,6 +2802,9 @@ button.resolve-option:focus-visible {
             if (isCalendarFullscreen()) exitCalendarFullscreen();
             document.getElementById('weekBar').hidden = true;
             document.getElementById('weekAbsent').hidden = true;
+            // An empty list and an empty detail panel say nothing the empty
+            // state does not, so they wait until there is a class to show.
+            document.getElementById('eventsPanel').hidden = true;
             if ($emptyState) $emptyState.style.display = 'block';
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
@@ -2804,6 +2820,7 @@ button.resolve-option:focus-visible {
         }
 
         if (calendarWrapper) calendarWrapper.style.display = '';
+        document.getElementById('eventsPanel').hidden = false;
 
         // Which placements are in a genuine clash, so their blocks can say so
         // and offer the way in to resolving it. On a dated week, only a clash

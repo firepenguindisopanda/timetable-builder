@@ -561,8 +561,20 @@
 </head>
 <body>
 {% from "_components/nav.html" import nav %}
+{% from "_components/site_header.html" import site_header %}
+{% from "_components/freshness_rail.html" import freshness_rail %}
+<a class="skip-link" href="#main">Skip to content</a>
 
+{#
+  The timetable builder is a student page, so it wears the explorer's header
+  and freshness line. The extraction tools keep their own.
+#}
+{% if active == 'calendar' %}
+{{ site_header(active) }}
+{{ freshness_rail(freshness if freshness is defined else none) }}
+{% else %}
 {{ nav(active=active, version=version) }}
+{% endif %}
 
     {#
       The explorer's update notice, site-wide. It shares the explorer's
@@ -591,28 +603,17 @@
     {% endif %}
 
     <!-- Main Content -->
-    <main class="container py-4">
+    <main id="main" class="container py-4">
         {% block content %}{% endblock %}
     </main>
-
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
-        <div id="muteToast" class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true" style="background: var(--card); border: 1px solid var(--gold);">
-            <div class="d-flex">
-                <div class="toast-body d-flex align-items-center gap-2" style="color: var(--gold-ink);">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <span>Please raise your volume to hear the meme!</span>
-                </div>
-                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
 
     <!-- Footer -->
     <footer class="foot">
         <div class="shell">
+            {% block footer %}
             <p>CELCAT Timetable Extraction · Structured Data API</p>
             <p><a href="/explore">Browse the published timetable</a> · <a href="/calendar">Build your own timetable</a></p>
+            {% endblock %}
         </div>
     </footer>
 
@@ -631,66 +632,12 @@
 <script>
 // Show admin-only nav items if user has authenticated
 (function() {
-    const apiKey = sessionStorage.getItem('admin_api_key');
+    let apiKey = null;
+    try { apiKey = sessionStorage.getItem('admin_api_key'); } catch (e) { /* storage blocked */ }
     if (apiKey) {
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
     }
 })();
-
-document.addEventListener('DOMContentLoaded', function() {
-    const memeBtn = document.getElementById('memeBtn');
-    const muteToast = document.getElementById('muteToast');
-    let audioContext = null;
-    let toastBootstrap = null;
-
-    // Initialize toast bootstrap instance
-    if (muteToast) {
-        toastBootstrap = new bootstrap.Toast(muteToast, { autohide: true, delay: 4000 });
-    }
-
-    memeBtn.addEventListener('click', async function() {
-        // Create audio context on first click (required by browsers)
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        // Resume audio context if suspended
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-
-        // Show toast if muted warning needed (Web Audio API doesn't expose mute directly)
-        // We'll play at low volume first to detect if audio plays, then show warning if it fails
-        try {
-            const audio = new Audio('/assets/amazin.mp3');
-
-            // Try to play at low volume first
-            audio.volume = 0.1;
-            const playPromise = audio.play();
-
-            if (playPromise !== undefined) {
-                playPromise.then(function() {
-                    // Audio is playing, ramp up volume after short delay
-                    setTimeout(function() {
-                        audio.volume = 1;
-                    }, 200);
-                }).catch(function(error) {
-                    // If play failed, show the toast
-                    console.error('Audio play error:', error);
-                    if (toastBootstrap) {
-                        toastBootstrap.show();
-                    }
-                });
-            }
-
-        } catch (e) {
-            console.error('Error playing audio:', e);
-            if (toastBootstrap) {
-                toastBootstrap.show();
-            }
-        }
-    });
-});
 </script>
 </body>
 </html>

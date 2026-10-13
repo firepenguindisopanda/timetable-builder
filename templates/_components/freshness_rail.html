@@ -1,0 +1,33 @@
+{% macro freshness_rail(freshness) %}
+{# Where the data came from and how fresh it is, on every student page. #}
+{% if freshness %}
+<aside class="rail" aria-label="About this timetable data">
+  <div class="rail-inner">
+    <span class="status" data-status="{{ freshness.status }}">{{ freshness.status_label }}</span>
+    <div class="rail-facts">
+      {% if freshness.published_at %}
+      <span>UWI published <b><time data-ts="{{ freshness.published_at }}" data-format="date">{{ freshness.published_at }}</time></b></span>
+      {% endif %}
+      {% if freshness.imported_at %}
+      <span>Imported <time data-ts="{{ freshness.imported_at }}" data-format="rel">{{ freshness.imported_at }}</time></span>
+      {% endif %}
+      {% if freshness.checked_at %}
+      <span>Checked <time data-ts="{{ freshness.checked_at }}" data-format="rel">{{ freshness.checked_at }}</time></span>
+      {% endif %}
+    </div>
+
+    <details>
+      <summary>What these dates mean</summary>
+      <dl class="rail-explain">
+        <dt>UWI published</dt>
+        <dd>When the university last republished its timetable. This is the date printed on the source itself.</dd>
+        <dt>Imported</dt>
+        <dd>When that publication was read into this database. Anything you see here comes from that import, which covered {{ "{:,}".format(freshness.resource_count) }} published timetables.</dd>
+        <dt>Checked</dt>
+        <dd>When we last asked UWI's server whether anything had changed. A recent check with no new publication means the timetable genuinely has not moved.{% if freshness.status == 'pending' %} <b>A change was detected and has not been imported yet, so some classes below may be out of date.</b>{% endif %}</dd>
+      </dl>
+    </details>
+  </div>
+</aside>
+{% endif %}
+{% endmacro %}

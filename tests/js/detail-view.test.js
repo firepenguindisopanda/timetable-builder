@@ -13,6 +13,8 @@ const { load, warehouse, course } = require('./harness.js');
 
 const api = load(
   'calendar-utils.js',
+  'calendar-events.js',
+  'coming-up.js',
   'option-groups.js',
   'placement.js',
   'timetable-state.js',
@@ -73,12 +75,10 @@ test('a placement the student made says so', () => {
   const state = stateOf('COMP 1602');
   const model = modelFor(state, LECTURES);
 
-  assert.match(renderEventDetail(model), /Auto-placement/);
+  assert.match(renderEventDetail(model), /Picked for you/);
 
   model.details.pinned = true;
-  const pinnedField = renderEventDetail(model)
-    .split('Chosen by')[1].slice(0, 200);
-  assert.match(pinnedField, />You</);
+  assert.match(renderEventDetail(model), /You picked this time/);
 });
 
 test('every sitting is listed, the shown one marked and the rest actionable', () => {
@@ -127,8 +127,8 @@ test('a clashing class carries the way into the resolve dialog', () => {
 test('the raw data region id carries the suffix, so two copies can coexist', () => {
   const state = stateOf('COMP 1602');
 
-  const panel = renderEventDetail(modelFor(state, LECTURES, { idSuffix: 'Panel' }));
-  const dialog = renderEventDetail(modelFor(state, LECTURES, { idSuffix: 'Dialog' }));
+  const panel = renderEventDetail(modelFor(state, LECTURES, { idSuffix: 'Panel', showRawData: true }));
+  const dialog = renderEventDetail(modelFor(state, LECTURES, { idSuffix: 'Dialog', showRawData: true }));
 
   assert.match(panel, /id="rawDataContentPanel"/);
   assert.match(panel, /aria-controls="rawDataContentPanel"/);
@@ -165,4 +165,29 @@ test('a menu group offers the split correction, and a split one the way back', (
   model.details.groupReason = 'split';
   const split = renderEventDetail(model);
   assert.match(split, /group-reset/);
+});
+
+test('a student never sees the raw fields the extractor read', () => {
+  // groupId and sessionId are for debugging; only dev tools show them.
+  const html = renderEventDetail(modelFor(stateOf('COMP 1602'), LECTURES));
+  assert.doesNotMatch(html, /Raw Extracted Data|rawDataContent/);
+});
+
+test('weeks come from the full list, not the shorter printed range', () => {
+  /**
+   * Past weeks are carried forward from earlier publications, so a class
+   * that began in week 1 can print "W6-W12". The list is the truth.
+   */
+  const describeDetailWeeks = api.get('describeDetailWeeks');
+  assert.equal(
+    describeDetailWeeks({ weeks: [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12], weeksRaw: 'W6-W7, W9-W12' }),
+    'Weeks 1–7, 9–12'
+  );
+});
+
+test('a one-week class says so, with its date when the calendar is dated', () => {
+  const describeDetailWeeks = api.get('describeDetailWeeks');
+  const exam = { weeks: [7], day: 'Thursday', weeksRaw: 'W7' };
+  assert.equal(describeDetailWeeks(exam), 'Week 7 only');
+  assert.equal(describeDetailWeeks(exam, '2026-08-31'), 'Week 7 only · Thu 15 Oct');
 });
