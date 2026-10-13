@@ -536,6 +536,12 @@ async def calendar_page(request: Request):
     """
     context = _page_context(request, "calendar")
     context["changes_banner"] = None
+    # Dates for the teaching weeks. Like the banner, never worth the page:
+    # without them the calendar shows the undated week it always did.
+    try:
+        context["teaching_calendar"] = explore_router.teaching_calendar_context()
+    except Exception:
+        context["teaching_calendar"] = None
     return templates.TemplateResponse(
         request=request,
         name="calendar.html",

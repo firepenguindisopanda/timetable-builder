@@ -238,3 +238,144 @@ test('drop zones are background events in the anchor week, styled as drop zones'
   assert.equal(zones[0].display, 'background');
   assert.equal(zones[0].className, 'drop-zone');
 });
+
+// Dated weeks
+
+const {
+  dateOfTeachingDay, teachingWeekOf, weekRangeLabel, runsInWeek, eventsInWeek,
+  weekAbsences, toDatedEvents,
+} = api.take('dateOfTeachingDay', 'teachingWeekOf', 'weekRangeLabel', 'runsInWeek',
+  'eventsInWeek', 'weekAbsences', 'toDatedEvents');
+
+const WEEK_ONE = '2026-08-31';
+
+test('week 12 Friday is 20 Nov 2026', () => {
+  assert.equal(dateOfTeachingDay(12, 'Friday', WEEK_ONE), '2026-11-20');
+});
+
+test('Semester 2 dates from its own week 1', () => {
+  assert.equal(dateOfTeachingDay(1, 'Monday', '2027-01-18'), '2027-01-18');
+  assert.equal(dateOfTeachingDay(3, 'Wednesday', '2027-01-18'), '2027-02-03');
+});
+
+test('the calendar opens on the week today falls in', () => {
+  assert.equal(teachingWeekOf('2026-10-12', WEEK_ONE, 12), 7, 'Monday of week 7');
+  assert.equal(teachingWeekOf('2026-10-18', WEEK_ONE, 12), 7, 'Sunday of week 7');
+  assert.equal(teachingWeekOf('2026-10-19', WEEK_ONE, 12), 8);
+});
+
+test('before the semester it opens on week 1, after it on the last week', () => {
+  assert.equal(teachingWeekOf('2026-08-10', WEEK_ONE, 12), 1);
+  assert.equal(teachingWeekOf('2026-12-20', WEEK_ONE, 12), 12);
+});
+
+test('a week is labelled by its dates, across a month boundary too', () => {
+  assert.equal(weekRangeLabel(7, WEEK_ONE), '12\u201318 Oct');
+  assert.equal(weekRangeLabel(5, WEEK_ONE), '28 Sep \u2013 4 Oct');
+});
+
+test('a class appears only in the weeks it runs', () => {
+  const lecture = placed({ weeks: [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12] });
+  assert.ok(runsInWeek(lecture, 7));
+  assert.ok(!runsInWeek(lecture, 8), 'graduation week');
+});
+
+test('a class with no week list runs every week, as the clash check assumes', () => {
+  assert.ok(runsInWeek(placed({ weeks: null }), 8));
+  assert.ok(runsInWeek(placed({ weeks: [] }), 8));
+  assert.ok(runsInWeek(placed({}), 8));
+});
+
+test('the week grid keeps only the classes on that week', () => {
+  const events = [
+    placed({ sessionId: 1, weeks: [8] }),
+    placed({ sessionId: 2, weeks: [1, 2, 3] }),
+    placed({ sessionId: 3, weeks: null }),
+  ];
+  assert.deepEqual(eventsInWeek(events, 8).map((e) => e.sessionId), [1, 3]);
+});
+
+test('a class missing from the middle of its run is a gap, not an end', () => {
+  const absences = weekAbsences([
+    placed({ courseKey: 'COMP 2602', type: 'Lecture', weeks: [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12] }),
+    placed({ courseKey: 'FSTF 1000', type: 'Lecture', weeks: [2, 3] }),
+    placed({ courseKey: 'BIOL 3468', type: 'Lab', weeks: [10] }),
+    placed({ courseKey: 'COMP 1601', weeks: null }),
+    placed({ courseKey: 'COMP 2611', weeks: [8] }),
+  ], 8);
+
+  assert.deepEqual(absences.map((a) => [a.label, a.reason]), [
+    ['COMP 2602', 'gap'],
+    ['BIOL 3468', 'starts'],
+    ['FSTF 1000', 'finished'],
+  ]);
+  assert.equal(absences[1].first, 10);
+  assert.equal(absences[2].last, 3);
+});
+
+function datedSession(overrides) {
+  return {
+    courseKey: 'COMP 2601',
+    type: 'Examination',
+    day: 'Thursday',
+    startTime: '09:00',
+    endTime: '11:00',
+    room: 'ENG MD3',
+    weeks: [7],
+    ...overrides,
+  };
+}
+
+test('an exam is drawn on the date of the week shown, and only that week', () => {
+  const exam = datedSession({});
+  const [event] = toDatedEvents([exam], 7, WEEK_ONE);
+
+  assert.equal(event.start, '2026-10-15T09:00:00');
+  assert.equal(event.end, '2026-10-15T11:00:00');
+  assert.deepEqual(toDatedEvents([exam], 8, WEEK_ONE), []);
+});
+
+test('an exam is never draggable, and says it is dated', () => {
+  const [event] = toDatedEvents([datedSession({})], 7, WEEK_ONE);
+  assert.equal(event.editable, false);
+  assert.ok(event.className.split(' ').includes('dated'));
+  assert.equal(event.extendedProps.dated, true);
+});
+
+test('an exam split across rooms is one block naming every room', () => {
+  const events = toDatedEvents([
+    datedSession({ room: 'JFK LT' }),
+    datedSession({ room: 'ENG MD3' }),
+  ], 7, WEEK_ONE);
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].extendedProps.room, 'ENG MD3; JFK LT');
+});
+
+test('dated events whatever their order, and drop zones in the week shown', () => {
+  const a = toDatedEvents([datedSession({ room: 'A' }), datedSession({ room: 'B' })], 7, WEEK_ONE);
+  const b = toDatedEvents([datedSession({ room: 'B' }), datedSession({ room: 'A' })], 7, WEEK_ONE);
+  assert.deepEqual(a, b);
+
+  const zones = toDropZones([sitting(2, 'Wednesday', '12:00', '13:00')], dateOfTeachingDay(7, 'Monday', WEEK_ONE));
+  assert.equal(zones[0].start, '2026-10-14T12:00:00');
+});
+
+test('the week bar names what is missing and why, in a sentence', () => {
+  const weekAbsenceText = api.get('weekAbsenceText');
+  assert.equal(weekAbsenceText([]), '');
+  assert.equal(
+    weekAbsenceText([
+      { label: 'COMP 2602', type: 'Lecture', reason: 'gap', first: 1, last: 12 },
+      { label: 'BIOL 3468', type: 'Lab', reason: 'starts', first: 10, last: 10 },
+      { label: 'FSTF 1000', type: null, reason: 'finished', first: 2, last: 3 },
+    ]),
+    'Not on this week: COMP 2602 Lecture (no class this week), '
+      + 'BIOL 3468 Lab (starts week 10), FSTF 1000 (finished week 3)'
+  );
+});
+
+test('a dated block is not a button', () => {
+  const [event] = toDatedEvents([datedSession({})], 7, WEEK_ONE);
+  assert.equal(event.interactive, false);
+});

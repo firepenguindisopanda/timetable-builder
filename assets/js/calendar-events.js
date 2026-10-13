@@ -69,6 +69,158 @@ function dateOfTeachingDay(week, day, anchorMonday = ANCHOR_MONDAY) {
   return _dateOfDay(anchorMonday, (week - 1) * 7 + dayIndex);
 }
 
+// Dated weeks
+
+const _MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+//: The dash between the two ends of a date range.
+const RANGE_DASH_WEEK = '–';
+
+/** Whole days from one YYYY-MM-DD to another, counted in UTC. */
+function _daysBetween(fromIso, toIso) {
+  const at = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((at(toIso) - at(fromIso)) / 86400000);
+}
+
+/**
+ * The teaching week a date falls in, clamped to the semester.
+ *
+ * Before week 1 the calendar opens on week 1, and after the last week on the
+ * last, so a student looking ahead in August or back in December lands on a
+ * week that has classes rather than an empty one.
+ */
+function teachingWeekOf(todayIso, weekOne, totalWeeks) {
+  const week = Math.floor(_daysBetween(weekOne, todayIso) / 7) + 1;
+  return Math.min(Math.max(week, 1), totalWeeks);
+}
+
+/** "12–18 Oct", or "28 Sep – 4 Oct" when the week crosses a month. */
+function weekRangeLabel(week, weekOne) {
+  const parts = (iso) => iso.split('-').map(Number);
+  const [, m1, d1] = parts(dateOfTeachingDay(week, 'Monday', weekOne));
+  const [, m2, d2] = parts(dateOfTeachingDay(week, 'Sunday', weekOne));
+  return m1 === m2
+    ? `${d1}${RANGE_DASH_WEEK}${d2} ${_MONTHS[m2 - 1]}`
+    : `${d1} ${_MONTHS[m1 - 1]} ${RANGE_DASH_WEEK} ${d2} ${_MONTHS[m2 - 1]}`;
+}
+
+/**
+ * Whether a class runs in a teaching week.
+ *
+ * A class with no week list runs every week. Every uploaded PDF is like that,
+ * and the clash check already treats it as "every week", so the grid and the
+ * clash panel agree about when it is on.
+ */
+function runsInWeek(event, week) {
+  return !Array.isArray(event.weeks) || event.weeks.length === 0 || event.weeks.includes(week);
+}
+
+/** The placed classes on in one week. */
+function eventsInWeek(placedEvents, week) {
+  return placedEvents.filter((event) => runsInWeek(event, week));
+}
+
+/**
+ * Placed classes that are not on in a week, and why.
+ *
+ * "gap" is a week missing from the middle of a class's run, which is how a
+ * cancellation shows up: 45 classes dropped week 8, graduation week, in the
+ * 9 Oct 2026 republish. "finished" and "starts" are the ends of a run. Without
+ * this a class simply vanished from a week's grid with nothing to say why.
+ */
+function weekAbsences(placedEvents, week) {
+  const absences = [];
+  for (const event of placedEvents) {
+    if (runsInWeek(event, week)) continue;
+    const first = Math.min(...event.weeks);
+    const last = Math.max(...event.weeks);
+    const reason = week < first ? 'starts' : week > last ? 'finished' : 'gap';
+    absences.push({
+      courseKey: event.courseKey,
+      label: event.code || event.courseKey,
+      type: event.type,
+      reason,
+      first,
+      last,
+    });
+  }
+  const order = { gap: 0, starts: 1, finished: 2 };
+  return absences.sort((a, b) =>
+    order[a.reason] - order[b.reason]
+    || String(a.label).localeCompare(String(b.label))
+    || String(a.type || '').localeCompare(String(b.type || '')));
+}
+
+/** The week bar's sentence about classes not on this week, or "". */
+function weekAbsenceText(absences) {
+  if (!absences.length) return '';
+  const why = (a) => (a.reason === 'gap' ? 'no class this week'
+    : a.reason === 'starts' ? `starts week ${a.first}`
+      : `finished week ${a.last}`);
+  return 'Not on this week: ' + absences
+    .map((a) => [a.label, a.type, `(${why(a)})`].filter(Boolean).join(' '))
+    .join(', ');
+}
+
+/**
+ * Exams and other dated one-offs as FullCalendar events for one week.
+ *
+ * Shown on the grid so a student sees an exam beside the week's classes, but
+ * never draggable: they are not a choice. Sittings of the same course and type
+ * at the same time are one block, as in the "Coming up" list.
+ */
+function toDatedEvents(datedSessions, week, weekOne) {
+  const byKey = new Map();
+  for (const session of datedSessions || []) {
+    if (!Array.isArray(session.weeks) || !session.weeks.includes(week)) continue;
+    const date = dateOfTeachingDay(week, session.day, weekOne);
+    if (!date) continue;
+    const key = [session.courseKey, session.type, session.day,
+      session.startTime, session.endTime].join('|');
+    if (!byKey.has(key)) {
+      const startMins = timeToMins(session.startTime);
+      const rawEnd = timeToMins(session.endTime);
+      const endMins = rawEnd > startMins ? rawEnd : startMins + MIN_EVENT_MINS;
+      byKey.set(key, {
+        id: 'dated ' + key,
+        start: `${date}T${_clock(startMins)}:00`,
+        end: `${date}T${_clock(endMins)}:00`,
+        className: 'calendar-event other dated',
+        editable: false,
+        // Not a button: there is nothing to choose or open. The "Coming up"
+        // list says the same thing in text a keyboard can reach.
+        interactive: false,
+        extendedProps: {
+          dated: true,
+          courseKey: session.courseKey,
+          label: session.courseKey,
+          type: session.type,
+          day: session.day,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          rooms: [],
+          pinned: false,
+          clash: false,
+        },
+      });
+    }
+    const props = byKey.get(key).extendedProps;
+    for (const room of String(session.room || '').split(';')) {
+      const name = room.trim();
+      if (name && !props.rooms.includes(name)) props.rooms.push(name);
+    }
+  }
+  return [...byKey.values()].map((event) => {
+    const rooms = event.extendedProps.rooms.sort((a, b) => a.localeCompare(b));
+    event.extendedProps.room = rooms.join('; ') || null;
+    return event;
+  });
+}
+
 /**
  * Placed events as FullCalendar event inputs, in the anchor week.
  *
