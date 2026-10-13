@@ -113,47 +113,6 @@
         </p>
     </section>
 
-    <!-- Course picker -->
-    <div id="pickerPanel" class="picker-panel" style="display: none;">
-        <div class="picker-head">
-            <input type="search" id="pickerQuery" autocomplete="off"
-                   placeholder="Search by code, title, lecturer or room"
-                   aria-label="Search courses to add">
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="pasteToggle"
-                    aria-expanded="false" aria-controls="pickerPaste" style="white-space: nowrap;">
-                Paste a list
-            </button>
-            <a href="/extract" class="btn btn-outline-secondary btn-sm" style="white-space: nowrap;">
-                Add a PDF
-            </a>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose"
-                    title="Close the course picker">Done</button>
-        </div>
-
-        <div class="picker-paste" id="pickerPaste" style="display: none;">
-            <label for="pasteBox" class="visually-hidden">Paste your course codes</label>
-            <textarea id="pasteBox" rows="4" spellcheck="false"
-                placeholder="Paste your codes, however you have them:&#10;COMP 1601, COMP 1602, MATH 1115&#10;or one to a line"></textarea>
-            <div class="paste-preview" id="pastePreview"></div>
-            <button type="button" class="btn btn-accent btn-sm mt-2" id="pasteAdd" disabled>
-                Add courses
-            </button>
-        </div>
-
-        <div class="picker-status" id="pickerStatus" role="status">Loading courses...</div>
-        <ul class="picker-results" id="pickerResults" aria-label="Search results"></ul>
-
-        <div class="picker-actions" id="pickerActions" style="display: none;">
-            <span id="pickerSelectedCount">Nothing selected</span>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClearSelection">
-                Clear
-            </button>
-            <button type="button" class="btn btn-accent btn-sm" id="pickerAddSelected">
-                Add courses
-            </button>
-        </div>
-    </div>
-
     <!--
       Controls, grouped by purpose (REDESIGN-SPEC.md 5.2). more-menu.js moves
       buttons between the groups and More as the width changes, so each
@@ -373,6 +332,58 @@
 {% endblock %}
 
 {% block body_end %}
+<!--
+  The course picker, as a drawer over the page (REDESIGN-SPEC.md 5.6). A
+  direct child of <body>, beside the toasts, so holdFocusIn() can make the
+  page inert behind it and leave the toasts announced and tappable.
+  picker-drawer.js opens and closes it.
+-->
+<div id="pickerDrawer" class="drawer" hidden>
+    <div class="drawer-backdrop" data-drawer-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+        <div id="pickerPanel" class="picker-panel">
+            <div class="picker-title-bar">
+                <h2 id="pickerTitle" class="picker-heading">Add courses</h2>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose">Done</button>
+            </div>
+            <div class="picker-head">
+                <input type="search" id="pickerQuery" autocomplete="off"
+                       placeholder="Search by code, title, lecturer or room"
+                       aria-label="Search courses to add">
+                <div class="picker-ways">
+                    <button type="button" class="btn btn-link btn-sm" id="pasteToggle"
+                            aria-expanded="false" aria-controls="pickerPaste">
+                        Paste a list
+                    </button>
+                    <a href="/extract" class="btn btn-link btn-sm">Add a PDF</a>
+                </div>
+            </div>
+
+            <div class="picker-paste" id="pickerPaste" style="display: none;">
+                <label for="pasteBox" class="visually-hidden">Paste your course codes</label>
+                <textarea id="pasteBox" rows="4" spellcheck="false"
+                    placeholder="Paste your codes, however you have them:&#10;COMP 1601, COMP 1602, MATH 1115&#10;or one to a line"></textarea>
+                <div class="paste-preview" id="pastePreview"></div>
+                <button type="button" class="btn btn-accent btn-sm mt-2" id="pasteAdd" disabled>
+                    Add courses
+                </button>
+            </div>
+
+            <div class="picker-status" id="pickerStatus" role="status">Loading courses...</div>
+            <ul class="picker-results" id="pickerResults" aria-label="Search results"></ul>
+
+            <div class="picker-actions" id="pickerActions" style="display: none;">
+                <span id="pickerSelectedCount">Nothing selected</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClearSelection">
+                    Clear
+                </button>
+                <button type="button" class="btn btn-accent btn-sm" id="pickerAddSelected">
+                    Add courses
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Toasts. A direct child of <body>, so a dialog can leave it un-inert and
      a note about what the dialog just did is still announced and tappable. -->
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
@@ -405,6 +416,7 @@
 <script src="/assets/js/my-week.js?v={{ asset_version }}"></script>
 <script src="/assets/js/notices.js?v={{ asset_version }}"></script>
 <script src="/assets/js/more-menu.js?v={{ asset_version }}"></script>
+<script src="/assets/js/picker-drawer.js?v={{ asset_version }}"></script>
 <script>
 (function() {
     'use strict';
@@ -1598,7 +1610,6 @@
 
     // Course picker
 
-    const $picker = document.getElementById('pickerPanel');
     const $pickerQuery = document.getElementById('pickerQuery');
     const $pickerResults = document.getElementById('pickerResults');
     const $pickerStatus = document.getElementById('pickerStatus');
@@ -1686,10 +1697,19 @@
             .join('');
     }
 
+    //: The picker opens over the page rather than pushing the grid down
+    //: (picker-drawer.js). Focus returns to whatever opened it.
+    const pickerDrawer = bindPickerDrawer(document.getElementById('pickerDrawer'), {
+        doc: document,
+        hold: holdFocusIn,
+        release: releaseFocusHold,
+        canFocus: el => document.contains(el) && el.getClientRects().length > 0 && !el.disabled,
+        onOpen: () => $pickerQuery.focus(),
+        onClose: () => showChooserIfEmpty(),
+    });
+
     function openPicker() {
-        $picker.style.display = 'block';
-        $modeChooser.hidden = true;
-        $pickerQuery.focus();
+        pickerDrawer.open(document.activeElement);
         $pickerStatus.textContent = 'Loading courses...';
         loadCourseIndex()
             .then(() => { renderPickerResults(); renderPastePreview(); })
@@ -1705,13 +1725,14 @@
     }
 
     function closePicker() {
-        $picker.style.display = 'none';
-        showChooserIfEmpty();
+        pickerDrawer.close();
     }
 
     function showChooserIfEmpty() {
         const empty = !state || state.courseKeys.length === 0;
-        $modeChooser.hidden = !(empty && $picker.style.display === 'none');
+        // Left in place behind the drawer, so closing it with nothing added
+        // comes back to the same first screen.
+        $modeChooser.hidden = !empty;
         // Nothing to act on or look at yet, so the first visit is one block
         // with one action: no disabled toolbar, no legend, no empty grid
         // (REDESIGN-SPEC.md 5.5).
@@ -1992,9 +2013,7 @@
         if ($paste.style.display === 'none') togglePaste();
     });
     document.getElementById('pickerClose').addEventListener('click', closePicker);
-    document.getElementById('addCoursesBtn').addEventListener('click', () => {
-        if ($picker.style.display === 'block') closePicker(); else openPicker();
-    });
+    document.getElementById('addCoursesBtn').addEventListener('click', openPicker);
 
     // Sharing
 
