@@ -156,6 +156,38 @@ test('an activity type outside the familiar six is carried, not flattened', () =
   assert.ok(types.has('Tutorial (make-up/relocated)'));
 });
 
+test('dated one-offs keep their groups, so no group id changes', () => {
+  // Leaving exams and relocations off the grid is a filter on top of the
+  // grouping, never a change to it: group ids have to survive a republish.
+  const ids = groupsFor('PSYC 1001').map((g) => g.groupId);
+  assert.ok(ids.includes('PSYC 1001|Lecture Relocated|all'));
+  assert.ok(ids.includes('PSYC 1001|Tutorial (make-up/relocated)|all'));
+});
+
+test('the weekly groups leave out exams, relocations and make-ups', () => {
+  const weeklyOptionGroups = api.get('weeklyOptionGroups');
+  const weekly = weeklyOptionGroups(pick('PSYC 1001'));
+  const types = new Set(weekly.map((g) => g.type));
+
+  assert.deepEqual([...types].sort(), ['Lecture', 'Tutorial']);
+  // The weekly ones are untouched, ids included.
+  const all = groupsFor('PSYC 1001').filter((g) => types.has(g.type));
+  assert.deepEqual(weekly.map((g) => g.groupId), all.map((g) => g.groupId));
+});
+
+test('only one-off types count as dated, not every unusual one', () => {
+  const isDatedType = api.get('isDatedType');
+  for (const type of ['Examination', 'Lecture Relocated', 'Lecture Make-up',
+    'Tutorial (make-up/relocated)']) {
+    assert.ok(isDatedType(type), type);
+  }
+  // Boot camps and field trips run for weeks; review centres all semester.
+  for (const type of ['Lecture', 'Lab', 'Tutorial', 'MATH Boot Camp',
+    'Field Trip', 'Chemistry Review Centre', null]) {
+    assert.ok(!isDatedType(type), String(type));
+  }
+});
+
 test('a course with no sessions produces no groups', () => {
   assert.deepEqual(deriveOptionGroups({ courseKey: 'X', sessions: [] }), []);
   assert.deepEqual(deriveOptionGroups({ courseKey: 'X' }), []);

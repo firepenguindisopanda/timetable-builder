@@ -351,3 +351,18 @@ def test_a_dismissible_control_is_offered(client):
     body = client.get(ROOMS_URL).text
     assert 'id="updateDismiss"' in body
     assert "Dismiss this update notice" in body
+
+
+def test_the_calendar_shows_only_its_own_notice(client):
+    """
+    The site-wide notice counted every class on campus, so it showed to a
+    student with an empty timetable, and beside the calendar's own notice it
+    said the same thing twice. The calendar keeps the one about its courses.
+    """
+    body = client.get("/calendar").text
+    assert 'id="updateBar"' not in body
+    assert 'id="staleWarning"' in body
+
+
+def test_other_tool_pages_keep_the_site_wide_notice(client):
+    assert 'id="updateBar"' in client.get("/extract").text

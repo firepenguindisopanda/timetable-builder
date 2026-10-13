@@ -12,6 +12,7 @@ import pytest
 
 from timetable_extractor.database.explore_queries import (
     build_code_index,
+    merge_block_rooms,
     normalise_course_code,
     resolve_published_code,
     week_layout,
@@ -240,3 +241,87 @@ def test_days_come_back_in_timetable_order():
 def test_empty_days_are_left_out():
     layout = week_layout([session("Tuesday", 9 * 60, 10 * 60)])
     assert [d["day"] for d in layout["days"]] == ["Tuesday"]
+
+
+# One block, several rooms
+
+
+def _row(session_id, room, raw_text, **fields):
+    """A session as sessions_for_courses reads it, before merging."""
+    row = {
+        "sessionId": session_id,
+        "type": "Examination",
+        "day": "Friday",
+        "startTime": "09:00",
+        "endTime": "11:00",
+        "room": room,
+        "staff": [],
+        "streamLabel": None,
+        "weeks": [10],
+        "weeksRaw": "W10",
+        "sourceCount": 2,
+        "rawText": raw_text,
+    }
+    row.update(fields)
+    return row
+
+
+MATH_0100_EXAM = "Examination, Wk W10\nCourse: MATH 0100\nRooms: ENG MD3; JFK\nAUD"
+
+
+def test_one_block_in_two_rooms_is_one_session_naming_both():
+    """MATH 0100's exam was offered as two rooms to choose between."""
+    merged = merge_block_rooms([
+        _row(11, "JFK AUD", MATH_0100_EXAM),
+        _row(12, "ENG MD3", MATH_0100_EXAM),
+    ])
+    assert len(merged) == 1
+    assert merged[0]["sessionId"] == 11
+    assert merged[0]["room"] == "ENG MD3; JFK AUD"
+
+
+def test_parallel_groups_in_separate_blocks_stay_separate():
+    """
+    ECON 1005's Tuesday 3pm tutorials run in two rooms as two blocks: two
+    groups to choose between. Merging them would hide a real choice.
+    """
+    merged = merge_block_rooms([
+        _row(21, "FSS 101 E", "Tutorial, Wks W6-W12\nCourse: ECON 1005\nRoom: FSS 101 E",
+             type="Tutorial", weeksRaw="W1-W12"),
+        _row(22, "FSS 102 E", "Tutorial, Wks W6-W12\nCourse: ECON 1005\nRoom: FSS 102 E",
+             type="Tutorial", weeksRaw="W1-W12"),
+    ])
+    assert [s["room"] for s in merged] == ["FSS 101 E", "FSS 102 E"]
+
+
+def test_the_same_text_at_a_different_time_is_not_the_same_block():
+    merged = merge_block_rooms([
+        _row(31, "ENG MD3", MATH_0100_EXAM),
+        _row(32, "JFK AUD", MATH_0100_EXAM, startTime="13:00", endTime="15:00"),
+    ])
+    assert len(merged) == 2
+
+
+def test_rows_with_no_raw_text_never_merge():
+    merged = merge_block_rooms([_row(41, "ENG MD3", None), _row(42, "JFK AUD", None)])
+    assert [s["room"] for s in merged] == ["ENG MD3", "JFK AUD"]
+
+
+def test_a_merged_class_keeps_everyone_teaching_it_once():
+    merged = merge_block_rooms([
+        _row(51, "FST LS1", "Lab\nRooms: FST LS1; FST LS2", staff=["AUSTIN,Nigel"], sourceCount=3),
+        _row(52, "FST LS2", "Lab\nRooms: FST LS1; FST LS2", staff=["AUSTIN,Nigel", "FARRELL,Aidan"], sourceCount=4),
+    ])
+    assert merged[0]["staff"] == ["AUSTIN,Nigel", "FARRELL,Aidan"]
+    assert merged[0]["sourceCount"] == 4
+
+
+def test_raw_text_never_leaves_the_server():
+    merged = merge_block_rooms([_row(61, "ENG MD3", MATH_0100_EXAM), _row(62, "TLC LT E", None)])
+    assert all("rawText" not in s for s in merged)
+
+
+def test_a_lone_session_is_returned_as_it_was():
+    row = _row(71, "ENG MD3", MATH_0100_EXAM)
+    expected = {k: v for k, v in row.items() if k != "rawText"}
+    assert merge_block_rooms([row]) == [expected]

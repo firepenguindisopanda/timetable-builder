@@ -525,11 +525,21 @@ async def batch_page(request: Request):
 
 @app.get("/calendar", include_in_schema=False)
 async def calendar_page(request: Request):
-    """Serve the calendar page."""
+    """
+    Serve the calendar page, without the site-wide update notice.
+
+    The calendar has its own notice, about the student's courses only, and
+    only once their saved timetable is behind. The site-wide one counted every
+    class on campus ("83 classes moved"), so it showed to a student with an
+    empty timetable, and beside the calendar's own notice it said the same
+    thing twice.
+    """
+    context = _page_context(request, "calendar")
+    context["changes_banner"] = None
     return templates.TemplateResponse(
         request=request,
         name="calendar.html",
-        context=_page_context(request, "calendar"),
+        context=context,
     )
 
 

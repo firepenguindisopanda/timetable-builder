@@ -163,6 +163,38 @@ function deriveOptionGroups(course, overrides) {
   return groups;
 }
 
+/**
+ * Activity types that are dated one-offs rather than a class held every week.
+ *
+ * Auto-placement used to treat them like any other type, so an exam went on
+ * the weekly grid as if it ran every week. COMP 2602's week-8 test, held in
+ * its own Monday lecture slot, was then reported as a clash "that cannot be
+ * avoided" with COMP 2602. In publication 11 these four types average 1.0 to
+ * 2.4 weeks each, against 9 to 12 for lectures, labs and tutorials. MATH Boot
+ * Camp and Field Trip were left off because they average about six weeks.
+ *
+ * Matched by type name, which group ids already embed, so leaving these off
+ * the grid changes no group id.
+ */
+const DATED_TYPES = new Set([
+  'Examination',
+  'Lecture Relocated',
+  'Lecture Make-up',
+  'Tutorial (make-up/relocated)',
+]);
+
+function isDatedType(type) {
+  return DATED_TYPES.has(type);
+}
+
+/**
+ * The option groups that go on the weekly grid: every one except the dated
+ * one-offs, which are listed by date instead.
+ */
+function weeklyOptionGroups(course, overrides) {
+  return deriveOptionGroups(course, overrides).filter((g) => !isDatedType(g.type));
+}
+
 /** Whether a group is a choice between alternatives rather than a lone class. */
 function isMenu(group) {
   return group.sessions.length > 1;

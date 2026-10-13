@@ -549,8 +549,12 @@ def sessions_for_courses(
                    cs.stream_label  AS "streamLabel",
                    cs.weeks,
                    cs.weeks_raw     AS "weeksRaw",
-                   cs.source_count  AS "sourceCount"
+                   cs.source_count  AS "sourceCount",
+                   -- Only to tell one block's rooms apart from parallel
+                   -- classes; merge_block_rooms drops it before returning.
+                   s.raw_text       AS "rawText"
               FROM current_sessions cs
+              JOIN sessions s ON s.id = cs.id
              WHERE cs.course_code = ANY(%s)
              -- Qualified so it sorts on the day_of_week enum and lands Monday
              -- first. A bare "day" would bind to the ::text output column
@@ -570,8 +574,72 @@ def sessions_for_courses(
         by_code.setdefault(code, []).append(session)
 
     for course in courses:
-        course["sessions"] = by_code.get(course["code"], [])
+        course["sessions"] = merge_block_rooms(by_code.get(course["code"], []))
     return courses
+
+
+#: How CELCAT itself separates the rooms of one block ("Rooms: ENG MD3; JFK
+#: AUD"), so a merged class reads the way an uploaded PDF of it already does.
+ROOM_SEPARATOR = "; "
+
+
+def merge_block_rooms(sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    One class held in several rooms at once, as one session.
+
+    The loader stores a block that lists several rooms as one session per
+    room (`records.py`), which room pages need: each room is busy. The builder
+    then offered those rooms as alternatives to choose between. It told a
+    student sitting the MATH 0100 exam, published as "Rooms: ENG MD3; JFK AUD",
+    to drag it to the room they preferred. In publication 11 that was 138
+    classes.
+
+    Only rooms from the same block merge. Another 57 classes publish the same
+    course, type, time and weeks in *separate* blocks. Those are parallel
+    groups a student chooses between, such as ECON 1005's Tuesday 3pm
+    tutorials in FSS 101 E or FSS 102 E, and merging them would hide real
+    choices. A block's raw text names all its rooms, so equal text at the same
+    time is one block and different text is not. A session with no raw text
+    never merges.
+
+    The first session in the order given keeps its id, and `room` lists every
+    room, sorted. `rawText` is dropped from every session: it is not part of
+    the API.
+    """
+    merged: list[dict[str, Any]] = []
+    blocks: dict[tuple, dict[str, Any]] = {}
+    rooms_of: dict[int, list[str]] = {}
+
+    for row in sessions:
+        session = dict(row)
+        raw_text = session.pop("rawText", None)
+        key = (
+            session.get("type"), session.get("day"), session.get("startTime"),
+            session.get("endTime"), session.get("weeksRaw"),
+            session.get("streamLabel"), raw_text,
+        ) if raw_text else None
+
+        first = blocks.get(key) if key else None
+        if first is None:
+            merged.append(session)
+            rooms_of[id(session)] = [session["room"]] if session.get("room") else []
+            if key:
+                blocks[key] = session
+            continue
+
+        rooms = rooms_of[id(first)]
+        if session.get("room") and session["room"] not in rooms:
+            rooms.append(session["room"])
+        for name in session.get("staff") or []:
+            if name not in first["staff"]:
+                first["staff"].append(name)
+        first["sourceCount"] = max(first.get("sourceCount") or 0, session.get("sourceCount") or 0)
+
+    for session in merged:
+        rooms = sorted(rooms_of[id(session)])
+        if len(rooms) > 1:
+            session["room"] = ROOM_SEPARATOR.join(rooms)
+    return merged
 
 
 # Rooms
