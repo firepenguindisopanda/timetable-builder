@@ -3299,6 +3299,10 @@ button.resolve-option:focus-visible {
             if ($detailPlaceholder) $detailPlaceholder.style.display = 'flex';
             if ($detailContent) $detailContent.style.display = 'none';
             selectedEventKey = null;
+            // An empty grid is still one Undo or Redo away from a full one.
+            // Returning before the buttons were updated left Redo disabled
+            // after an undo that emptied the grid.
+            if (state) updateUndoRedoButtons();
             return;
         }
 
@@ -4353,10 +4357,22 @@ button.resolve-option:focus-visible {
         }
     }
 
+    //: The publication the "UWI republished" notice was last decided for.
+    let noticePublicationId = null;
+
     function onStateChanged() {
         renderEvents();
         saveState();
         renderSubscriptionStale();
+        // Undoing "Update my courses" puts the older publication back, and
+        // redoing it the newer one, so whether to offer the update has to be
+        // decided again. Updating itself lands here too: the check then finds
+        // the timetable current and leaves the notice hidden.
+        if (state && state.publicationId !== noticePublicationId) {
+            noticePublicationId = state.publicationId;
+            $stale.style.display = 'none';
+            checkForRepublish();
+        }
         renderPickerResults();
         renderPastePreview();
         showChooserIfEmpty();
@@ -4408,6 +4424,9 @@ button.resolve-option:focus-visible {
         }
 
         showChooserIfEmpty();
+        // The check below decides the notice for the publication loaded, so
+        // an ordinary edit afterwards does not decide it again.
+        noticePublicationId = state.publicationId;
         applySharedCodes().then(checkForRepublish);
     })();
 
