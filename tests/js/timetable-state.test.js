@@ -790,6 +790,96 @@ test('a choice that cannot be told apart is placed again and reported', () => {
   }
 });
 
+/** Every placement resolves to a class the student can see. */
+function assertAllResolve(state) {
+  const index = state.groupIndex;
+  for (const p of state.placements) {
+    assert.notEqual(api.get('eventForPlacement')(p, index), null, p.groupId + ' renders nothing');
+  }
+}
+
+function eventsOf(state) {
+  return state.getPlacedEvents().map((e) => `${e.groupId} ${e.sessionId} ${e.day} ${e.startTime}`).sort();
+}
+
+test('undoing "Update my courses" puts the older timetable back, and redo the newer', () => {
+  /**
+   * Undo snapshots held choices but not course data, and an update swaps
+   * the course data for a publication where every session has a new id. Undo
+   * restored placements pointing at nothing: the grid went blank, and a
+   * reload then placed everything again and lost the pins.
+   */
+  const source = TimetableState.fromWarehouseResponse({
+    publicationId: 10, publishedAt: '2026-09-29T14:16:23+00:00', courses: [course('COMP 2611')],
+  });
+  const state = new TimetableState(source, null);
+  state.placeMissing();
+  const before = eventsOf(state);
+
+  const again = republished('COMP 2611');
+  state.refreshFromWarehouse(again.courses, [], 11, '2026-10-09T13:22:49+00:00');
+  const after = eventsOf(state);
+  assert.notDeepEqual(after, before, 'the update renumbered every class');
+
+  assert.equal(state.undo(), true);
+  assert.deepEqual(eventsOf(state), before);
+  assert.equal(state.publicationId, 10);
+  assert.equal(state.publishedAt, '2026-09-29T14:16:23+00:00');
+  assertAllResolve(state);
+
+  assert.equal(state.redo(), true);
+  assert.deepEqual(eventsOf(state), after);
+  assert.equal(state.publicationId, 11);
+  assertAllResolve(state);
+});
+
+test('an edit from before the update can still be undone after undoing it', () => {
+  const state = stateOf('COMP 2611');
+  const lab = state.optionGroups.find((g) => g.type === 'Lab');
+  const placed = state.placements.find((p) => p.groupId === lab.groupId);
+  const other = lab.sessions.find((s) => s.sessionId !== placed.selectedSessionId);
+  const original = eventsOf(state);
+  state.moveEvent(lab.groupId, other.sessionId, placed.selectedSessionId);
+
+  state.refreshFromWarehouse(republished('COMP 2611').courses, [], 3);
+  state.undo(); // the update
+  state.undo(); // the move
+
+  assert.deepEqual(eventsOf(state), original);
+  assertAllResolve(state);
+});
+
+test('an undoable update survives a reload', () => {
+  const state = stateOf('COMP 2611');
+  const before = eventsOf(state);
+  state.refreshFromWarehouse(republished('COMP 2611').courses, [], 3);
+
+  const saved = JSON.parse(JSON.stringify(state.toSaved()));
+  const reloaded = new TimetableState({ courses: saved.courses, publicationId: saved.publicationId }, saved);
+  reloaded.undo();
+
+  assert.deepEqual(eventsOf(reloaded), before);
+  assertAllResolve(reloaded);
+});
+
+test('only an update keeps course data in its undo step', () => {
+  // Every other step is choices alone; course data in all fifty would fill
+  // the browser's storage.
+  const state = stateOf('COMP 2611');
+  const lab = state.optionGroups.find((g) => g.type === 'Lab');
+  const placed = state.placements.find((p) => p.groupId === lab.groupId);
+  state.moveEvent(lab.groupId, lab.sessions.find((s) => s.sessionId !== placed.selectedSessionId).sessionId,
+    placed.selectedSessionId);
+  assert.equal(state.history.at(-1).data, undefined);
+
+  state.refreshFromWarehouse(republished('COMP 2611').courses, [], 3);
+  assert.ok(state.history.at(-1).data);
+  state.undo();
+  assert.ok(state.future.at(-1).data, 'redo carries the newer publication');
+  state.undo();
+  assert.equal(state.future.at(-1).data, undefined);
+});
+
 test('a refresh does not disturb anything the student pinned', () => {
   const state = stateOf('COMP 1601');
   const menu = state.optionGroups.find((g) => g.sessions.length > 1);

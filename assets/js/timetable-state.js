@@ -656,7 +656,7 @@ class TimetableState {
    * of their timetable would be the worse mistake.
    */
   refreshFromWarehouse(fetched, notFound, publicationId, publishedAt) {
-    this._snapshot();
+    this._snapshot(true);
 
     const previous = new Map(this.sourceData.courses.map(c => [c.courseKey, c]));
     for (const course of fetched || []) {
@@ -877,13 +877,28 @@ class TimetableState {
 
   // History
 
-  _snapshot() {
-    this.history.push(this._current());
+  /**
+   * Remember the timetable before a change, for undo.
+   *
+   * `withData` also keeps the course data and the publication it came from.
+   * Only "Update my courses" needs it. A snapshot normally holds choices
+   * alone, and a refresh swaps the course data from under them: every
+   * session has a new id in a new publication, so undoing an update restored
+   * placements that pointed at nothing and blanked the grid, and every undo
+   * step from before the update did the same.
+   */
+  _snapshot(withData = false) {
+    this.history.push(this._current(withData));
     this.future = [];
     if (this.history.length > MAX_HISTORY) this.history.shift();
   }
 
   _restore(snapshot) {
+    if (snapshot.data) {
+      this.sourceData.courses = JSON.parse(JSON.stringify(snapshot.data.courses));
+      this.publicationId = snapshot.data.publicationId;
+      this.publishedAt = snapshot.data.publishedAt;
+    }
     this.courseKeys = [...snapshot.courseKeys];
     this.placements = JSON.parse(JSON.stringify(snapshot.placements));
     this.overrides = { ...snapshot.overrides };
@@ -892,29 +907,43 @@ class TimetableState {
     this._invalidate();
   }
 
-  _current() {
-    return {
+  _current(withData = false) {
+    const current = {
       courseKeys: [...this.courseKeys],
       placements: JSON.parse(JSON.stringify(this.placements)),
       overrides: { ...this.overrides },
       dismissedGroups: [...this.dismissedGroups],
     };
+    if (withData) {
+      current.data = {
+        courses: JSON.parse(JSON.stringify(this.sourceData.courses)),
+        publicationId: this.publicationId,
+        publishedAt: this.publishedAt,
+      };
+    }
+    return current;
+  }
+
+  /**
+   * Step across one snapshot. The step pushed the other way keeps the course
+   * data whenever the one restored does, so redoing an undone update puts
+   * the newer publication back rather than its choices on the older data.
+   */
+  _step(from, to) {
+    if (from.length === 0) return false;
+    const snapshot = from.pop();
+    to.push(this._current(Boolean(snapshot.data)));
+    this._restore(snapshot);
+    this._notify();
+    return true;
   }
 
   undo() {
-    if (this.history.length === 0) return false;
-    this.future.push(this._current());
-    this._restore(this.history.pop());
-    this._notify();
-    return true;
+    return this._step(this.history, this.future);
   }
 
   redo() {
-    if (this.future.length === 0) return false;
-    this.history.push(this._current());
-    this._restore(this.future.pop());
-    this._notify();
-    return true;
+    return this._step(this.future, this.history);
   }
 
   canUndo() {
