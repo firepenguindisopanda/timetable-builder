@@ -395,6 +395,57 @@ test('placements stranded by a rule change are dropped and refilled', () => {
   assert.ok(state.placements.every((p) => ids.has(p.groupId)));
 });
 
+// Dated one-offs
+
+test('exams and relocated classes are never placed on the weekly grid', () => {
+  /**
+   * The 12 Oct 2026 review: an exam auto-placed as a weekly class clashed
+   * with its own course's lecture, and the clash panel said it could not be
+   * avoided. PSYC 1001 publishes a relocated lecture and a make-up tutorial.
+   */
+  const state = stateOf('PSYC 1001');
+  const types = new Set(state.getPlacedEvents().map((e) => e.type));
+
+  assert.ok(types.has('Lecture') && types.has('Tutorial'));
+  assert.ok(!types.has('Lecture Relocated'));
+  assert.ok(!types.has('Tutorial (make-up/relocated)'));
+});
+
+test('dated one-offs are listed instead, every sitting, in week order', () => {
+  const state = stateOf('PSYC 1001');
+  const dated = state.datedSessions;
+  const source = course('PSYC 1001').sessions.filter((s) =>
+    ['Lecture Relocated', 'Tutorial (make-up/relocated)'].includes(s.type));
+
+  assert.equal(dated.length, source.length);
+  assert.ok(dated.every((s) => s.courseKey === 'PSYC 1001' && s.courseTitle));
+  const firstWeeks = dated.map((s) => Math.min(...s.weeks));
+  assert.deepEqual(firstWeeks, [...firstWeeks].sort((a, b) => a - b));
+});
+
+test('a removed course takes its dated one-offs with it', () => {
+  const state = stateOf('PSYC 1001', 'COMP 1601');
+  state.removeCourse('PSYC 1001');
+  assert.deepEqual(state.datedSessions, []);
+});
+
+test('an exam placed on the grid before this change is cleared on load', () => {
+  // A saved timetable from before carries the placement. Its group is no
+  // longer a weekly one, so it stops resolving and pruning drops it.
+  const state = stateOf('PSYC 1001');
+  const relocated = course('PSYC 1001').sessions.find((s) => s.type === 'Lecture Relocated');
+  state.placements.push({
+    courseKey: 'PSYC 1001',
+    groupId: 'PSYC 1001|Lecture Relocated|all',
+    selectedSessionId: relocated.sessionId,
+    pinned: false,
+  });
+
+  assert.equal(state.pruneDanglingPlacements(), 1);
+  assert.equal(state.placeMissing(), false, 'nothing put it back');
+  assert.ok(!state.placements.some((p) => p.groupId === 'PSYC 1001|Lecture Relocated|all'));
+});
+
 // History
 
 

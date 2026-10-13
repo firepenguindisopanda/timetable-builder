@@ -207,14 +207,51 @@ class TimetableState {
     return this.sourceData.courses.find(c => c.courseKey === courseKey) || null;
   }
 
-  /** Every option group of every course currently on the timetable. */
+  /**
+   * Every weekly option group of every course currently on the timetable.
+   *
+   * Dated one-offs are left out, so a placement saved before they were (an
+   * exam auto-placed as a weekly class) no longer resolves, and
+   * `pruneDanglingPlacements` clears it on the next load like any other.
+   */
   get optionGroups() {
     if (this._groupCache === null) {
       this._groupCache = this.activeCourses.flatMap(
-        c => deriveOptionGroups(c, this.overrides)
+        c => weeklyOptionGroups(c, this.overrides)
       );
     }
     return this._groupCache;
+  }
+
+  /**
+   * Exams, relocated lectures and make-ups on the student's courses, which
+   * are listed by week instead of going on the weekly grid.
+   *
+   * Each sitting is listed, not chosen between: these are dated events the
+   * student is told about. Ordered by first week, then day and time, with
+   * course and room as tie-breaks so the order never depends on the order the
+   * server returned rows in.
+   */
+  get datedSessions() {
+    const listed = [];
+    for (const course of this.activeCourses) {
+      for (const session of course.sessions || []) {
+        if (!isDatedType(session.type)) continue;
+        listed.push({
+          courseKey: course.courseKey,
+          courseTitle: course.title || course.courseKey,
+          ...session,
+        });
+      }
+    }
+    const firstWeek = (s) => (s.weeks && s.weeks.length ? Math.min(...s.weeks) : Infinity);
+    return listed.sort((a, b) =>
+      firstWeek(a) - firstWeek(b)
+      || DAYS.indexOf(a.day) - DAYS.indexOf(b.day)
+      || timeToMins(a.startTime) - timeToMins(b.startTime)
+      || String(a.courseKey).localeCompare(String(b.courseKey))
+      || String(a.room || '').localeCompare(String(b.room || ''))
+    );
   }
 
   get groupIndex() {
@@ -339,7 +376,7 @@ class TimetableState {
       this.placements,
       incoming.map(c => ({
         courseKey: c.courseKey,
-        groups: deriveOptionGroups(c, this.overrides),
+        groups: weeklyOptionGroups(c, this.overrides),
       })),
       this.groupIndex
     );
@@ -567,7 +604,7 @@ class TimetableState {
 
     const loose = this.activeCourses.map(course => ({
       courseKey: course.courseKey,
-      groups: deriveOptionGroups(course, this.overrides)
+      groups: weeklyOptionGroups(course, this.overrides)
         // A dismissed group was emptied on purpose; re-optimising rearranges
         // what is there, it does not resurrect what was removed.
         .filter(g => !dismissed.has(g.groupId))
@@ -649,7 +686,7 @@ class TimetableState {
     const gaps = this.activeCourses
       .map(course => ({
         courseKey: course.courseKey,
-        groups: deriveOptionGroups(course, this.overrides)
+        groups: weeklyOptionGroups(course, this.overrides)
           .filter(g => !placedGroups.has(g.groupId) && !dismissed.has(g.groupId)),
       }))
       .filter(c => c.groups.length > 0);
@@ -699,7 +736,7 @@ class TimetableState {
     const missing = this.activeCourses
       .map(course => ({
         courseKey: course.courseKey,
-        groups: deriveOptionGroups(course, this.overrides).filter(
+        groups: weeklyOptionGroups(course, this.overrides).filter(
           g => !placedGroups.has(g.groupId) && !dismissed.has(g.groupId)
         ),
       }))
@@ -799,6 +836,44 @@ class TimetableState {
 }
 
 // Persistence and migration
+
+/**
+ * The browser's localStorage, or null where the browser refuses it.
+ *
+ * Merely reading the `localStorage` global throws a SecurityError when a
+ * browser blocks site data, and so can `getItem`. Unguarded, either one
+ * stopped the calendar's whole inline script and left a broken page, where
+ * an empty timetable that cannot save is the right answer.
+ */
+function browserStorage() {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** One stored value, or null when there is none or storage is refused. */
+function readStorageItem(key, storage) {
+  const store = storage || browserStorage();
+  if (!store) return null;
+  try {
+    return store.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Remove one stored value. Refused storage has nothing to remove. */
+function removeStorageItem(key, storage) {
+  const store = storage || browserStorage();
+  if (!store) return;
+  try {
+    store.removeItem(key);
+  } catch (e) {
+    // Nothing to do: storage that cannot be written cannot be cleaned either.
+  }
+}
 
 /**
  * v1 held the extract response plus a flat list of calendar events. It was
@@ -928,11 +1003,11 @@ function migrateV2toV3(v2Data) {
  * keep working, which is the one thing this feature must not break.
  */
 function readSavedState(storage) {
-  const store = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+  const store = storage || browserStorage();
   if (!store) return null;
 
   const parse = key => {
-    const raw = store.getItem(key);
+    const raw = readStorageItem(key, store);
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -1030,7 +1105,7 @@ function repairLostCourseKeys(saved) {
  * ever being told (E14).
  */
 function writeSavedState(saved, storage) {
-  const store = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+  const store = storage || browserStorage();
   if (!store) return { ok: false, error: 'This browser is not storing anything.' };
   try {
     store.setItem(STORAGE_KEY_V3, JSON.stringify(saved));

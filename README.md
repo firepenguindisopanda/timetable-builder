@@ -476,6 +476,7 @@ compute the same stream id or they become two courses.
 
 | Behaviour | Why |
 |---|---|
+| One class held in several rooms comes back as **one session** whose `room` lists them all (`"ENG MD3; JFK AUD"`) | The warehouse stores a session per room, and the builder offered them as alternatives. Only rooms from the same PDF block merge: parallel groups published as separate blocks stay separate sessions (`merge_block_rooms`) |
 | Codes are separated by **commas only** | `CAPE BIOL` and `FOUN 1001 (FULL & PART-TIME)` contain spaces of their own |
 | An unknown code lands in `notFound`, not a 404 | A list pasted off a registration screenshot is expected to be mixed, and the codes that did resolve are still worth having |
 | At most **40 codes** per request | A semester is six or seven. The cap makes a pasted list of hundreds the caller's job to batch |

@@ -423,3 +423,47 @@ test('a course the student removed while its key was lost stays removed once rep
   assert.deepEqual(saved.courseKeys, []);
   assert.equal(state.getPlacedEvents().length, 0);
 });
+
+// Storage the browser refuses
+
+/** Storage that throws on every touch, as a browser blocking site data does. */
+function refusingStorage() {
+  const refuse = () => {
+    const error = new Error('The operation is insecure.');
+    error.name = 'SecurityError';
+    throw error;
+  };
+  return { getItem: refuse, setItem: refuse, removeItem: refuse };
+}
+
+test('storage that throws on read means no saved timetable, not a crash', () => {
+  /**
+   * The page's own reads were unguarded, so a browser that blocks site data
+   * stopped the calendar's whole inline script. Nothing saved is the answer.
+   */
+  assert.equal(readSavedState(refusingStorage()), null);
+  assert.equal(api.get('readStorageItem')('celcat_timetable_v3', refusingStorage()), null);
+  assert.doesNotThrow(() => api.get('removeStorageItem')('celcat_timetable_data', refusingStorage()));
+});
+
+test('storage that throws on write is reported, not thrown', () => {
+  const result = writeSavedState({ version: 3 }, refusingStorage());
+  assert.equal(result.ok, false);
+  assert.ok(result.error);
+});
+
+test('a localStorage global that throws when touched reads as no storage', () => {
+  const blocked = load('calendar-utils.js', 'option-groups.js', 'placement.js', 'timetable-state.js');
+  Object.defineProperty(blocked.get('globalThis'), 'localStorage', {
+    get() {
+      const error = new Error('The operation is insecure.');
+      error.name = 'SecurityError';
+      throw error;
+    },
+  });
+
+  assert.equal(blocked.get('browserStorage')(), null);
+  assert.equal(blocked.get('readSavedState')(), null);
+  assert.equal(blocked.get('readStorageItem')('celcat_timetable_v3'), null);
+  assert.equal(blocked.get('writeSavedState')({ version: 3 }).ok, false);
+});

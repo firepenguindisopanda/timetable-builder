@@ -56,6 +56,20 @@ function _dateOfDay(anchorMonday, dayIndex) {
 }
 
 /**
+ * The date of a weekday in a teaching week, as YYYY-MM-DD.
+ *
+ * The one week-to-date function: the "Coming up" list reads it now, and the
+ * dated grid and the calendar export are to share it, so a week cannot mean
+ * one date on screen and another in a student's phone. Week 1 is the week of
+ * `anchorMonday`. Null for a week or day that is not one.
+ */
+function dateOfTeachingDay(week, day, anchorMonday = ANCHOR_MONDAY) {
+  const dayIndex = DAYS.indexOf(day);
+  if (!Number.isInteger(week) || week < 1 || dayIndex === -1) return null;
+  return _dateOfDay(anchorMonday, (week - 1) * 7 + dayIndex);
+}
+
+/**
  * Placed events as FullCalendar event inputs, in the anchor week.
  *
  * Dated in a fixed week rather than with FullCalendar's `daysOfWeek`
