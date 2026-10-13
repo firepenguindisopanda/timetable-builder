@@ -96,7 +96,7 @@
         }
 
         :focus-visible {
-            outline: 2px solid var(--gold);
+            outline: var(--focus-ring);
             outline-offset: 2px;
         }
 
@@ -164,88 +164,115 @@
             box-shadow: var(--shadow);
         }
 
+        /*
+          Buttons: four variants (REDESIGN-SPEC.md 5.1), restyled on the
+          existing class names because the calendar's scripts emit them.
+          The page used to give each action its own colour (teal, gold,
+          coral, grey), nine buttons in five treatments competing with the
+          grid's lecture, lab and tutorial colours. Now colour means
+          something: gold is the one primary action, coral is destructive,
+          everything else is neutral.
+
+            primary    .btn-accent
+            secondary  .btn-outline-info, -secondary, -warning
+            quiet      .btn-link
+            danger     .btn-outline-danger
+        */
+        .btn {
+            --bs-btn-font-family: var(--font-body);
+            --bs-btn-font-size: var(--text-sm);
+            --bs-btn-font-weight: 600;
+            --bs-btn-line-height: 1.25;
+            --bs-btn-padding-y: var(--space-2);
+            --bs-btn-padding-x: var(--space-4);
+            --bs-btn-border-radius: var(--r-md);
+            --bs-btn-disabled-opacity: 0.5;
+            --bs-btn-focus-box-shadow: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            min-height: var(--control-h);
+            transition: background-color 150ms ease-out, border-color 150ms ease-out,
+                        color 150ms ease-out;
+        }
+
+        /* Same height as .btn: small buttons sat at 31px, under a finger's
+           width, and their size difference carried no meaning. */
+        .btn-sm {
+            --bs-btn-padding-y: var(--space-1);
+            --bs-btn-padding-x: var(--space-3);
+            --bs-btn-font-size: var(--text-sm);
+            --bs-btn-border-radius: var(--r-md);
+        }
+
+        .btn:focus-visible {
+            outline: var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        .btn:disabled, .btn.disabled { cursor: not-allowed; pointer-events: auto; }
+
         /* Dark label in both themes: the gold is bright enough that white
-           text on it would not read, exactly as on the explorer's pressed
-           week-picker buttons. */
+           text on it would not read (5.5:1 light, 9.1:1 dark with this ink). */
         .btn-accent {
-            background: var(--gold);
-            border: 1px solid var(--gold);
-            color: #14202b;
-            font-family: var(--font-body);
-            font-weight: 600;
-            font-size: 0.85rem;
-            padding: 0.6rem 1.25rem;
-            border-radius: var(--r-md);
-            transition: filter 0.15s ease, transform 0.15s ease;
-        }
-
-        .btn-accent:hover {
-            background: var(--gold);
-            color: #14202b;
-            filter: brightness(1.08);
-            transform: translateY(-1px);
-        }
-
-        .btn-accent:active {
-            background: var(--gold) !important;
-            color: #14202b !important;
-            transform: translateY(0);
-        }
-
-        .btn-accent:disabled {
-            background: var(--rule);
-            border-color: var(--rule);
-            color: var(--ink-3);
-            transform: none;
-        }
-
-        /* Bootstrap's stock accents read neon against the limestone ground,
-           so its everyday buttons borrow the explorer's palette. */
-        .btn-outline-info {
-            --bs-btn-color: var(--teal);
-            --bs-btn-border-color: var(--teal);
-            --bs-btn-hover-bg: var(--teal);
-            --bs-btn-hover-border-color: var(--teal);
-            --bs-btn-hover-color: var(--card);
-            --bs-btn-active-bg: var(--teal);
-            --bs-btn-active-border-color: var(--teal);
-            --bs-btn-active-color: var(--card);
-        }
-
-        /* Resting text is the ink shade so it reads at button size; the
-           filled hover carries dark text because the gold is bright. */
-        .btn-outline-warning {
-            --bs-btn-color: var(--gold-ink);
+            --bs-btn-bg: var(--gold);
             --bs-btn-border-color: var(--gold);
-            --bs-btn-hover-bg: var(--gold);
-            --bs-btn-hover-border-color: var(--gold);
+            --bs-btn-color: #14202b;
+            --bs-btn-hover-bg: color-mix(in srgb, var(--gold) 88%, #14202b);
+            --bs-btn-hover-border-color: color-mix(in srgb, var(--gold) 88%, #14202b);
             --bs-btn-hover-color: #14202b;
-            --bs-btn-active-bg: var(--gold);
-            --bs-btn-active-border-color: var(--gold);
+            --bs-btn-active-bg: color-mix(in srgb, var(--gold) 80%, #14202b);
+            --bs-btn-active-border-color: color-mix(in srgb, var(--gold) 80%, #14202b);
             --bs-btn-active-color: #14202b;
+            --bs-btn-disabled-bg: var(--rule);
+            --bs-btn-disabled-border-color: var(--rule);
+            --bs-btn-disabled-color: var(--ink-3);
+            --bs-btn-disabled-opacity: 1;
+        }
+
+        .btn-outline-info,
+        .btn-outline-secondary,
+        .btn-outline-warning {
+            --bs-btn-color: var(--ink);
+            --bs-btn-bg: transparent;
+            --bs-btn-border-color: var(--rule-strong);
+            --bs-btn-hover-color: var(--ink);
+            --bs-btn-hover-bg: var(--paper-sunk);
+            --bs-btn-hover-border-color: var(--ink-3);
+            --bs-btn-active-color: var(--ink);
+            --bs-btn-active-bg: var(--paper-sunk);
+            --bs-btn-active-border-color: var(--ink-2);
+            --bs-btn-disabled-color: var(--ink-3);
+            --bs-btn-disabled-bg: transparent;
+            --bs-btn-disabled-border-color: var(--rule);
         }
 
         .btn-outline-danger {
             --bs-btn-color: var(--coral);
-            --bs-btn-border-color: var(--coral);
-            --bs-btn-hover-bg: var(--coral);
+            --bs-btn-bg: transparent;
+            --bs-btn-border-color: var(--rule-strong);
+            --bs-btn-hover-color: var(--coral);
+            --bs-btn-hover-bg: var(--coral-soft);
             --bs-btn-hover-border-color: var(--coral);
-            --bs-btn-hover-color: var(--card);
-            --bs-btn-active-bg: var(--coral);
+            --bs-btn-active-color: var(--coral);
+            --bs-btn-active-bg: var(--coral-soft);
             --bs-btn-active-border-color: var(--coral);
-            --bs-btn-active-color: var(--card);
+            --bs-btn-disabled-color: var(--ink-3);
+            --bs-btn-disabled-bg: transparent;
+            --bs-btn-disabled-border-color: var(--rule);
         }
 
-        .btn-outline-secondary {
-            --bs-btn-color: var(--ink-2);
-            --bs-btn-border-color: var(--rule);
-            --bs-btn-hover-bg: var(--paper-sunk);
-            --bs-btn-hover-border-color: var(--ink-3);
-            --bs-btn-hover-color: var(--ink);
-            --bs-btn-active-bg: var(--paper-sunk);
-            --bs-btn-active-border-color: var(--ink-3);
-            --bs-btn-active-color: var(--ink);
+        .btn-link {
+            --bs-btn-color: var(--teal);
+            --bs-btn-hover-color: var(--teal);
+            --bs-btn-active-color: var(--teal);
+            --bs-btn-disabled-color: var(--ink-3);
+            --bs-btn-padding-x: var(--space-2);
+            text-decoration: none;
         }
+
+        .btn-link:hover { text-decoration: underline; }
 
         /* Forms */
 

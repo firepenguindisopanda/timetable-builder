@@ -31,6 +31,9 @@
 
     --rule:         #CBD5DC;
     --rule-soft:    #E2E8ED;
+    /* The edge of a control. --rule is 1.5:1 on white, too faint to find a
+       button by; this is at least 3:1 on every surface (WCAG 1.4.11). */
+    --rule-strong:  #74838F;
 
     /* Bright enough to read as gold rather than ochre. Text never sits on
        white in this colour - that is what --gold-ink is for - and text on a
@@ -50,6 +53,36 @@
 
     --shadow: 0 1px 2px rgba(13, 27, 42, 0.06),
               0 4px 16px rgba(13, 27, 42, 0.05);
+    /* The one shadow for things that float over the page: dialogs, the
+       drawer, menus and toasts. Cards and panels take a border instead. */
+    --shadow-overlay: 0 8px 24px rgba(13, 27, 42, 0.16);
+
+    /* One focus ring for every control (REDESIGN-SPEC.md 4.5). Teal, because
+       the primary button is gold and a gold ring vanished against it. */
+    --focus-ring: 2px solid var(--teal);
+
+    /* Type scale (REDESIGN-SPEC.md 4.1). 37 sizes were in use, most of them
+       12-13.6px; student pages draw from these six. Grid blocks keep their
+       own two sizes, because a one-hour block holds code, time and room. */
+    --text-xs:  0.75rem;
+    --text-sm:  0.875rem;
+    --text-md:  1rem;
+    --text-lg:  1.25rem;
+    --text-xl:  1.75rem;
+    --text-2xl: 2.5rem;
+
+    /* Spacing scale, on a 4px step (REDESIGN-SPEC.md 4.2). */
+    --space-1:  0.25rem;
+    --space-2:  0.5rem;
+    --space-3:  0.75rem;
+    --space-4:  1rem;
+    --space-6:  1.5rem;
+    --space-8:  2rem;
+    --space-12: 3rem;
+
+    /* Control heights: 36px for a mouse, 44px under a finger (Fitts's law,
+       WCAG 2.5.8). Switched by (pointer: coarse) below. */
+    --control-h: 36px;
 
     --r-sm: 2px;
     --r-md: 4px;
@@ -74,6 +107,7 @@
 
         --rule:       #21333F;
         --rule-soft:  #182734;
+        --rule-strong: #5A6E7E;
 
         --gold:       #EFB84A;
         --gold-ink:   #F0CA8A;
@@ -90,7 +124,12 @@
 
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.4),
                   0 4px 18px rgba(0, 0, 0, 0.3);
+        --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.45);
     }
+}
+
+@media (pointer: coarse) {
+    :root { --control-h: 44px; }
 }
 
 /* Reset and base */
@@ -149,7 +188,7 @@ body.explore {
 .skip-link:focus { left: 0; }
 
 .explore :focus-visible {
-    outline: 2px solid var(--gold);
+    outline: var(--focus-ring);
     outline-offset: 2px;
     border-radius: var(--r-sm);
 }
