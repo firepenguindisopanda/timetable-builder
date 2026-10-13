@@ -63,7 +63,7 @@
             <td class="cell-time">{{ s.start_time }}-{{ s.end_time }}</td>
             <td>
               <a class="link-teal mono" href="/explore/course/{{ s.course_code | urlpath }}">{{ s.course_code }}</a>
-              <div class="muted" style="font-size:0.74rem;">{{ s.course_title or '' }}</div>
+              <div class="muted" style="font-size:var(--text-xs);">{{ s.course_title or '' }}</div>
             </td>
             <td>
               {{ s.activity_type or '-' }}

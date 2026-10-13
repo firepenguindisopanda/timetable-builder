@@ -1,0 +1,2023 @@
+/*
+  The calendar page's own styles, moved out of an 1,850-line <style> block in
+  templates/calendar.html (REDESIGN-SPEC.md 6). Inline, every redesign diff
+  was buried in a template that also holds the page's largest script, and the
+  styles could not take the asset version stamp. It loads where the block
+  stood, after base.html's styles, so the cascade is unchanged.
+*/
+
+/*
+  The activity types are a categorical scale: the colour is a key that says
+  which of the three a block is, not a meaning in its own right. They get
+  their own tokens because the site's five-hue palette had already spent teal
+  on rooms and green on "added", and two categories drawn from hues this
+  close read as one colour once both are washed back to a tint a student can
+  read text on. Tutorial moved off green to violet for the distance; --green
+  still means "added" everywhere else, including the API dot and the success
+  alert. Lecture and lab keep teal and gold, which were never in conflict.
+*/
+:root {
+    --type-lecture:  var(--teal);
+    --type-lab:      var(--gold);
+    /* Gold is the one hue too light to read as small text on its own wash. */
+    --type-lab-ink:  var(--gold-ink);
+    --type-tutorial: #5B44A8;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --type-tutorial: #A38CEC;
+    }
+}
+
+/* Events Master-Detail Panel */
+.events-master-detail {
+    display: flex;
+    gap: 0;
+    background: var(--bg-surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-subtle);
+    overflow: hidden;
+    min-height: 280px;
+    max-height: 400px;
+}
+
+/* Left column: event list */
+.events-list-column {
+    flex: 0 0 38%;
+    min-width: 280px;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-subtle);
+}
+
+.events-list-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-elevated);
+    padding: var(--space-3) var(--space-4);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+
+.events-list-scroll {
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.events-list-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.events-list-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.events-list-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: var(--r-sm);
+}
+
+.event-list-item {
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--text-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    cursor: pointer;
+    transition: background 0.15s ease;
+    outline: none;
+}
+
+.event-list-item:hover {
+    background: var(--bg-interactive);
+}
+
+.event-list-item:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -2px;
+}
+
+/* Selection is a deeper wash of the same teal the hover state hints at, so
+   it outranks hover without a rule down the edge shifting the row's text. */
+.event-list-item.selected {
+    background: color-mix(in srgb, var(--accent-cyan) 24%, transparent);
+}
+
+/* The time sits in tertiary ink, which the deeper wash swallows. */
+.event-list-item.selected .event-list-time {
+    color: var(--text-secondary);
+}
+
+.event-list-item[aria-selected="true"] {
+    background: var(--accent-cyan-dim);
+}
+
+.event-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-sm);
+    flex-shrink: 0;
+}
+
+.event-dot.lecture { background: var(--type-lecture); }
+.event-dot.lab { background: var(--type-lab); }
+.event-dot.tutorial { background: var(--type-tutorial); }
+.event-dot.other { background: var(--text-tertiary); }
+
+.event-list-time {
+    color: var(--text-tertiary);
+    min-width: 75px;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.event-list-course {
+    font-weight: 600;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-list-type {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Right column: detail panel */
+.events-detail-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: var(--space-8);
+}
+
+.detail-placeholder p {
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+.detail-placeholder .hint {
+    font-size: var(--text-sm);
+    margin-top: var(--space-2);
+    color: var(--text-secondary);
+}
+
+.detail-content {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.detail-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.detail-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.detail-content::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: var(--r-sm);
+}
+
+/* Detail header */
+.detail-header {
+    padding: var(--space-4) var(--space-4) var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.detail-header .detail-course-title {
+    font-size: var(--text-md);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-1);
+}
+
+.detail-header .detail-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px var(--space-2);
+    border-radius: var(--r-md);
+}
+
+.detail-type-badge.lecture { background: color-mix(in srgb, var(--type-lecture) 15%, transparent); color: var(--type-lecture); }
+.detail-type-badge.lab { background: color-mix(in srgb, var(--type-lab) 15%, transparent); color: var(--type-lab-ink); }
+.detail-type-badge.tutorial { background: color-mix(in srgb, var(--type-tutorial) 15%, transparent); color: var(--type-tutorial); }
+.detail-type-badge.other { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--text-secondary); }
+
+/* Detail field groups */
+.detail-section {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.detail-section-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+    margin: 0 0 var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.detail-field {
+    display: flex;
+    align-items: baseline;
+    padding: var(--space-1) 0;
+    gap: var(--space-2);
+}
+
+.detail-field-label {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.detail-field-value {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.detail-field-value.empty {
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Collapsible raw data section */
+.detail-raw-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: background 0.15s ease;
+    outline: none;
+}
+
+.detail-raw-toggle:hover {
+    background: var(--bg-interactive);
+}
+
+.detail-raw-toggle:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -2px;
+}
+
+.detail-raw-toggle i {
+    transition: transform 0.2s ease;
+}
+
+.detail-raw-toggle[aria-expanded="true"] i {
+    transform: rotate(90deg);
+}
+
+.detail-raw-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.detail-raw-content.open {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.detail-raw-inner {
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.detail-raw-inner pre {
+    background: var(--bg-deep);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: var(--space-3) var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-data);
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Existing styles (preserved) */
+
+/* Conflicts section */
+.conflicts-panel {
+    background: color-mix(in srgb, var(--accent-red) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--space-3);
+}
+
+/* A real button, so the clash list opens from the keyboard too. It used to be
+   a clickable div, which no keyboard could reach, over a list hidden by
+   default. */
+.conflicts-header {
+    width: 100%;
+    padding: var(--space-3) var(--space-3);
+    font: inherit;
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--accent-red);
+    background: none;
+    border: 0;
+    border-radius: var(--r-lg);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.conflicts-header:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.conflicts-header .bi-chevron-down { transition: transform 0.15s; }
+.conflicts-header[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
+
+.conflicts-summary-detail {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Exams, relocations and make-ups: listed by date, never placed weekly. */
+/* Notices above the grid (REDESIGN-SPEC.md 5.3). The tone is a tinted
+   ground and a title that says what happened, never a stripe down the side.
+   Which ones show is decided in notices.js. */
+.notice {
+    background: var(--notice-bg, var(--paper-sunk));
+    border: 1px solid var(--notice-edge, var(--rule));
+    border-radius: var(--r-lg);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--ink);
+}
+
+.notice--change {
+    --notice-bg: var(--gold-soft);
+    --notice-edge: color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+.notice--info {
+    --notice-bg: var(--teal-soft);
+    --notice-edge: color-mix(in srgb, var(--teal) 35%, transparent);
+}
+
+.notice--bad {
+    --notice-bg: var(--coral-soft);
+    --notice-edge: color-mix(in srgb, var(--coral) 45%, transparent);
+}
+
+/* Title and actions share a row while there is room, and the actions drop
+   under the title on a phone instead of squeezing it to three words a line. */
+.notice-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+}
+
+.notice-title {
+    flex: 1 1 18rem;
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.notice-actions .btn { white-space: nowrap; }
+
+.notice-body { margin: var(--space-1) 0 0; color: var(--ink-2); }
+
+.notice .stale-changes li { font-size: var(--text-sm); }
+
+/* The toolbar: groups by purpose, a gap between them, and the rare actions
+   behind More (REDESIGN-SPEC.md 5.2). One row from 320px up. */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-6);
+    margin: 0 0 var(--space-3);
+}
+
+.toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.toolbar-more { position: relative; margin-left: auto; }
+
+/* Opens under More, aligned to its right edge so it never runs off a phone. */
+.more-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--space-1));
+    z-index: 1050;
+    min-width: 13rem;
+    padding: var(--space-1);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-overlay);
+}
+
+.more-menu .btn {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-border-color: transparent;
+}
+
+.more-items { display: grid; gap: 2px; }
+
+.more-danger {
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 767.98px) {
+    .toolbar { gap: var(--space-2); }
+}
+
+/* At 320px the three phone buttons needed 314px of a 296px bar and wrapped.
+   Narrower side padding keeps them on one row there. */
+@media (max-width: 400px) {
+    .toolbar .btn { --bs-btn-padding-x: var(--space-2); }
+}
+
+/* The hint names the gesture the device has. */
+.hint-touch { display: none; }
+
+@media (pointer: coarse) {
+    .hint-touch { display: inline; }
+    .hint-pointer { display: none; }
+}
+
+/* The first visit: one block, one primary action (REDESIGN-SPEC.md 5.5). */
+.first-visit {
+    max-width: 36rem;
+    margin: var(--space-6) 0 var(--space-8);
+}
+
+.first-visit-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    margin: 0 0 var(--space-2);
+}
+
+.first-visit-body {
+    font-size: var(--text-md);
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0 0 var(--space-4);
+}
+
+.first-visit-more {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-2);
+    margin: var(--space-3) 0 0;
+}
+
+.first-visit-more .btn-link { --bs-btn-padding-x: 0; margin-right: var(--space-3); }
+
+/* A class whose time or room changed in the last republish, until seen. */
+.calendar-event .event-changed {
+    font-size: var(--text-dense);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0 var(--space-1);
+    border-radius: var(--r-sm);
+    background: var(--accent-amber-dim);
+    color: var(--accent-amber-ink);
+}
+
+.calendar-event.changed { outline: 2px dashed var(--accent-amber); outline-offset: -2px; }
+
+.ics-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-3);
+    font-size: var(--text-sm);
+}
+
+.ics-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ics-title { font-size: var(--text-md); font-weight: 600; margin: 0; }
+.ics-summary { margin: var(--space-1) 0 var(--space-3); color: var(--text-secondary); }
+.ics-steps { margin: var(--space-3) 0 var(--space-2); padding-left: var(--space-4); display: grid; gap: var(--space-1); }
+.ics-note { margin: 0; color: var(--text-secondary); font-size: var(--text-sm); }
+.ics-subtitle { font-size: var(--text-sm); font-weight: 600; margin: var(--space-3) 0 0; }
+.sub-link { display: flex; gap: var(--space-2); margin-bottom: var(--space-2); }
+.sub-link input { min-width: 0; flex: 1; font-family: var(--font-data); font-size: var(--text-xs); }
+.sub-apps { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+.sub-stale-line {
+    margin: 0 0 var(--space-2);
+    padding: var(--space-2) var(--space-2);
+    border-radius: var(--r-md);
+    background: var(--accent-amber-dim);
+    color: var(--accent-amber-ink);
+}
+
+.coming-up-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-3);
+}
+
+.coming-up-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.coming-up-hint {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 2px 0 var(--space-2);
+}
+
+.coming-up-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+}
+
+.up-item {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: baseline;
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-2);
+    border-radius: var(--r-md);
+    background: var(--bg-elevated);
+}
+
+.up-date { font-weight: 600; display: flex; flex-direction: column; line-height: 1.3; }
+.up-week { font-weight: 400; font-size: var(--text-xs); color: var(--text-secondary); }
+.up-what { min-width: 0; overflow-wrap: anywhere; }
+.up-where { display: block; color: var(--text-secondary); font-size: var(--text-sm); }
+
+.detail-link { color: var(--accent-cyan); text-underline-offset: 2px; }
+.detail-note { margin: 0; font-size: var(--text-sm); white-space: pre-line; overflow-wrap: anywhere; }
+
+/* The week the grid shows: back, the week and its dates, forward, today. */
+.week-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-1) var(--space-3);
+}
+
+.week-title {
+    font-size: var(--text-md);
+    font-weight: 600;
+    margin: 0;
+    min-width: 11rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.week-title .week-dates {
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.week-step {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-medium);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+.week-step:disabled { opacity: 0.4; }
+
+.week-step:focus-visible,
+.week-today:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.calendar-legend {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 0 var(--space-1) var(--space-3);
+}
+
+.my-week {
+    margin: 0 var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+}
+
+.my-week summary {
+    cursor: pointer;
+    min-height: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.my-week summary:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--r-md);
+}
+
+.my-week-label { font-weight: 600; }
+#myWeekLine { color: var(--text-secondary); }
+
+.my-week ul {
+    margin: var(--space-2) 0 0;
+    padding-left: var(--space-4);
+    display: grid;
+    gap: var(--space-1);
+    color: var(--text-secondary);
+}
+
+.week-absent {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 0 var(--space-1) var(--space-3);
+}
+
+/* An exam or other one-off on the grid: dashed, so it reads as a dated event
+   rather than a weekly class, and not draggable. */
+.calendar-event.dated {
+    border-style: dashed !important;
+}
+
+.conflicts-content {
+    padding: 0 var(--space-3) var(--space-3);
+    display: none;
+}
+
+.conflicts-content.open {
+    display: block;
+}
+
+.conflict-heading {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-amber-ink);
+    margin: var(--space-3) 0 var(--space-1);
+}
+
+.conflict-heading:first-child { margin-top: 2px; }
+
+/* The ones nothing can be done about, so they do not read as a to-do list. */
+.conflict-heading.stuck { color: var(--text-tertiary); }
+
+.conflict-item {
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--accent-red) 12%, transparent);
+    border-radius: var(--r-md);
+    margin-bottom: var(--space-1);
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+}
+
+.conflict-when,
+.conflict-weeks {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    margin-top: 2px;
+}
+
+.conflict-weeks { color: var(--text-tertiary); }
+
+.conflict-action { margin-top: var(--space-2); }
+
+.conflict-action .btn {
+    font-size: var(--text-sm);
+    padding: var(--space-1) var(--space-3);
+    min-height: 28px;
+}
+
+.conflict-stuck {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* The student's correction to what counts as one class (spec section 4) */
+.group-override {
+    margin-top: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+
+.group-override .why {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    line-height: 1.5;
+}
+
+/* The grid used to sit in a 1000px card inside a page measure half again as
+   wide, which read as the calendar being inset from everything above it and
+   left seven columns about 138px each, narrow enough that the room name
+   truncated on almost every block. It now takes the full page measure, the
+   same width as the events panel it sits under. */
+.calendar-card {
+    padding: var(--space-2);
+}
+
+/* Full screen lays the calendar card over the whole page rather than putting
+   the card itself into the browser's full screen: the detail and resolve
+   dialogs and the toasts hang off the body, and they have to stay above it,
+   so the card sits under their z-index (1080, 1090) and over everything else. */
+.calendar-fullscreen-bar {
+    display: none;
+}
+
+body.calendar-fullscreen {
+    overflow: hidden;
+}
+
+body.calendar-fullscreen .calendar-card {
+    position: fixed;
+    inset: 0;
+    z-index: 1070;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2) var(--space-3) var(--space-3);
+    background: var(--bg-surface);
+}
+
+body.calendar-fullscreen .calendar-fullscreen-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 2px 2px var(--space-2);
+}
+
+.calendar-fullscreen-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* The page caps the grid at 70vh so the controls stay in reach; full screen
+   gives it every pixel the bar does not use. */
+body.calendar-fullscreen .calendar-scroll-wrapper {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+}
+
+/* And that measure keeps going. Bootstrap's container stops growing at
+   1320px, which on a 1920px monitor strands 300px either side of a
+   seven-day grid that would happily use it. Widening the page rather than
+   the card alone keeps the grid and the events panel above it on one edge;
+   a calendar wider than the panel it belongs to reads as a mistake. */
+@media (min-width: 1600px) {
+    main.container {
+        max-width: min(1600px, calc(100vw - 8rem));
+    }
+
+    /* The list is capped at 420px so it cannot swallow a narrow page. On a
+       wide one that cap is what truncates the course title while the detail
+       column beside it runs half empty, so past here the 38% split does the
+       dividing instead. */
+    .events-list-column {
+        max-width: 620px;
+    }
+}
+
+.calendar-wrapper {
+    position: relative;
+}
+
+/* Forma's colour variables, pointed at the site's tokens. Those tokens flip
+   under prefers-color-scheme, so this one block serves light and dark, and
+   FullCalendar's own [data-color-scheme] switch is never used. */
+:root {
+    --fc-forma-background: var(--card);
+    --fc-forma-foreground: var(--ink);
+    --fc-forma-muted-foreground: var(--ink-2);
+    --fc-forma-faint-foreground: var(--ink-3);
+    --fc-forma-border: var(--rule-soft);
+    --fc-forma-muted-border: var(--rule-soft);
+    --fc-forma-strong-border: var(--rule);
+    --fc-forma-faint: color-mix(in srgb, var(--ink) 4%, transparent);
+    --fc-forma-muted: color-mix(in srgb, var(--ink) 8%, transparent);
+    --fc-forma-strong: color-mix(in srgb, var(--ink) 14%, transparent);
+    --fc-forma-stronger: color-mix(in srgb, var(--ink) 18%, transparent);
+    --fc-forma-strongest: color-mix(in srgb, var(--ink) 22%, transparent);
+    --fc-forma-primary: var(--teal);
+    --fc-forma-primary-foreground: var(--card);
+    --fc-forma-primary-over: color-mix(in srgb, var(--teal) 85%, var(--card));
+    --fc-forma-primary-down: color-mix(in srgb, var(--teal) 70%, var(--card));
+    --fc-forma-event: var(--teal);
+    --fc-forma-event-contrast: var(--card);
+    --fc-forma-background-event: var(--teal);
+    --fc-forma-highlight: color-mix(in srgb, var(--teal) 15%, transparent);
+    --fc-forma-ring-color: var(--teal);
+}
+
+.calendar-unavailable {
+    padding: var(--space-6);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.calendar-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: var(--r-sm);
+}
+
+/* Blocks used to be 20% washes of their accent with accent-coloured text,
+   which read as ghosts over the grid lines. The fix was a solid surface with
+   a 3px accent edge down the left, but a bar on one side is decoration doing
+   a job the surface can do: the wash now carries the activity type on its
+   own, deep enough to name the type at a glance and to hold the block's
+   ground against the grid, with the border an even hairline of the same
+   accent. Every text colour on a block is checked against the deeper wash. */
+.calendar-event {
+    height: 100%;
+    box-sizing: border-box;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-dense);
+    cursor: grab;
+    z-index: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    transition: border-color 150ms ease-out;
+    color: var(--text-primary);
+    border: 1px solid transparent;
+}
+
+/* Hover darkens the edge rather than lifting the block: a shadow under every
+   block competed with the type colours it sits on (REDESIGN-SPEC.md 5.7). */
+.calendar-event:hover {
+    border-color: color-mix(in srgb, var(--ink) 45%, transparent);
+    z-index: 5;
+}
+
+.calendar-event:active {
+    cursor: grabbing;
+}
+
+.calendar-event:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 1px;
+    z-index: 5;
+}
+
+/* Each type names its hue and this one rule builds the surface from it. The
+   plain background line first is the fallback for anything without
+   color-mix, so a block is never transparent over the grid lines. */
+.calendar-event.lecture,
+.calendar-event.lab,
+.calendar-event.tutorial {
+    background: var(--bg-surface);
+    background: color-mix(in srgb, var(--type-hue) 24%, var(--bg-surface));
+    border-color: color-mix(in srgb, var(--type-hue) 58%, transparent);
+}
+
+.calendar-event.lecture  { --type-hue: var(--type-lecture); }
+.calendar-event.lab      { --type-hue: var(--type-lab); }
+.calendar-event.tutorial { --type-hue: var(--type-tutorial); }
+
+/* "Other" is the absence of a type rather than a fourth one, so it stays ink
+   at a weight that reads as unclassified next to three that carry a hue. */
+.calendar-event.other {
+    background: var(--bg-surface);
+    background: color-mix(in srgb, var(--ink) 10%, var(--bg-surface));
+    border-color: var(--border-medium);
+}
+
+.calendar-event .event-course {
+    font-weight: 700;
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+/* The label sits on a wash of its own hue, so the raw hue is too close to its
+   ground to read at this size. Mixing toward --ink darkens it on the light
+   theme and lightens it on the dark one, the direction that gains contrast
+   in both. */
+.calendar-event .event-type {
+    font-size: var(--text-dense);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: color-mix(in srgb, var(--type-hue) 78%, var(--ink));
+}
+
+/* Gold at 78% is still too light on its own wash, so lab takes the ink shade
+   instead. "Other" has no hue to mix, so it takes secondary ink. */
+.calendar-event.lab .event-type { color: var(--type-lab-ink); }
+.calendar-event.other .event-type { color: var(--text-secondary); }
+
+/* Secondary ink on the deeper amber wash measured 4.45:1, just under AA at
+   0.58rem. Pulling it a third of the way to --text-primary darkens it on the
+   light theme and lightens it on the dark one, clearing AA on every wash. */
+.calendar-event .event-time,
+.calendar-event .event-room,
+.calendar-event .event-pin {
+    color: color-mix(in srgb, var(--text-secondary) 70%, var(--text-primary));
+}
+
+.calendar-event .event-time,
+.calendar-event .event-room {
+    font-size: var(--text-dense);
+}
+
+/* Time and type share a line, time first, so a one-hour block keeps its room
+   in view at readable sizes and a long type is cut before the time is. */
+.calendar-event .event-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-event .event-pin {
+    font-size: var(--text-dense);
+    flex-shrink: 0;
+}
+
+/* A block that genuinely collides with another. The ring says "clash"; the
+   badge is the way in when the block itself is half-hidden or finger-sized. */
+.calendar-event.clash {
+    border-color: color-mix(in srgb, var(--accent-red) 70%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-red) 50%, transparent);
+    /* Room for the badge, so it does not sit on the course code. */
+    padding-right: var(--space-6);
+}
+
+/* Decorative: the block's own label says "clash", and a button inside the
+   block's button was two controls in one (WCAG 4.1.2). A tap on it still
+   opens the resolve dialog, through the block's click handler. */
+.clash-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: var(--text-dense);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    z-index: 6;
+}
+
+.clash-badge:hover { filter: brightness(1.2); }
+
+.clash-badge:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 1px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: var(--r-sm);
+    margin-right: var(--space-1);
+}
+
+/* The sittings a dragged class can land on, drawn as FullCalendar background
+   events. Forma leaves those transparent, so the wash is ours. There is no
+   highlight for the zone under the pointer any more: eventAllow refuses
+   every other spot, so the class itself only appears where it can land. */
+.drop-zone {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    border: 2px dashed color-mix(in srgb, var(--accent-cyan) 30%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 5%, transparent);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* The resolve dialog: both sides of a clash at once, options and all.
+   On the grid the two blocks share an hour, so on a phone the one a student
+   wants is the one they cannot hit. Here each side gets its own column, with
+   every sitting it could move to and what that would run into. */
+
+.resolve-overlay,
+.detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 5, 7, 0.72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 1090;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: resolve-in 0.16s ease;
+}
+
+@keyframes resolve-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.resolve-dialog {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--r-lg);
+    width: 100%;
+    max-width: 700px;
+    max-height: min(85vh, 640px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-overlay);
+    animation: resolve-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes resolve-up {
+    from { transform: translateY(10px); opacity: 0.6; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .resolve-overlay, .resolve-dialog,
+    .detail-overlay, .detail-dialog { animation: none; }
+}
+
+/* The detail dialog: the same body the panel shows, opened by a tap on a
+   grid block. The panel sits above the calendar, so a student who taps a
+   late-afternoon class is a whole viewport away from it; the dialog opens
+   where they are. Everything inside reuses the panel's own classes. */
+.detail-dialog {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--r-lg);
+    width: 100%;
+    max-width: 480px;
+    max-height: min(85vh, 640px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-overlay);
+    position: relative;
+    animation: resolve-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-dialog > .resolve-close {
+    /* Above the sticky section header inside the scrolling body. */
+    z-index: 3;
+}
+
+.detail-dialog .detail-content {
+    flex: 1;
+    min-height: 0;
+}
+
+.detail-dialog .detail-header {
+    padding-right: var(--space-12);
+}
+
+.resolve-head {
+    padding: var(--space-4) var(--space-4) var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.resolve-title {
+    font-size: var(--text-md);
+    font-weight: 700;
+    margin: 0 0 var(--space-1);
+}
+
+.resolve-sub {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin: 0;
+    padding-right: var(--space-8);
+    line-height: 1.5;
+}
+
+.resolve-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    padding: var(--space-2);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.resolve-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-interactive);
+}
+
+.resolve-close:focus-visible {
+    outline: var(--focus-ring);
+}
+
+/* Side by side stays side by side on a phone: comparing the two classes is
+   the whole point, and the cards are built narrow enough to share 360px. */
+.resolve-sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border-subtle);
+    flex: 1;
+    min-height: 0;
+}
+
+.resolve-side {
+    background: var(--bg-surface);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--space-3);
+}
+
+.resolve-side-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.resolve-side-code {
+    font-weight: 700;
+    font-size: var(--text-sm);
+}
+
+.resolve-side-type {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.resolve-pinned {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.resolve-side-title {
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+    margin: var(--space-1) 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resolve-options {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+    padding-right: 2px;
+}
+
+.resolve-option {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    color: var(--text-primary);
+    font-size: var(--text-xs);
+    flex-shrink: 0;
+}
+
+button.resolve-option {
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+button.resolve-option:hover {
+    border-color: var(--border-medium);
+    background: var(--bg-interactive);
+}
+
+button.resolve-option:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 1px;
+}
+
+.resolve-option.is-recommended {
+    border-color: color-mix(in srgb, var(--accent-cyan) 50%, transparent);
+}
+
+.resolve-option.is-current {
+    border-style: dashed;
+    border-color: var(--border-medium);
+}
+
+.resolve-option.is-taken {
+    opacity: 0.55;
+}
+
+.resolve-option .ro-when {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.resolve-option .ro-where {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+.resolve-option .ro-note {
+    font-size: var(--text-xs);
+}
+
+.resolve-option .ro-note.ok { color: var(--accent-green); }
+.resolve-option .ro-note.bad { color: var(--accent-red); }
+.resolve-option .ro-note.now { color: var(--accent-amber-ink); }
+.resolve-option .ro-note.dim { color: var(--text-tertiary); }
+
+.resolve-option .ro-note em {
+    font-style: normal;
+    font-size: 1em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-cyan);
+    margin-left: var(--space-1);
+}
+
+/* On a phone the dialog docks to the bottom like a sheet, which keeps the
+   options under the thumb and the close reachable. */
+@media (max-width: 560px) {
+    .resolve-overlay,
+    .detail-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .resolve-dialog,
+    .detail-dialog {
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+        border-bottom: none;
+        max-height: 88vh;
+        max-width: none;
+    }
+    .resolve-side { padding: var(--space-3) var(--space-2); }
+    .resolve-side-code { font-size: var(--text-sm); }
+}
+
+/* Every sitting of the open class, inside the detail panel. Attending more
+   than one, or none, is the student's call; this is where they make it. */
+.sittings-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    max-height: 190px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.sitting-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-2);
+    padding: var(--space-2) var(--space-2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    font-size: var(--text-sm);
+    flex-shrink: 0;
+}
+
+.sitting-row.viewing {
+    border-color: var(--border-medium);
+}
+
+.sitting-when {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Room and group wrap rather than clip: a cut-off room is a wrong room. */
+.sitting-where {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    flex: 1;
+    min-width: 6rem;
+    overflow-wrap: anywhere;
+}
+
+.sitting-state {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* What choosing this time would do, on its own line under the row. */
+.sitting-effect {
+    flex-basis: 100%;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.sitting-effect.clashes { color: var(--accent-red); }
+
+.sitting-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-left: auto;
+}
+
+/* At least 28px tall: they were about 20 (WCAG 2.5.8 asks for 24). */
+.sitting-row .btn {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-3);
+    min-height: 28px;
+    white-space: nowrap;
+}
+
+/* Course picker
+   The rows borrow the explorer's shape, not its stylesheet: explore.css has
+   its own palette and its own light and dark handling, and this page is dark
+   throughout. Same facts, same order, this page's colours. */
+
+/* The picker opens as a drawer over the page (REDESIGN-SPEC.md 5.6):
+   docked right on a desktop, so the grid stays in view as courses land on
+   it, and the whole screen on a phone. Below the full-screen card (1070) is
+   never at issue, since Add courses is not offered there; under the detail
+   and resolve dialogs (1080, 1090) and the toasts, which must stay visible
+   over it. */
+.drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 1075;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.drawer[hidden] { display: none; }
+
+.drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, #070E15 40%, transparent);
+}
+
+.drawer-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(440px, 100%);
+    height: 100%;
+    background: var(--card);
+    border-left: 1px solid var(--rule);
+    box-shadow: var(--shadow-overlay);
+}
+
+@media (max-width: 767.98px) {
+    .drawer-panel { width: 100%; border-left: none; }
+}
+
+.picker-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    background: var(--card);
+}
+
+.picker-title-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--rule);
+}
+
+.picker-heading {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    margin: 0;
+}
+
+.picker-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--rule);
+}
+
+.picker-head input {
+    width: 100%;
+    min-height: var(--control-h);
+    background: var(--paper);
+    border: 1px solid var(--rule-strong);
+    color: var(--ink);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--r-md);
+    font-size: var(--text-md);
+}
+
+.picker-ways {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-4);
+}
+
+.picker-ways .btn-link { --bs-btn-padding-x: 0; }
+
+.picker-head input:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -1px;
+}
+
+.picker-status {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Fills the drawer's height and scrolls inside it, with the title and the
+   add bar staying put. */
+.picker-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    /* Reaching the end of the list does not scroll the page behind. */
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-subtle) transparent;
+}
+
+.picker-results::-webkit-scrollbar { width: 6px; }
+.picker-results::-webkit-scrollbar-track { background: transparent; }
+.picker-results::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: var(--r-sm); }
+
+.picker-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-check {
+    margin: 0 0 0 var(--space-4);
+    width: 22px;
+    height: 22px;
+    accent-color: var(--accent-cyan);
+    cursor: pointer;
+}
+
+.picker-check:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.picker-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 130px 1fr auto;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    transition: background 0.12s ease;
+}
+
+.picker-row:hover { background: var(--bg-interactive); }
+
+/* The running count and the button that commits a whole batch */
+.picker-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.picker-actions span {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+/* Paste a list */
+.picker-paste {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker-paste textarea {
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    border-radius: var(--r-md);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    font-family: var(--font-data);
+    resize: vertical;
+    min-height: 76px;
+}
+
+.picker-paste textarea:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -1px;
+}
+
+.paste-preview {
+    margin-top: var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.paste-preview .chip {
+    display: inline-block;
+    padding: 1px var(--space-2);
+    margin: 2px var(--space-1) 2px 0;
+    border-radius: var(--r-md);
+    font-size: var(--text-xs);
+    background: var(--accent-cyan-dim);
+    color: var(--accent-cyan);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+}
+
+.paste-preview .chip.dim {
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+    color: var(--text-tertiary);
+    border-color: var(--border-subtle);
+}
+
+.paste-preview .chip.bad {
+    background: color-mix(in srgb, var(--accent-red) 12%, transparent);
+    color: var(--accent-red);
+    border-color: color-mix(in srgb, var(--accent-red) 35%, transparent);
+}
+
+.paste-preview h4 {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    margin: var(--space-2) 0 2px;
+}
+
+.picker-row:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -2px;
+}
+
+.picker-row[disabled] {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.picker-row[disabled]:hover { background: none; }
+
+.picker-code {
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--accent-cyan);
+    font-variant-numeric: tabular-nums;
+}
+
+.picker-title {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.picker-meta {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.picker-right {
+    text-align: right;
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+/* The explorer's week meter, in this page's colours. Twelve marks, one per
+   teaching week, so a fortnightly lab reads as a comb at a glance. */
+.wk-meter {
+    display: inline-flex;
+    gap: 1px;
+    margin-top: var(--space-1);
+}
+
+.wk-meter i {
+    width: 3px;
+    height: 10px;
+    background: var(--border-subtle);
+    border-radius: 1px;
+}
+
+.wk-meter i.on { background: var(--accent-amber); }
+
+.picker-empty {
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+}
+
+/* Toasts report what an add actually did, since it happens with no apply step */
+.toast-stack {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-width: min(360px, calc(100vw - 32px));
+}
+
+.toast-note {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--r-lg);
+    padding: var(--space-3) var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-overlay);
+    animation: toast-in 0.18s ease;
+}
+
+/* What happened is carried by the headline and its colour, not by a stripe
+   down the side, which is easier to read at a glance and survives the note
+   being narrow on a phone. */
+.toast-line {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-weight: 600;
+    color: var(--accent-cyan);
+}
+
+.toast-note.warn .toast-line { color: var(--accent-amber-ink); }
+.toast-note.bad .toast-line { color: var(--accent-red); }
+
+.toast-note small {
+    display: block;
+    margin-top: var(--space-1);
+    padding-left: var(--space-6);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.toast-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.toast-undo { min-height: 32px; }
+
+.toast-close {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: none;
+    color: var(--text-secondary);
+}
+
+.toast-close:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast-note { animation: none; }
+}
+
+@media (max-width: 560px) {
+    .picker-row {
+        grid-template-columns: 1fr auto;
+        row-gap: 2px;
+    }
+    .picker-code { grid-column: 1; }
+    .picker-right { grid-column: 2; grid-row: 1 / span 2; }
+    .picker-name { grid-column: 1 / -1; }
+}
+
+/* The week grid needs room for seven days. A phone shows one instead: the
+   week at phone width was seven 90px columns in a sideways scroller, inside
+   a 70vh vertical one, and "COMP 2602" was cut to "COMI". */
+@media (min-width: 768px) {
+    .calendar-wrapper { min-width: 700px; }
+}
+
+.day-strip { display: none; }
+
+.day-button {
+    min-height: 44px;
+    padding: var(--space-1) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--r-md);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+}
+
+.day-button .day-date { font-weight: 600; font-size: var(--text-sm); }
+.day-button .day-count { color: var(--text-secondary); font-size: var(--text-dense); }
+
+.day-button[aria-pressed="true"] {
+    border-color: var(--accent-cyan);
+    background: var(--accent-cyan-dim);
+}
+
+.day-button:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+}
+
+@media (max-width: 767.98px) {
+    .day-strip {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: var(--space-1);
+        margin: 0 0 var(--space-3);
+    }
+
+    /* The page scrolls, not a box inside it. */
+    .calendar-scroll-wrapper {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .events-list-column,
+    .events-detail-column {
+        max-height: none !important;
+    }
+}
+
+/* Responsive: stack on small screens */
+@media (max-width: 768px) {
+    .events-master-detail {
+        flex-direction: column;
+        min-height: auto;
+        max-height: none;
+    }
+
+    .events-list-column {
+        flex: none;
+        max-width: none;
+        min-width: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+        max-height: 200px;
+    }
+
+    .events-detail-column {
+        min-height: 250px;
+        max-height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .events-list-column {
+        max-height: 150px;
+    }
+
+    .events-detail-column {
+        min-height: 200px;
+        max-height: 300px;
+    }
+}
+
+/* What the republish did to this student's own courses.
+   A status dot rather than a rail down each line: amber where the change
+   costs them something, dim where it is only news. The course code stays the
+   strongest thing on the row, because that is what they are looking for. */
+
+.stale-changes {
+    list-style: none;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.stale-changes li {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+
+.stale-changes li::before {
+    content: "";
+    inline-size: 5px;
+    block-size: 5px;
+    border-radius: 50%;
+    background: var(--border-medium);
+    flex: none;
+    /* Baseline alignment puts a bare dot on the text baseline; nudge it to
+       the middle of the line it marks. */
+    transform: translateY(-0.2em);
+}
+
+/* "MGMT 2021" is one name: on a phone it broke across two lines. */
+.stale-changes li b {
+    color: var(--text-primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.stale-changes li.chg-act::before { background: var(--accent-amber); }
+.stale-changes li.chg-info::before { background: var(--accent-cyan-dim); }
+
+.stale-see-all {
+    display: inline-block;
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-xs);
+    color: var(--accent-cyan);
+    text-decoration: none;
+}
+
+.stale-see-all:hover { text-decoration: underline; }
+
+/* Both set a display above, which outranks the browser's own
+   `[hidden] { display: none }` and would leave them visible when hidden. */
+.stale-changes[hidden],
+.stale-see-all[hidden] { display: none; }

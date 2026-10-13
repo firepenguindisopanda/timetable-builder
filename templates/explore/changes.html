@@ -52,7 +52,7 @@
 <div class="shell">
 
   {% if from_calendar %}
-  <p class="crumb"><a class="link-teal" href="/calendar">&larr; Back to your timetable</a></p>
+  <p class="crumb"><a class="link-teal" href="/calendar">Back to your timetable</a></p>
   {% endif %}
 
   <header class="detail-head">
@@ -93,13 +93,13 @@
         {% endif %}
       </div>
 
-      <label class="search" style="margin-top:1.25rem; max-width:26rem;">
+      <label class="search" style="margin-top:var(--space-6); max-width:26rem;">
         <input type="search" id="changesFilter" autocomplete="off"
                placeholder="Search a course code, title or room"
                aria-label="Search changes" aria-controls="changesList">
       </label>
       <p class="result-count" id="changesCount" role="status" aria-live="polite"
-         style="margin:0.6rem 0 0;"></p>
+         style="margin:var(--space-2) 0 0;"></p>
     {% endif %}
   </header>
 
@@ -151,7 +151,7 @@
         <article class="card chg chg--course_renamed"
                  data-search="{{ ((entry.from_code or '') ~ ' ' ~ entry.course_code ~ ' ' ~ (entry.course_title or '')) | lower }}">
           <div class="chg-head">
-            <span class="detail-code">{{ entry.from_code }} &rarr; {{ entry.course_code }}</span>
+            <span class="detail-code">{{ entry.from_code }} is now {{ entry.course_code }}</span>
             <span class="chg-kind">same course</span>
           </div>
           {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}

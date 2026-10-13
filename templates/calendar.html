@@ -17,2044 +17,151 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.0/skeleton.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.1.0/themes/forma/theme.css">
 <!--
-  The printed timetable. Kept out of the inline block below because it is a
-  page of its own rather than a tweak to this one, and because a linked file
-  picks up the asset version stamp.
+  The printed timetable. Kept apart from the page's own styles because it is
+  a page of its own rather than a tweak to this one.
 -->
 <link rel="stylesheet" href="/assets/css/print.css?v={{ asset_version }}">
-<style>
-/*
-  The activity types are a categorical scale: the colour is a key that says
-  which of the three a block is, not a meaning in its own right. They get
-  their own tokens because the site's five-hue palette had already spent teal
-  on rooms and green on "added", and two categories drawn from hues this
-  close read as one colour once both are washed back to a tint a student can
-  read text on. Tutorial moved off green to violet for the distance; --green
-  still means "added" everywhere else, including the API dot and the success
-  alert. Lecture and lab keep teal and gold, which were never in conflict.
-*/
-:root {
-    --type-lecture:  var(--teal);
-    --type-lab:      var(--gold);
-    /* Gold is the one hue too light to read as small text on its own wash. */
-    --type-lab-ink:  var(--gold-ink);
-    --type-tutorial: #5B44A8;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --type-tutorial: #A38CEC;
-    }
-}
-
-/* Events Master-Detail Panel */
-.events-master-detail {
-    display: flex;
-    gap: 0;
-    background: var(--bg-surface);
-    border-radius: 8px;
-    border: 1px solid var(--border-subtle);
-    overflow: hidden;
-    min-height: 280px;
-    max-height: 400px;
-}
-
-/* Left column: event list */
-.events-list-column {
-    flex: 0 0 38%;
-    min-width: 280px;
-    max-width: 420px;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border-subtle);
-}
-
-.events-list-header {
-    position: sticky;
-    top: 0;
-    background: var(--bg-elevated);
-    padding: 10px 14px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-subtle);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 2;
-}
-
-.events-list-scroll {
-    overflow-y: auto;
-    flex: 1;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-subtle) transparent;
-}
-
-.events-list-scroll::-webkit-scrollbar {
-    width: 6px;
-}
-
-.events-list-scroll::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.events-list-scroll::-webkit-scrollbar-thumb {
-    background: var(--border-subtle);
-    border-radius: 3px;
-}
-
-.event-list-item {
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-    font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    outline: none;
-}
-
-.event-list-item:hover {
-    background: var(--bg-interactive);
-}
-
-.event-list-item:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: -2px;
-}
-
-/* Selection is a deeper wash of the same teal the hover state hints at, so
-   it outranks hover without a rule down the edge shifting the row's text. */
-.event-list-item.selected {
-    background: color-mix(in srgb, var(--accent-cyan) 24%, transparent);
-}
-
-/* The time sits in tertiary ink, which the deeper wash swallows. */
-.event-list-item.selected .event-list-time {
-    color: var(--text-secondary);
-}
-
-.event-list-item[aria-selected="true"] {
-    background: var(--accent-cyan-dim);
-}
-
-.event-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.event-dot.lecture { background: var(--type-lecture); }
-.event-dot.lab { background: var(--type-lab); }
-.event-dot.tutorial { background: var(--type-tutorial); }
-.event-dot.other { background: var(--text-tertiary); }
-
-.event-list-time {
-    color: var(--text-tertiary);
-    min-width: 75px;
-    font-size: 0.7rem;
-    font-variant-numeric: tabular-nums;
-}
-
-.event-list-course {
-    font-weight: 600;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.event-list-type {
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-/* Right column: detail panel */
-.events-detail-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.detail-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-tertiary);
-    text-align: center;
-    padding: 2rem;
-}
-
-.detail-placeholder i {
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
-    opacity: 0.5;
-}
-
-.detail-placeholder p {
-    font-size: 0.8rem;
-    margin: 0;
-}
-
-.detail-placeholder .hint {
-    font-size: 0.78rem;
-    margin-top: 0.5rem;
-    color: var(--text-secondary);
-}
-
-.detail-content {
-    overflow-y: auto;
-    flex: 1;
-    padding: 0;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-subtle) transparent;
-}
-
-.detail-content::-webkit-scrollbar {
-    width: 6px;
-}
-
-.detail-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.detail-content::-webkit-scrollbar-thumb {
-    background: var(--border-subtle);
-    border-radius: 3px;
-}
-
-/* Detail header */
-.detail-header {
-    padding: 14px 18px 10px;
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-elevated);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.detail-header .detail-course-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 4px;
-}
-
-.detail-header .detail-type-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-
-.detail-type-badge.lecture { background: color-mix(in srgb, var(--type-lecture) 15%, transparent); color: var(--type-lecture); }
-.detail-type-badge.lab { background: color-mix(in srgb, var(--type-lab) 15%, transparent); color: var(--type-lab-ink); }
-.detail-type-badge.tutorial { background: color-mix(in srgb, var(--type-tutorial) 15%, transparent); color: var(--type-tutorial); }
-.detail-type-badge.other { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--text-secondary); }
-
-/* Detail field groups */
-.detail-section {
-    padding: 12px 18px;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.detail-section:last-child {
-    border-bottom: none;
-}
-
-.detail-section-title {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-tertiary);
-    margin: 0 0 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.detail-section-title i {
-    font-size: 0.75rem;
-}
-
-.detail-field {
-    display: flex;
-    align-items: baseline;
-    padding: 4px 0;
-    gap: 8px;
-}
-
-.detail-field-label {
-    font-size: 0.7rem;
-    color: var(--text-tertiary);
-    min-width: 80px;
-    flex-shrink: 0;
-}
-
-.detail-field-value {
-    font-size: 0.8rem;
-    color: var(--text-primary);
-    font-weight: 500;
-    word-break: break-word;
-}
-
-.detail-field-value.empty {
-    color: var(--text-tertiary);
-    font-style: italic;
-    font-weight: 400;
-}
-
-/* Collapsible raw data section */
-.detail-raw-toggle {
-    width: 100%;
-    background: none;
-    border: none;
-    padding: 12px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    transition: background 0.15s ease;
-    outline: none;
-}
-
-.detail-raw-toggle:hover {
-    background: var(--bg-interactive);
-}
-
-.detail-raw-toggle:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: -2px;
-}
-
-.detail-raw-toggle i {
-    transition: transform 0.2s ease;
-}
-
-.detail-raw-toggle[aria-expanded="true"] i {
-    transform: rotate(90deg);
-}
-
-.detail-raw-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-
-.detail-raw-content.open {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.detail-raw-inner {
-    padding: 0 18px 14px;
-}
-
-.detail-raw-inner pre {
-    background: var(--bg-deep);
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 0.65rem;
-    color: var(--text-secondary);
-    font-family: var(--font-data);
-    line-height: 1.5;
-    overflow-x: auto;
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-all;
-}
-
-/* Existing styles (preserved) */
-
-/* Conflicts section */
-.conflicts-panel {
-    background: color-mix(in srgb, var(--accent-red) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
-    border-radius: 8px;
-    margin-bottom: 12px;
-}
-
-/* A real button, so the clash list opens from the keyboard too. It used to be
-   a clickable div, which no keyboard could reach, over a list hidden by
-   default. */
-.conflicts-header {
-    width: 100%;
-    padding: 10px 12px;
-    font: inherit;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--accent-red);
-    background: none;
-    border: 0;
-    border-radius: 8px;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-}
-
-.conflicts-header:focus-visible {
-    outline: 2px solid var(--accent-red);
-    outline-offset: 2px;
-}
-
-.conflicts-header .bi-chevron-down { transition: transform 0.15s; }
-.conflicts-header[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
-
-.conflicts-summary-detail {
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-/* Exams, relocations and make-ups: listed by date, never placed weekly. */
-.changes-panel {
-    background: var(--bg-surface);
-    border: 1px solid var(--accent-amber);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    padding: 10px 12px 12px;
-    font-size: 0.85rem;
-}
-
-/* A class whose time or room changed in the last republish, until seen. */
-.calendar-event .event-changed {
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0 4px;
-    border-radius: 3px;
-    background: var(--accent-amber-dim);
-    color: var(--accent-amber-ink);
-}
-
-.calendar-event.changed { outline: 2px dashed var(--accent-amber); outline-offset: -2px; }
-
-.ics-panel {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-medium);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    padding: 10px 12px 12px;
-    font-size: 0.85rem;
-}
-
-.ics-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ics-title { font-size: 0.95rem; font-weight: 600; margin: 0; }
-.ics-summary { margin: 4px 0 10px; color: var(--text-secondary); }
-.ics-steps { margin: 12px 0 8px; padding-left: 1.2rem; display: grid; gap: 4px; }
-.ics-note { margin: 0; color: var(--text-secondary); font-size: 0.8rem; }
-.ics-subtitle { font-size: 0.85rem; font-weight: 600; margin: 12px 0 0; }
-.sub-link { display: flex; gap: 6px; margin-bottom: 8px; }
-.sub-link input { min-width: 0; flex: 1; font-family: var(--font-data); font-size: 0.75rem; }
-.sub-apps { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.sub-stale-line {
-    margin: 0 0 8px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    background: var(--accent-amber-dim);
-    color: var(--accent-amber-ink);
-}
-
-.coming-up-panel {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-medium);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    padding: 10px 12px 12px;
-}
-
-.coming-up-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.coming-up-hint {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    margin: 2px 0 8px;
-}
-
-.coming-up-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 6px;
-}
-
-.up-item {
-    display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr);
-    gap: 10px;
-    align-items: baseline;
-    font-size: 0.82rem;
-    padding: 6px 8px;
-    border-radius: 5px;
-    background: var(--bg-elevated);
-}
-
-.up-date { font-weight: 600; display: flex; flex-direction: column; line-height: 1.3; }
-.up-week { font-weight: 400; font-size: 0.75rem; color: var(--text-secondary); }
-.up-what { min-width: 0; overflow-wrap: anywhere; }
-.up-where { display: block; color: var(--text-secondary); font-size: 0.78rem; }
-
-.detail-link { color: var(--accent-cyan); text-underline-offset: 2px; }
-.detail-note { margin: 0; font-size: 0.85rem; white-space: pre-line; overflow-wrap: anywhere; }
-
-/* The week the grid shows: back, the week and its dates, forward, today. */
-.week-bar {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 4px 4px 10px;
-}
-
-.week-title {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0;
-    min-width: 11rem;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-
-.week-title .week-dates {
-    font-weight: 400;
-    color: var(--text-secondary);
-}
-
-.week-step {
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    border: 1px solid var(--border-medium);
-    background: var(--bg-surface);
-    color: var(--text-primary);
-}
-
-.week-step:disabled { opacity: 0.4; }
-
-.week-step:focus-visible,
-.week-today:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-}
-
-.calendar-legend {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    margin: 0 4px 10px;
-}
-
-.my-week {
-    margin: 0 4px 10px;
-    font-size: 0.85rem;
-}
-
-.my-week summary {
-    cursor: pointer;
-    min-height: 28px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-}
-
-.my-week summary:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-
-.my-week-label { font-weight: 600; }
-#myWeekLine { color: var(--text-secondary); }
-
-.my-week ul {
-    margin: 6px 0 0;
-    padding-left: 1.2rem;
-    display: grid;
-    gap: 3px;
-    color: var(--text-secondary);
-}
-
-.week-absent {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin: 0 4px 10px;
-}
-
-/* An exam or other one-off on the grid: dashed, so it reads as a dated event
-   rather than a weekly class, and not draggable. */
-.calendar-event.dated {
-    border-style: dashed !important;
-}
-
-.conflicts-content {
-    padding: 0 12px 12px;
-    display: none;
-}
-
-.conflicts-content.open {
-    display: block;
-}
-
-.conflict-heading {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent-amber-ink);
-    margin: 10px 0 5px;
-}
-
-.conflict-heading:first-child { margin-top: 2px; }
-
-/* The ones nothing can be done about, so they do not read as a to-do list. */
-.conflict-heading.stuck { color: var(--text-tertiary); }
-
-.conflict-item {
-    padding: 8px 10px;
-    background: color-mix(in srgb, var(--accent-red) 12%, transparent);
-    border-radius: 5px;
-    margin-bottom: 5px;
-    font-size: 0.72rem;
-    color: var(--text-primary);
-}
-
-.conflict-when,
-.conflict-weeks {
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    margin-top: 2px;
-}
-
-.conflict-weeks { color: var(--text-tertiary); }
-
-.conflict-action { margin-top: 6px; }
-
-.conflict-action .btn {
-    font-size: 0.78rem;
-    padding: 4px 10px;
-    min-height: 28px;
-}
-
-.conflict-stuck {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    font-style: italic;
-}
-
-/* The student's correction to what counts as one class (spec section 4) */
-.group-override {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: flex-start;
-}
-
-.group-override .why {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    line-height: 1.5;
-}
-
-/* The grid used to sit in a 1000px card inside a page measure half again as
-   wide, which read as the calendar being inset from everything above it and
-   left seven columns about 138px each — narrow enough that the room name
-   truncated on almost every block. It now takes the full page measure, the
-   same width as the events panel it sits under. */
-.calendar-card {
-    padding: 8px;
-}
-
-/* Full screen lays the calendar card over the whole page rather than putting
-   the card itself into the browser's full screen: the detail and resolve
-   dialogs and the toasts hang off the body, and they have to stay above it,
-   so the card sits under their z-index (1080, 1090) and over everything else. */
-.calendar-fullscreen-bar {
-    display: none;
-}
-
-body.calendar-fullscreen {
-    overflow: hidden;
-}
-
-body.calendar-fullscreen .calendar-card {
-    position: fixed;
-    inset: 0;
-    z-index: 1070;
-    margin: 0;
-    border: none;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
-    padding: 8px 12px 12px;
-    background: var(--bg-surface);
-}
-
-body.calendar-fullscreen .calendar-fullscreen-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 2px 2px 8px;
-}
-
-.calendar-fullscreen-title {
-    font-family: var(--font-display);
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-/* The page caps the grid at 70vh so the controls stay in reach; full screen
-   gives it every pixel the bar does not use. */
-body.calendar-fullscreen .calendar-scroll-wrapper {
-    flex: 1;
-    min-height: 0;
-    max-height: none;
-}
-
-/* And that measure keeps going. Bootstrap's container stops growing at
-   1320px, which on a 1920px monitor strands 300px either side of a
-   seven-day grid that would happily use it. Widening the page rather than
-   the card alone keeps the grid and the events panel above it on one edge;
-   a calendar wider than the panel it belongs to reads as a mistake. */
-@media (min-width: 1600px) {
-    main.container {
-        max-width: min(1600px, calc(100vw - 8rem));
-    }
-
-    /* The list is capped at 420px so it cannot swallow a narrow page. On a
-       wide one that cap is what truncates the course title while the detail
-       column beside it runs half empty, so past here the 38% split does the
-       dividing instead. */
-    .events-list-column {
-        max-width: 620px;
-    }
-}
-
-.calendar-wrapper {
-    position: relative;
-}
-
-/* Forma's colour variables, pointed at the site's tokens. Those tokens flip
-   under prefers-color-scheme, so this one block serves light and dark, and
-   FullCalendar's own [data-color-scheme] switch is never used. */
-:root {
-    --fc-forma-background: var(--card);
-    --fc-forma-foreground: var(--ink);
-    --fc-forma-muted-foreground: var(--ink-2);
-    --fc-forma-faint-foreground: var(--ink-3);
-    --fc-forma-border: var(--rule-soft);
-    --fc-forma-muted-border: var(--rule-soft);
-    --fc-forma-strong-border: var(--rule);
-    --fc-forma-faint: color-mix(in srgb, var(--ink) 4%, transparent);
-    --fc-forma-muted: color-mix(in srgb, var(--ink) 8%, transparent);
-    --fc-forma-strong: color-mix(in srgb, var(--ink) 14%, transparent);
-    --fc-forma-stronger: color-mix(in srgb, var(--ink) 18%, transparent);
-    --fc-forma-strongest: color-mix(in srgb, var(--ink) 22%, transparent);
-    --fc-forma-primary: var(--teal);
-    --fc-forma-primary-foreground: var(--card);
-    --fc-forma-primary-over: color-mix(in srgb, var(--teal) 85%, var(--card));
-    --fc-forma-primary-down: color-mix(in srgb, var(--teal) 70%, var(--card));
-    --fc-forma-event: var(--teal);
-    --fc-forma-event-contrast: var(--card);
-    --fc-forma-background-event: var(--teal);
-    --fc-forma-highlight: color-mix(in srgb, var(--teal) 15%, transparent);
-    --fc-forma-ring-color: var(--teal);
-}
-
-.calendar-unavailable {
-    padding: 24px;
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-}
-
-.calendar-scroll-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-subtle) transparent;
-    overflow-y: auto;
-    max-height: 70vh;
-}
-
-.calendar-scroll-wrapper::-webkit-scrollbar {
-    height: 6px;
-}
-
-.calendar-scroll-wrapper::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.calendar-scroll-wrapper::-webkit-scrollbar-thumb {
-    background: var(--border-subtle);
-    border-radius: 3px;
-}
-
-/* Blocks used to be 20% washes of their accent with accent-coloured text,
-   which read as ghosts over the grid lines. The fix was a solid surface with
-   a 3px accent edge down the left, but a bar on one side is decoration doing
-   a job the surface can do: the wash now carries the activity type on its
-   own, deep enough to name the type at a glance and to hold the block's
-   ground against the grid, with the border an even hairline of the same
-   accent. Every text colour on a block is checked against the deeper wash. */
-.calendar-event {
-    height: 100%;
-    box-sizing: border-box;
-    padding: 4px 6px;
-    font-size: 0.7rem;
-    cursor: grab;
-    z-index: 2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    transition: box-shadow 0.15s ease, transform 0.1s ease, filter 0.15s ease;
-    color: var(--text-primary);
-    border: 1px solid transparent;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-}
-
-.calendar-event:hover {
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
-    z-index: 5;
-}
-
-.calendar-event:active {
-    cursor: grabbing;
-}
-
-.calendar-event:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 1px;
-    z-index: 5;
-}
-
-/* Each type names its hue and this one rule builds the surface from it. The
-   plain background line first is the fallback for anything without
-   color-mix, so a block is never transparent over the grid lines. */
-.calendar-event.lecture,
-.calendar-event.lab,
-.calendar-event.tutorial {
-    background: var(--bg-surface);
-    background: color-mix(in srgb, var(--type-hue) 24%, var(--bg-surface));
-    border-color: color-mix(in srgb, var(--type-hue) 58%, transparent);
-}
-
-.calendar-event.lecture  { --type-hue: var(--type-lecture); }
-.calendar-event.lab      { --type-hue: var(--type-lab); }
-.calendar-event.tutorial { --type-hue: var(--type-tutorial); }
-
-/* "Other" is the absence of a type rather than a fourth one, so it stays ink
-   at a weight that reads as unclassified next to three that carry a hue. */
-.calendar-event.other {
-    background: var(--bg-surface);
-    background: color-mix(in srgb, var(--ink) 10%, var(--bg-surface));
-    border-color: var(--border-medium);
-}
-
-.calendar-event .event-course {
-    font-weight: 700;
-    font-size: 0.75rem;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* The label sits on a wash of its own hue, so the raw hue is too close to its
-   ground to read at this size. Mixing toward --ink darkens it on the light
-   theme and lightens it on the dark one, the direction that gains contrast
-   in both. */
-.calendar-event .event-type {
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: color-mix(in srgb, var(--type-hue) 78%, var(--ink));
-}
-
-/* Gold at 78% is still too light on its own wash, so lab takes the ink shade
-   instead. "Other" has no hue to mix, so it takes secondary ink. */
-.calendar-event.lab .event-type { color: var(--type-lab-ink); }
-.calendar-event.other .event-type { color: var(--text-secondary); }
-
-/* Secondary ink on the deeper amber wash measured 4.45:1, just under AA at
-   0.58rem. Pulling it a third of the way to --text-primary darkens it on the
-   light theme and lightens it on the dark one, clearing AA on every wash. */
-.calendar-event .event-time,
-.calendar-event .event-room,
-.calendar-event .event-pin {
-    color: color-mix(in srgb, var(--text-secondary) 70%, var(--text-primary));
-}
-
-.calendar-event .event-time,
-.calendar-event .event-room {
-    font-size: 0.68rem;
-}
-
-/* Time and type share a line, time first, so a one-hour block keeps its room
-   in view at readable sizes and a long type is cut before the time is. */
-.calendar-event .event-meta {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.calendar-event .event-pin {
-    font-size: 0.65rem;
-    flex-shrink: 0;
-}
-
-/* A block that genuinely collides with another. The ring says "clash"; the
-   badge is the way in when the block itself is half-hidden or finger-sized. */
-.calendar-event.clash {
-    border-color: color-mix(in srgb, var(--accent-red) 70%, transparent);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 0 0 1px color-mix(in srgb, var(--accent-red) 50%, transparent);
-    /* Room for the badge, so it does not sit on the course code. */
-    padding-right: 20px;
-}
-
-/* Decorative: the block's own label says "clash", and a button inside the
-   block's button was two controls in one (WCAG 4.1.2). A tap on it still
-   opens the resolve dialog, through the block's click handler. */
-.clash-badge {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: none;
-    background: var(--accent-red);
-    color: #fff;
-    font-size: 0.6rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    z-index: 6;
-}
-
-.clash-badge:hover { filter: brightness(1.2); }
-
-.clash-badge:focus-visible {
-    outline: 2px solid var(--accent-red);
-    outline-offset: 1px;
-}
-
-.legend-dot {
-    width: 8px;
-    height: 8px;
-    display: inline-block;
-    border-radius: 2px;
-    margin-right: 3px;
-}
-
-/* The sittings a dragged class can land on, drawn as FullCalendar background
-   events. Forma leaves those transparent, so the wash is ours. There is no
-   highlight for the zone under the pointer any more: eventAllow refuses
-   every other spot, so the class itself only appears where it can land. */
-.drop-zone {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    border: 2px dashed color-mix(in srgb, var(--accent-cyan) 30%, transparent);
-    background: color-mix(in srgb, var(--accent-cyan) 5%, transparent);
-    z-index: 1;
-    pointer-events: none;
-}
-
-/* The resolve dialog: both sides of a clash at once, options and all.
-   On the grid the two blocks share an hour, so on a phone the one a student
-   wants is the one they cannot hit. Here each side gets its own column, with
-   every sitting it could move to and what that would run into. */
-
-.resolve-overlay,
-.detail-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 5, 7, 0.72);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    z-index: 1090;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    animation: resolve-in 0.16s ease;
-}
-
-@keyframes resolve-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.resolve-dialog {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-medium);
-    border-radius: 14px;
-    width: 100%;
-    max-width: 700px;
-    max-height: min(85vh, 640px);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-    animation: resolve-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes resolve-up {
-    from { transform: translateY(10px); opacity: 0.6; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .resolve-overlay, .resolve-dialog,
-    .detail-overlay, .detail-dialog { animation: none; }
-}
-
-/* The detail dialog: the same body the panel shows, opened by a tap on a
-   grid block. The panel sits above the calendar, so a student who taps a
-   late-afternoon class is a whole viewport away from it; the dialog opens
-   where they are. Everything inside reuses the panel's own classes. */
-.detail-dialog {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-medium);
-    border-radius: 14px;
-    width: 100%;
-    max-width: 480px;
-    max-height: min(85vh, 640px);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-    position: relative;
-    animation: resolve-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.detail-dialog > .resolve-close {
-    /* Above the sticky section header inside the scrolling body. */
-    z-index: 3;
-}
-
-.detail-dialog .detail-content {
-    flex: 1;
-    min-height: 0;
-}
-
-.detail-dialog .detail-header {
-    padding-right: 44px;
-}
-
-.resolve-head {
-    padding: 14px 18px 12px;
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-elevated);
-    position: relative;
-    flex-shrink: 0;
-}
-
-.resolve-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin: 0 0 4px;
-}
-
-.resolve-sub {
-    font-size: 0.76rem;
-    color: var(--text-secondary);
-    margin: 0;
-    padding-right: 30px;
-    line-height: 1.5;
-}
-
-.resolve-close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    padding: 6px;
-    border-radius: 6px;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.resolve-close:hover {
-    color: var(--text-primary);
-    background: var(--bg-interactive);
-}
-
-.resolve-close:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-}
-
-/* Side by side stays side by side on a phone: comparing the two classes is
-   the whole point, and the cards are built narrow enough to share 360px. */
-.resolve-sides {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--border-subtle);
-    flex: 1;
-    min-height: 0;
-}
-
-.resolve-side {
-    background: var(--bg-surface);
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding: 12px;
-}
-
-.resolve-side-head {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    flex-wrap: wrap;
-}
-
-.resolve-side-code {
-    font-weight: 700;
-    font-size: 0.85rem;
-}
-
-.resolve-side-type {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
-}
-
-.resolve-pinned {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    margin-left: auto;
-    white-space: nowrap;
-}
-
-.resolve-side-title {
-    font-size: 0.78rem;
-    color: var(--text-tertiary);
-    margin: 3px 0 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.resolve-options {
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 10px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-subtle) transparent;
-    padding-right: 2px;
-}
-
-.resolve-option {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    text-align: left;
-    padding: 8px 10px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 0.72rem;
-    flex-shrink: 0;
-}
-
-button.resolve-option {
-    cursor: pointer;
-    transition: border-color 0.12s ease, background 0.12s ease;
-}
-
-button.resolve-option:hover {
-    border-color: var(--border-medium);
-    background: var(--bg-interactive);
-}
-
-button.resolve-option:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 1px;
-}
-
-.resolve-option.is-recommended {
-    border-color: color-mix(in srgb, var(--accent-cyan) 50%, transparent);
-}
-
-.resolve-option.is-current {
-    border-style: dashed;
-    border-color: var(--border-medium);
-}
-
-.resolve-option.is-taken {
-    opacity: 0.55;
-}
-
-.resolve-option .ro-when {
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.resolve-option .ro-where {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-}
-
-.resolve-option .ro-note {
-    font-size: 0.75rem;
-}
-
-.resolve-option .ro-note.ok { color: var(--accent-green); }
-.resolve-option .ro-note.bad { color: var(--accent-red); }
-.resolve-option .ro-note.now { color: var(--accent-amber-ink); }
-.resolve-option .ro-note.dim { color: var(--text-tertiary); }
-
-.resolve-option .ro-note em {
-    font-style: normal;
-    font-size: 1em;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--accent-cyan);
-    margin-left: 5px;
-}
-
-/* On a phone the dialog docks to the bottom like a sheet, which keeps the
-   options under the thumb and the close reachable. */
-@media (max-width: 560px) {
-    .resolve-overlay,
-    .detail-overlay {
-        padding: 0;
-        align-items: flex-end;
-    }
-    .resolve-dialog,
-    .detail-dialog {
-        border-radius: 14px 14px 0 0;
-        border-bottom: none;
-        max-height: 88vh;
-        max-width: none;
-    }
-    .resolve-side { padding: 10px 8px; }
-    .resolve-side-code { font-size: 0.78rem; }
-}
-
-/* Every sitting of the open class, inside the detail panel. Attending more
-   than one, or none, is the student's call; this is where they make it. */
-.sittings-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    max-height: 190px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-subtle) transparent;
-}
-
-.sitting-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px 8px;
-    padding: 6px 8px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-}
-
-.sitting-row.viewing {
-    border-color: var(--border-medium);
-}
-
-.sitting-when {
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-/* Room and group wrap rather than clip: a cut-off room is a wrong room. */
-.sitting-where {
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    flex: 1;
-    min-width: 6rem;
-    overflow-wrap: anywhere;
-}
-
-.sitting-state {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    white-space: nowrap;
-}
-
-/* What choosing this time would do, on its own line under the row. */
-.sitting-effect {
-    flex-basis: 100%;
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-}
-
-.sitting-effect.clashes { color: var(--accent-red); }
-
-.sitting-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-left: auto;
-}
-
-/* At least 28px tall: they were about 20 (WCAG 2.5.8 asks for 24). */
-.sitting-row .btn {
-    font-size: 0.75rem;
-    padding: 4px 10px;
-    min-height: 28px;
-    white-space: nowrap;
-}
-
-/* Course picker
-   The rows borrow the explorer's shape, not its stylesheet: explore.css has
-   its own palette and its own light and dark handling, and this page is dark
-   throughout. Same facts, same order, this page's colours. */
-
-.mode-chooser {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-    max-width: 720px;
-    margin: 0 auto;
-}
-
-.mode-card {
-    display: block;
-    text-align: left;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 18px;
-    color: inherit;
-    text-decoration: none;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.mode-card:hover,
-.mode-card:focus-visible {
-    border-color: var(--border-medium);
-    background: var(--bg-elevated);
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-}
-
-.mode-card h3 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin: 0 0 6px;
-    color: var(--accent-cyan);
-}
-
-/* Two equal choices, told apart by hue rather than by one looking louder. */
-.mode-card.upload h3 { color: var(--accent-green); }
-
-.mode-card p {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.5;
-}
-
-.picker-panel {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    margin-bottom: 12px;
-    overflow: hidden;
-}
-
-.picker-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: var(--bg-elevated);
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.picker-head input {
-    flex: 1 1 12rem;
-    min-width: 0;
-    background: var(--bg-deep);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-primary);
-    padding: 7px 10px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-}
-
-.picker-head input:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: -1px;
-}
-
-.picker-status {
-    padding: 8px 14px;
-    font-size: 0.72rem;
-    color: var(--text-tertiary);
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.picker-results {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-height: 340px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-subtle) transparent;
-}
-
-.picker-results::-webkit-scrollbar { width: 6px; }
-.picker-results::-webkit-scrollbar-track { background: transparent; }
-.picker-results::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
-
-.picker-item {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.picker-check {
-    margin: 0 0 0 14px;
-    width: 22px;
-    height: 22px;
-    accent-color: var(--accent-cyan);
-    cursor: pointer;
-}
-
-.picker-check:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-}
-
-.picker-row {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 130px 1fr auto;
-    gap: 12px;
-    align-items: center;
-    padding: 9px 14px;
-    background: none;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    color: inherit;
-    transition: background 0.12s ease;
-}
-
-.picker-row:hover { background: var(--bg-interactive); }
-
-/* The running count and the button that commits a whole batch */
-.picker-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: var(--bg-elevated);
-    border-top: 1px solid var(--border-subtle);
-}
-
-.picker-actions span {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    flex: 1;
-}
-
-/* Paste a list */
-.picker-paste {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.picker-paste textarea {
-    width: 100%;
-    background: var(--bg-deep);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-primary);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-size: 0.8rem;
-    font-family: var(--font-data);
-    resize: vertical;
-    min-height: 76px;
-}
-
-.picker-paste textarea:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: -1px;
-}
-
-.paste-preview {
-    margin-top: 10px;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.paste-preview .chip {
-    display: inline-block;
-    padding: 1px 7px;
-    margin: 2px 3px 2px 0;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    background: var(--accent-cyan-dim);
-    color: var(--accent-cyan);
-    border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
-}
-
-.paste-preview .chip.dim {
-    background: color-mix(in srgb, var(--ink) 6%, transparent);
-    color: var(--text-tertiary);
-    border-color: var(--border-subtle);
-}
-
-.paste-preview .chip.bad {
-    background: color-mix(in srgb, var(--accent-red) 12%, transparent);
-    color: var(--accent-red);
-    border-color: color-mix(in srgb, var(--accent-red) 35%, transparent);
-}
-
-.paste-preview h4 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-tertiary);
-    margin: 8px 0 2px;
-}
-
-.picker-row:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: -2px;
-}
-
-.picker-row[disabled] {
-    cursor: default;
-    opacity: 0.55;
-}
-
-.picker-row[disabled]:hover { background: none; }
-
-.picker-code {
-    font-weight: 700;
-    font-size: 0.78rem;
-    color: var(--accent-cyan);
-    font-variant-numeric: tabular-nums;
-}
-
-.picker-title {
-    font-size: 0.8rem;
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.picker-meta {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.picker-right {
-    text-align: right;
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    white-space: nowrap;
-}
-
-/* The explorer's week meter, in this page's colours. Twelve marks, one per
-   teaching week, so a fortnightly lab reads as a comb at a glance. */
-.wk-meter {
-    display: inline-flex;
-    gap: 1px;
-    margin-top: 3px;
-}
-
-.wk-meter i {
-    width: 3px;
-    height: 10px;
-    background: var(--border-subtle);
-    border-radius: 1px;
-}
-
-.wk-meter i.on { background: var(--accent-amber); }
-
-.picker-empty {
-    padding: 22px 14px;
-    text-align: center;
-    color: var(--text-tertiary);
-    font-size: 0.8rem;
-}
-
-/* Toasts report what an add actually did, since it happens with no apply step */
-.toast-stack {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 1080;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: min(360px, calc(100vw - 32px));
-}
-
-.toast-note {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-medium);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 0.78rem;
-    color: var(--text-primary);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    animation: toast-in 0.18s ease;
-}
-
-/* What happened is carried by the icon and the headline, not by a stripe
-   down the side, which is easier to read at a glance and survives the note
-   being narrow on a phone. */
-.toast-line {
-    display: flex;
-    align-items: baseline;
-    gap: 7px;
-    font-weight: 600;
-    color: var(--accent-cyan);
-}
-
-.toast-note.warn .toast-line { color: var(--accent-amber-ink); }
-.toast-note.bad .toast-line { color: var(--accent-red); }
-
-.toast-note small {
-    display: block;
-    margin-top: 4px;
-    padding-left: 21px;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-}
-
-.toast-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-}
-
-.toast-undo { min-height: 32px; }
-
-.toast-close {
-    width: 32px;
-    height: 32px;
-    border: 0;
-    border-radius: 6px;
-    background: none;
-    color: var(--text-secondary);
-}
-
-.toast-close:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-}
-
-@keyframes toast-in {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .toast-note { animation: none; }
-}
-
-@media (max-width: 560px) {
-    .picker-row {
-        grid-template-columns: 1fr auto;
-        row-gap: 2px;
-    }
-    .picker-code { grid-column: 1; }
-    .picker-right { grid-column: 2; grid-row: 1 / span 2; }
-    .picker-name { grid-column: 1 / -1; }
-}
-
-/* The week grid needs room for seven days. A phone shows one instead: the
-   week at phone width was seven 90px columns in a sideways scroller, inside
-   a 70vh vertical one, and "COMP 2602" was cut to "COMI". */
-@media (min-width: 768px) {
-    .calendar-wrapper { min-width: 700px; }
-}
-
-.day-strip { display: none; }
-
-.day-button {
-    min-height: 44px;
-    padding: 4px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    border: 1px solid var(--border-medium);
-    border-radius: 6px;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    font-size: 0.75rem;
-    line-height: 1.2;
-}
-
-.day-button .day-date { font-weight: 600; font-size: 0.9rem; }
-.day-button .day-count { color: var(--text-secondary); font-size: 0.72rem; }
-
-.day-button[aria-pressed="true"] {
-    border-color: var(--accent-cyan);
-    background: var(--accent-cyan-dim);
-}
-
-.day-button:focus-visible {
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-}
-
-@media (max-width: 767.98px) {
-    .day-strip {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 4px;
-        margin: 0 0 10px;
-    }
-
-    /* The page scrolls, not a box inside it. */
-    .calendar-scroll-wrapper {
-        max-height: none;
-        overflow: visible;
-    }
-
-    .events-list-column,
-    .events-detail-column {
-        max-height: none !important;
-    }
-}
-
-/* Responsive: stack on small screens */
-@media (max-width: 768px) {
-    .events-master-detail {
-        flex-direction: column;
-        min-height: auto;
-        max-height: none;
-    }
-
-    .events-list-column {
-        flex: none;
-        max-width: none;
-        min-width: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border-subtle);
-        max-height: 200px;
-    }
-
-    .events-detail-column {
-        min-height: 250px;
-        max-height: 400px;
-    }
-}
-
-@media (max-width: 480px) {
-    .events-list-column {
-        max-height: 150px;
-    }
-
-    .events-detail-column {
-        min-height: 200px;
-        max-height: 300px;
-    }
-}
-
-/* What the republish did to this student's own courses.
-   A status dot rather than a rail down each line: amber where the change
-   costs them something, dim where it is only news. The course code stays the
-   strongest thing on the row, because that is what they are looking for. */
-
-.stale-changes {
-    list-style: none;
-    margin: 0.5rem 0 0;
-    padding: 0 0 0 1.6rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.stale-changes li {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-}
-
-.stale-changes li::before {
-    content: "";
-    inline-size: 5px;
-    block-size: 5px;
-    border-radius: 50%;
-    background: var(--border-medium);
-    flex: none;
-    /* Baseline alignment puts a bare dot on the text baseline; nudge it to
-       the middle of the line it marks. */
-    transform: translateY(-0.2em);
-}
-
-.stale-changes li b {
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.stale-changes li.chg-act::before { background: var(--accent-amber); }
-.stale-changes li.chg-info::before { background: var(--accent-cyan-dim); }
-
-.stale-see-all {
-    display: inline-block;
-    margin: 0.55rem 0 0 1.6rem;
-    font-size: 0.76rem;
-    color: var(--accent-cyan);
-    text-decoration: none;
-}
-
-.stale-see-all:hover { text-decoration: underline; }
-
-/* Both set a display above, which outranks the browser's own
-   `[hidden] { display: none }` and would leave them visible when hidden. */
-.stale-changes[hidden],
-.stale-see-all[hidden] { display: none; }
-</style>
+<!-- The page's own styles (REDESIGN-SPEC.md 6). -->
+<link rel="stylesheet" href="/assets/css/calendar.css?v={{ asset_version }}">
 {% endblock %}
 
 {% block content %}
 <div class="fade-up">
+    <!-- Left-aligned and plain, as the explorer's titles are. The hint is
+         worded for the device in hand: dragging is not the phone's way to
+         move a class (REDESIGN-SPEC.md 5.4). -->
     <div class="page-header">
-        <h1 class="page-title">
-            <span class="text-accent">My</span> Timetable
-        </h1>
-        <p class="page-subtitle">
-            Tap a class for its details, or drag it to another of its times.
+        <h1 class="page-title">My timetable</h1>
+        <p class="page-subtitle" id="pageHint" hidden>
+            <span class="hint-touch">Tap a class to see it or move it.</span>
+            <span class="hint-pointer">Select a class to see it, or drag it to another of its times.</span>
             Anything you place yourself stays put.
         </p>
     </div>
 
+    <!--
+      Notices. Each one says whether it wants to show; noticesToShow()
+      (notices.js) decides, so two never repeat each other and the grid is
+      not pushed off a phone's first screen (REDESIGN-SPEC.md 5.3).
+    -->
+
     <!-- Storage failure, which used to be logged and never shown (E14) -->
-    <div id="storageWarning" class="alert alert-warning py-2 px-3 mb-3" role="alert"
-         style="display: none; font-size: 0.8rem;">
-        <i class="bi bi-exclamation-triangle me-1"></i>
-        <span id="storageWarningText"></span>
+    <div id="storageWarning" class="notice notice--bad" role="alert" hidden>
+        <p class="notice-title" id="storageWarningText"></p>
     </div>
 
     <!-- The warehouse was reloaded under a saved timetable (E16) -->
-    <div id="staleWarning" class="alert alert-info py-2 px-3 mb-3"
-         role="status" style="display: none; font-size: 0.8rem;">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-arrow-repeat"></i>
-            <span class="flex-grow-1" id="staleWarningText"></span>
-            <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
-                Update my courses
-            </button>
-            <button type="button" class="btn btn-sm btn-link text-decoration-none" id="staleDismiss">
-                Not now
-            </button>
+    <div id="staleWarning" class="notice notice--change" role="status" hidden>
+        <div class="notice-head">
+            <p class="notice-title" id="staleWarningText"></p>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
+                    Update my courses
+                </button>
+                <button type="button" class="btn btn-sm btn-link" id="staleDismiss">
+                    Not now
+                </button>
+            </div>
         </div>
         <!-- Filled in by describeWhatChanged once the endpoint answers. The
              warning above is useful without it, so both start empty and
              hidden rather than blocking on the request. -->
         <ul id="staleChanges" class="stale-changes" hidden></ul>
         <a id="staleSeeAll" class="stale-see-all"
-           href="/explore/changes?from=calendar" hidden>See everything that changed<i
-               class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+           href="/explore/changes?from=calendar" hidden>See everything that changed</a>
     </div>
 
     <!-- What the last republish changed for this student, kept after they
-         updated, until they say they have seen it. -->
-    <section id="changesPanel" class="changes-panel" aria-labelledby="changesTitle" hidden>
-        <div class="ics-head">
-            <h2 id="changesTitle" class="ics-title">
-                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> What changed for you
-            </h2>
-            <button type="button" class="btn btn-outline-info btn-sm" id="changesSeen">Got it</button>
+         updated, until they say they have seen it. The same notice as the
+         one above, after the update. -->
+    <section id="changesPanel" class="notice notice--change" aria-labelledby="changesTitle" hidden>
+        <div class="notice-head">
+            <h2 id="changesTitle" class="notice-title">What changed for you</h2>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-outline-info btn-sm" id="changesSeen">Got it</button>
+            </div>
         </div>
-        <p class="ics-summary" id="changesWhen"></p>
+        <p class="notice-body" id="changesWhen"></p>
         <ul id="changesList" class="stale-changes"></ul>
-        <a class="stale-see-all" href="/explore/changes?from=calendar">See everything that changed<i
-               class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+        <a class="stale-see-all" href="/explore/changes?from=calendar">See everything that changed</a>
     </section>
 
     <!-- The calendar the student subscribed to shows an older timetable -->
-    <div id="subStale" class="alert alert-info py-2 px-3 mb-3" role="status"
-         style="display: none; font-size: 0.8rem;">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-calendar-x" aria-hidden="true"></i>
-            <span class="flex-grow-1">Your subscribed calendar still shows your timetable as it
-                was before your changes.</span>
-            <button type="button" class="btn btn-sm btn-outline-info" id="subStaleOpen">
-                Get the new link
-            </button>
-        </div>
-    </div>
-
-    <!-- Two ways in, offered only while the calendar is empty (9.1) -->
-    <div id="modeChooser" style="display: none; margin-bottom: 16px;">
-        <h2 style="font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 12px;">
-            Build your timetable
-        </h2>
-        <div class="mode-chooser">
-            <button type="button" class="mode-card" id="choosePicker">
-                <h3><i class="bi bi-search me-1"></i> Pick your courses</h3>
-                <p>Search every published course and we will fill in the days,
-                   times and rooms.</p>
-            </button>
-            <a class="mode-card upload" href="/extract">
-                <h3><i class="bi bi-upload me-1"></i> Upload timetable PDFs</h3>
-                <p>For a course the university has not published, or a draft
-                   you were sent.</p>
-            </a>
-        </div>
-    </div>
-
-    <!-- Course picker -->
-    <div id="pickerPanel" class="picker-panel" style="display: none;">
-        <div class="picker-head">
-            <input type="search" id="pickerQuery" autocomplete="off"
-                   placeholder="Search by code, title, lecturer or room"
-                   aria-label="Search courses to add">
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="pasteToggle"
-                    aria-expanded="false" aria-controls="pickerPaste" style="white-space: nowrap;">
-                <i class="bi bi-clipboard me-1"></i> Paste a list
-            </button>
-            <a href="/extract" class="btn btn-outline-secondary btn-sm" style="white-space: nowrap;">
-                <i class="bi bi-upload me-1"></i> Add a PDF
-            </a>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose"
-                    title="Close the course picker">Done</button>
-        </div>
-
-        <div class="picker-paste" id="pickerPaste" style="display: none;">
-            <label for="pasteBox" class="visually-hidden">Paste your course codes</label>
-            <textarea id="pasteBox" rows="4" spellcheck="false"
-                placeholder="Paste your codes, however you have them:&#10;COMP 1601, COMP 1602, MATH 1115&#10;or one to a line"></textarea>
-            <div class="paste-preview" id="pastePreview"></div>
-            <button type="button" class="btn btn-accent btn-sm mt-2" id="pasteAdd" disabled>
-                Add courses
-            </button>
-        </div>
-
-        <div class="picker-status" id="pickerStatus" role="status">Loading courses...</div>
-        <ul class="picker-results" id="pickerResults" aria-label="Search results"></ul>
-
-        <div class="picker-actions" id="pickerActions" style="display: none;">
-            <span id="pickerSelectedCount">Nothing selected</span>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClearSelection">
-                Clear
-            </button>
-            <button type="button" class="btn btn-accent btn-sm" id="pickerAddSelected">
-                Add courses
-            </button>
-        </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="container mt-3">
-        <div class="row align-items-center mb-2">
-            <div class="col-auto">
-                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Undo</button>
-                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Redo</button>
-                <button id="addCoursesBtn" class="btn btn-accent btn-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Add courses
-                </button>
-                <button id="clearBtn" class="btn btn-outline-warning btn-sm"
-                        title="May move classes you did not place yourself">&crarr; Re-arrange</button>
-                <button id="shareBtn" class="btn btn-outline-info btn-sm"
-                        title="Copy a link that rebuilds this timetable">
-                    <i class="bi bi-link-45deg"></i> Share
-                </button>
-                <button id="printBtn" class="btn btn-outline-info btn-sm" disabled
-                        title="Print, or save as a PDF from the print dialog">
-                    <i class="bi bi-printer"></i> Print
-                </button>
-                <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
-                        aria-expanded="false" aria-controls="icsPanel"
-                        title="Subscribe in Google, Apple or Outlook calendar, or download a file">
-                    <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to calendar
-                </button>
-                <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
-                        title="Show the timetable on its own, filling the screen">
-                    <i class="bi bi-arrows-fullscreen"></i> Full screen
-                </button>
-                <!--
-                  Last in the row and the only destructive one here, so a
-                  mis-aimed click on the everyday actions cannot land on it.
-                -->
-                <button id="clearAllBtn" class="btn btn-outline-danger btn-sm" disabled
-                        title="Remove every course and start again">
-                    <i class="bi bi-trash3"></i> Clear all
+    <div id="subStale" class="notice notice--info" role="status" hidden>
+        <div class="notice-head">
+            <p class="notice-title">Your subscribed calendar still shows your timetable as it
+                was before your changes.</p>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-sm btn-outline-info" id="subStaleOpen">
+                    Get the new link
                 </button>
             </div>
-            <div class="col">
-                <small class="text-muted">Drag a class to another of its times. Anything you move stays where you put it.</small>
+        </div>
+    </div>
+
+    <!-- The first visit: one way in, and the two others beside it. Shown only
+         while there are no courses; the toolbar, legend and grid wait for the
+         first one (REDESIGN-SPEC.md 5.5). -->
+    <section id="modeChooser" class="first-visit" aria-labelledby="firstVisitTitle" hidden>
+        <h2 id="firstVisitTitle" class="first-visit-title">Add your courses</h2>
+        <p class="first-visit-body">Search for each course you take and we will lay out
+            your week: every lecture, lab and tutorial, with its day, time and room.</p>
+        <button type="button" class="btn btn-accent" id="choosePicker">Add courses</button>
+        <p class="first-visit-more">
+            <button type="button" class="btn btn-link" id="choosePaste">Paste a list of codes</button>
+            <a class="btn btn-link" href="/extract">Upload a timetable PDF</a>
+        </p>
+    </section>
+
+    <!--
+      Controls, grouped by purpose (REDESIGN-SPEC.md 5.2). more-menu.js moves
+      buttons between the groups and More as the width changes, so each
+      button exists once and keeps its listeners. Hidden until there is a
+      course to act on.
+    -->
+    <div class="toolbar" id="toolbar" hidden>
+        <div class="toolbar-group" id="tbPrimary">
+            <button id="addCoursesBtn" class="btn btn-accent btn-sm">Add courses</button>
+        </div>
+        <div class="toolbar-group" id="tbHistory">
+            <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">Undo</button>
+            <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">Redo</button>
+        </div>
+        <div class="toolbar-group" id="tbOutput">
+            <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
+                    aria-expanded="false" aria-controls="icsPanel"
+                    title="Subscribe in Google, Apple or Outlook calendar, or download a file">
+                Add to calendar
+            </button>
+            <button id="printBtn" class="btn btn-outline-info btn-sm" disabled
+                    title="Print, or save as a PDF from the print dialog">
+                Print
+            </button>
+            <button id="shareBtn" class="btn btn-outline-info btn-sm"
+                    title="Copy a link that rebuilds this timetable">
+                Share
+            </button>
+        </div>
+        <div class="toolbar-more">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="moreBtn"
+                    aria-expanded="false" aria-controls="moreMenu">More</button>
+            <div class="more-menu" id="moreMenu" hidden>
+                <div class="more-items" id="moreItems">
+                    <button id="clearBtn" class="btn btn-outline-warning btn-sm"
+                            title="May move classes you did not place yourself">Re-arrange</button>
+                    <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
+                            title="Show the timetable on its own, filling the screen">
+                        Full screen
+                    </button>
+                </div>
+                <!-- The only destructive action, last and apart, so a
+                     mis-aimed tap on the everyday ones cannot land on it. -->
+                <div class="more-danger">
+                    <button id="clearAllBtn" class="btn btn-outline-danger btn-sm" disabled
+                            title="Remove every course and start again">
+                        Clear all
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2063,7 +170,7 @@ button.resolve-option:focus-visible {
     <section id="icsPanel" class="ics-panel" aria-labelledby="icsTitle" hidden>
         <div class="ics-head">
             <h2 id="icsTitle" class="ics-title">
-                <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to your calendar app
+                Add to your calendar app
             </h2>
             <button type="button" class="toast-close" id="icsClose" aria-label="Close">
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -2075,25 +182,24 @@ button.resolve-option:focus-visible {
             <p class="ics-summary" id="subSummary">When UWI changes the timetable, your calendar
                 changes too. Calendar apps check every few hours; Google can take up to a day.</p>
             <p class="sub-stale-line" id="subPanelStale" hidden>
-                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
                 You changed your timetable since you subscribed. Subscribe again with this new
                 link, then remove the old "UWI timetable" calendar.</p>
             <div class="sub-link">
                 <label for="subUrl" class="visually-hidden">Calendar subscription link</label>
                 <input type="text" id="subUrl" class="form-control form-control-sm" readonly>
                 <button type="button" class="btn btn-accent btn-sm" id="subCopy">
-                    <i class="bi bi-clipboard" aria-hidden="true"></i> Copy link
+                    Copy link
                 </button>
             </div>
             <div class="sub-apps">
                 <a class="btn btn-outline-info btn-sm sub-app" id="subApple" href="#">
-                    <i class="bi bi-apple" aria-hidden="true"></i> Apple Calendar</a>
+                    Apple Calendar</a>
                 <a class="btn btn-outline-info btn-sm sub-app" id="subGoogle" href="#"
                    target="_blank" rel="noopener">
-                    <i class="bi bi-google" aria-hidden="true"></i> Google Calendar</a>
+                    Google Calendar</a>
                 <a class="btn btn-outline-info btn-sm sub-app" id="subOutlook" href="#"
                    target="_blank" rel="noopener">
-                    <i class="bi bi-microsoft" aria-hidden="true"></i> Outlook</a>
+                    Outlook</a>
             </div>
             <p class="ics-note">For Google, copy the link first: Google opens its "From URL" page,
                 and you paste it there.</p>
@@ -2107,7 +213,7 @@ button.resolve-option:focus-visible {
         <h3 class="ics-subtitle">Or download a file</h3>
         <p class="ics-summary" id="icsSummary"></p>
         <button type="button" class="btn btn-outline-info btn-sm" id="icsDownload">
-            <i class="bi bi-download" aria-hidden="true"></i> Download calendar file (.ics)
+            Download calendar file (.ics)
         </button>
         <ol class="ics-steps">
             <li><b>Google Calendar</b>, on a computer (the phone app cannot import):
@@ -2125,7 +231,6 @@ button.resolve-option:focus-visible {
         <button type="button" id="conflictsToggle" class="conflicts-header"
                 aria-expanded="true" aria-controls="conflictsContent"
                 onclick="toggleConflicts()">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
             <span id="conflictsSummary"><span id="conflictsCount">0</span> clashes</span>
             <i class="bi bi-chevron-down ms-auto" aria-hidden="true"></i>
         </button>
@@ -2135,12 +240,12 @@ button.resolve-option:focus-visible {
     </div>
 
     <!-- Calendar -->
-    <div class="surface-card calendar-card">
+    <div class="surface-card calendar-card" id="calendarCard" hidden>
         <div class="calendar-fullscreen-bar">
             <span class="calendar-fullscreen-title">Your timetable</span>
             <button type="button" id="exitFullscreenBtn" class="btn btn-outline-info btn-sm"
                     title="Back to the page (Esc)">
-                <i class="bi bi-fullscreen-exit"></i> Exit full screen
+                Exit full screen
             </button>
         </div>
         <!-- Which teaching week the grid shows. Hidden when the semester's
@@ -2164,11 +269,11 @@ button.resolve-option:focus-visible {
         <!-- Legend, beside the grid it explains -->
         <p class="calendar-legend">
             <span class="legend-dot" style="background: var(--type-lecture);"></span>Lecture
-            <span class="legend-dot" style="background: var(--type-lab); margin-left: 8px;"></span>Lab
-            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: 8px;"></span>Tutorial
-            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
-            <i class="bi bi-pin-angle-fill" style="margin-left: 8px;" aria-hidden="true"></i> Locked (you chose this)
-            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
+            <span class="legend-dot" style="background: var(--type-lab); margin-left: var(--space-2);"></span>Lab
+            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: var(--space-2);"></span>Tutorial
+            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: var(--space-2);"></span>Other
+            <i class="bi bi-pin-angle-fill" style="margin-left: var(--space-2);" aria-hidden="true"></i> Locked (you chose this)
+            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: var(--space-2);"></span>Clash
         </p>
         <!-- A phone shows one day at a time; these pick which. -->
         <div class="day-strip" id="dayStrip" aria-label="Day"></div>
@@ -2181,8 +286,7 @@ button.resolve-option:focus-visible {
 
     <!-- Empty -->
     <div id="emptyState" class="text-center py-4" style="display: none; max-width: 420px; margin: 0 auto;">
-        <i class="bi bi-calendar-x" style="font-size: 2rem; color: var(--text-tertiary);"></i>
-        <p class="mt-3" style="color: var(--text-secondary); font-size: 0.9rem;">
+        <p class="mt-3" style="color: var(--text-secondary); font-size: var(--text-sm);">
             Nothing on your timetable yet.
         </p>
     </div>
@@ -2190,7 +294,6 @@ button.resolve-option:focus-visible {
     <!-- Exams and other one-offs, by date -->
     <section id="comingUpPanel" class="coming-up-panel" aria-labelledby="comingUpTitle" hidden>
         <h2 id="comingUpTitle" class="coming-up-title">
-            <i class="bi bi-calendar-event" aria-hidden="true"></i>
             Coming up: exams and one-off classes
         </h2>
         <p class="coming-up-hint" id="comingUpHint">These run in particular weeks, so they are listed here rather than drawn on the weekly grid.</p>
@@ -2203,8 +306,8 @@ button.resolve-option:focus-visible {
             <!-- Left: Event List -->
             <div class="events-list-column">
                 <div class="events-list-header">
-                    <span><i class="bi bi-list me-1"></i> My classes (<span id="eventCount">0</span>)</span>
-                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; width: min(100%, 11rem); min-height: 28px;">
+                    <span>My classes (<span id="eventCount">0</span>)</span>
+                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: var(--space-1) var(--space-2); border-radius: var(--r-md); font-size: var(--text-sm); width: min(100%, 11rem); min-height: 28px;">
                 </div>
                 <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="My classes">
                     <!-- Event list items rendered by JS -->
@@ -2214,7 +317,6 @@ button.resolve-option:focus-visible {
             <!-- Right: Detail Panel -->
             <div class="events-detail-column">
                 <div id="detailPlaceholder" class="detail-placeholder">
-                    <i class="bi bi-hand-index"></i>
                     <p>No event selected</p>
                     <p class="hint">Select a class here or tap one on the grid</p>
                 </div>
@@ -2230,6 +332,58 @@ button.resolve-option:focus-visible {
 {% endblock %}
 
 {% block body_end %}
+<!--
+  The course picker, as a drawer over the page (REDESIGN-SPEC.md 5.6). A
+  direct child of <body>, beside the toasts, so holdFocusIn() can make the
+  page inert behind it and leave the toasts announced and tappable.
+  picker-drawer.js opens and closes it.
+-->
+<div id="pickerDrawer" class="drawer" hidden>
+    <div class="drawer-backdrop" data-drawer-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+        <div id="pickerPanel" class="picker-panel">
+            <div class="picker-title-bar">
+                <h2 id="pickerTitle" class="picker-heading">Add courses</h2>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose">Done</button>
+            </div>
+            <div class="picker-head">
+                <input type="search" id="pickerQuery" autocomplete="off"
+                       placeholder="Search by code, title, lecturer or room"
+                       aria-label="Search courses to add">
+                <div class="picker-ways">
+                    <button type="button" class="btn btn-link btn-sm" id="pasteToggle"
+                            aria-expanded="false" aria-controls="pickerPaste">
+                        Paste a list
+                    </button>
+                    <a href="/extract" class="btn btn-link btn-sm">Add a PDF</a>
+                </div>
+            </div>
+
+            <div class="picker-paste" id="pickerPaste" style="display: none;">
+                <label for="pasteBox" class="visually-hidden">Paste your course codes</label>
+                <textarea id="pasteBox" rows="4" spellcheck="false"
+                    placeholder="Paste your codes, however you have them:&#10;COMP 1601, COMP 1602, MATH 1115&#10;or one to a line"></textarea>
+                <div class="paste-preview" id="pastePreview"></div>
+                <button type="button" class="btn btn-accent btn-sm mt-2" id="pasteAdd" disabled>
+                    Add courses
+                </button>
+            </div>
+
+            <div class="picker-status" id="pickerStatus" role="status">Loading courses...</div>
+            <ul class="picker-results" id="pickerResults" aria-label="Search results"></ul>
+
+            <div class="picker-actions" id="pickerActions" style="display: none;">
+                <span id="pickerSelectedCount">Nothing selected</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClearSelection">
+                    Clear
+                </button>
+                <button type="button" class="btn btn-accent btn-sm" id="pickerAddSelected">
+                    Add courses
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Toasts. A direct child of <body>, so a dialog can leave it un-inert and
      a note about what the dialog just did is still announced and tappable. -->
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
@@ -2260,6 +414,9 @@ button.resolve-option:focus-visible {
 <script src="/assets/js/ics-export.js?v={{ asset_version }}"></script>
 <script src="/assets/js/subscription-link.js?v={{ asset_version }}"></script>
 <script src="/assets/js/my-week.js?v={{ asset_version }}"></script>
+<script src="/assets/js/notices.js?v={{ asset_version }}"></script>
+<script src="/assets/js/more-menu.js?v={{ asset_version }}"></script>
+<script src="/assets/js/picker-drawer.js?v={{ asset_version }}"></script>
 <script>
 (function() {
     'use strict';
@@ -2278,6 +435,28 @@ button.resolve-option:focus-visible {
     const $detailContent = document.getElementById('detailContent');
     const $storageWarning = document.getElementById('storageWarning');
     const $storageWarningText = document.getElementById('storageWarningText');
+    const $calendarCard = document.getElementById('calendarCard');
+
+    //: Which notices want to show. Nothing sets a notice's visibility
+    //: directly: noticesToShow() (notices.js) decides, so a republish on
+    //: offer and the last update's list of the same changes never show
+    //: together (REDESIGN-SPEC.md 5.3). `republish` is 'offer',
+    //: 'dismissed' or false.
+    const noticeWants = { storage: false, republish: false, changes: false, subscription: false };
+    const NOTICE_ELEMENTS = {
+        storage: 'storageWarning',
+        republish: 'staleWarning',
+        changes: 'changesPanel',
+        subscription: 'subStale',
+    };
+
+    function setNotice(name, wanted) {
+        noticeWants[name] = name === 'republish' ? (wanted || false) : Boolean(wanted);
+        const shown = new Set(noticesToShow(noticeWants));
+        for (const [notice, id] of Object.entries(NOTICE_ELEMENTS)) {
+            document.getElementById(id).hidden = !shown.has(notice);
+        }
+    }
 
     let currentEvents = [];
     let state = null;
@@ -2493,7 +672,7 @@ button.resolve-option:focus-visible {
         const countEl = document.getElementById('eventCount');
 
         if (!events || events.length === 0) {
-            listEl.innerHTML = '<div style="padding: 20px; color: var(--text-tertiary); text-align: center;">No events</div>';
+            listEl.innerHTML = '<div style="padding: var(--space-6); color: var(--text-tertiary); text-align: center;">No events</div>';
             countEl.textContent = '0';
             return;
         }
@@ -3037,7 +1216,9 @@ button.resolve-option:focus-visible {
             `Week ${shownWeek} <span class="week-dates">· ${escapeHtml(weekRangeLabel(shownWeek, weekOne))}</span>`;
         document.getElementById('weekPrev').disabled = shownWeek <= 1;
         document.getElementById('weekNext').disabled = shownWeek >= totalWeeks;
-        document.getElementById('weekToday').disabled = shownWeek === current;
+        // Offered only when another week is showing, rather than sitting
+        // disabled on the current one (REDESIGN-SPEC.md 5.1).
+        document.getElementById('weekToday').hidden = shownWeek === current;
 
         const text = weekAbsenceText(weekAbsences(events, shownWeek));
         absent.hidden = !text;
@@ -3097,8 +1278,12 @@ button.resolve-option:focus-visible {
 
     document.getElementById('weekPrev').addEventListener('click', () => showWeek(shownWeek - 1));
     document.getElementById('weekNext').addEventListener('click', () => showWeek(shownWeek + 1));
-    document.getElementById('weekToday').addEventListener('click',
-        () => showWeek(teachingWeekOf(todayIso(), weekOne, totalWeeks)));
+    document.getElementById('weekToday').addEventListener('click', () => {
+        showWeek(teachingWeekOf(todayIso(), weekOne, totalWeeks));
+        // The button hides itself on the current week; keep focus in the bar.
+        const $next = document.getElementById('weekNext');
+        (($next.disabled ? document.getElementById('weekPrev') : $next)).focus();
+    });
 
     /** Today as YYYY-MM-DD in the student's own zone, which is the campus's. */
     function todayIso() {
@@ -3288,7 +1473,9 @@ button.resolve-option:focus-visible {
             document.getElementById('eventsPanel').hidden = true;
             document.getElementById('dayStrip').innerHTML = '';
             document.getElementById('myWeek').hidden = true;
-            if ($emptyState) $emptyState.style.display = 'block';
+            if ($emptyState) {
+                $emptyState.style.display = state && state.courseKeys.length ? 'block' : 'none';
+            }
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
             if (countEl) countEl.textContent = '0';
@@ -3385,10 +1572,8 @@ button.resolve-option:focus-visible {
         // No role of its own: the stack is the one live region. A role=status
         // inside an aria-live stack was two regions announcing one note.
         note.className = 'toast-note' + (tone ? ' ' + tone : '');
-        const icon = { warn: 'bi-exclamation-triangle', bad: 'bi-x-circle' }[tone]
-            || 'bi-check-circle';
         note.innerHTML =
-            `<div class="toast-line"><i class="bi ${icon}" aria-hidden="true"></i>` +
+            `<div class="toast-line">` +
             `<span>${escapeHtml(message)}</span></div>` +
             (detail ? `<small>${escapeHtml(detail)}</small>` : '') +
             `<div class="toast-actions">` +
@@ -3425,7 +1610,6 @@ button.resolve-option:focus-visible {
 
     // Course picker
 
-    const $picker = document.getElementById('pickerPanel');
     const $pickerQuery = document.getElementById('pickerQuery');
     const $pickerResults = document.getElementById('pickerResults');
     const $pickerStatus = document.getElementById('pickerStatus');
@@ -3513,10 +1697,19 @@ button.resolve-option:focus-visible {
             .join('');
     }
 
+    //: The picker opens over the page rather than pushing the grid down
+    //: (picker-drawer.js). Focus returns to whatever opened it.
+    const pickerDrawer = bindPickerDrawer(document.getElementById('pickerDrawer'), {
+        doc: document,
+        hold: holdFocusIn,
+        release: releaseFocusHold,
+        canFocus: el => document.contains(el) && el.getClientRects().length > 0 && !el.disabled,
+        onOpen: () => $pickerQuery.focus(),
+        onClose: () => showChooserIfEmpty(),
+    });
+
     function openPicker() {
-        $picker.style.display = 'block';
-        $modeChooser.style.display = 'none';
-        $pickerQuery.focus();
+        pickerDrawer.open(document.activeElement);
         $pickerStatus.textContent = 'Loading courses...';
         loadCourseIndex()
             .then(() => { renderPickerResults(); renderPastePreview(); })
@@ -3532,13 +1725,27 @@ button.resolve-option:focus-visible {
     }
 
     function closePicker() {
-        $picker.style.display = 'none';
-        showChooserIfEmpty();
+        pickerDrawer.close();
     }
 
     function showChooserIfEmpty() {
         const empty = !state || state.courseKeys.length === 0;
-        $modeChooser.style.display = empty && $picker.style.display === 'none' ? 'block' : 'none';
+        // Left in place behind the drawer, so closing it with nothing added
+        // comes back to the same first screen.
+        $modeChooser.hidden = !empty;
+        // Nothing to act on or look at yet, so the first visit is one block
+        // with one action: no disabled toolbar, no legend, no empty grid
+        // (REDESIGN-SPEC.md 5.5).
+        const $toolbar = document.getElementById('toolbar');
+        const focusInToolbar = $toolbar.contains(document.activeElement);
+        $toolbar.hidden = empty;
+        document.getElementById('pageHint').hidden = empty;
+        $calendarCard.hidden = empty;
+        // Clear all empties the timetable from inside the toolbar it then
+        // hides, which dropped focus on the page body.
+        if (empty && focusInToolbar && !$modeChooser.hidden) {
+            document.getElementById('choosePicker').focus();
+        }
     }
 
     /**
@@ -3801,10 +2008,12 @@ button.resolve-option:focus-visible {
 
     $pickerQuery.addEventListener('input', renderPickerResults);
     document.getElementById('choosePicker').addEventListener('click', openPicker);
-    document.getElementById('pickerClose').addEventListener('click', closePicker);
-    document.getElementById('addCoursesBtn').addEventListener('click', () => {
-        if ($picker.style.display === 'block') closePicker(); else openPicker();
+    document.getElementById('choosePaste').addEventListener('click', () => {
+        openPicker();
+        if ($paste.style.display === 'none') togglePaste();
     });
+    document.getElementById('pickerClose').addEventListener('click', closePicker);
+    document.getElementById('addCoursesBtn').addEventListener('click', openPicker);
 
     // Sharing
 
@@ -3878,7 +2087,7 @@ button.resolve-option:focus-visible {
             if (!current || current === state.publicationId) return;
 
             document.getElementById('staleWarningText').textContent = GENERIC_STALE_TEXT;
-            $stale.style.display = 'flex';
+            setNotice('republish', 'offer');
             $stale.dataset.publicationId = current;
 
             // Then replace "may have moved" with what actually moved. Second,
@@ -3956,9 +2165,8 @@ button.resolve-option:focus-visible {
     let pendingChanges = null;
 
     function renderChangesPanel() {
-        const panel = document.getElementById('changesPanel');
         const log = state && state.unseenChanges;
-        panel.hidden = !log;
+        setNotice('changes', log);
         if (!log) return;
         const when = log.publishedAt ? new Date(log.publishedAt) : null;
         // Only promise markers when a class is actually marked: a new exam or a
@@ -3994,7 +2202,7 @@ button.resolve-option:focus-visible {
             carrySubscription(state, subscribedBefore, result);
             saveState();
             renderSubscriptionStale();
-            $stale.style.display = 'none';
+            setNotice('republish', false);
             if (pendingChanges && pendingChanges.toPublication === incoming.publicationId) {
                 state.recordChanges({ ...pendingChanges, publishedAt: incoming.publishedAt });
             }
@@ -4014,7 +2222,7 @@ button.resolve-option:focus-visible {
 
     document.getElementById('staleRefresh').addEventListener('click', refreshFromWarehouse);
     document.getElementById('staleDismiss').addEventListener('click', () => {
-        $stale.style.display = 'none';
+        setNotice('republish', 'dismissed');
     });
     document.getElementById('shareBtn').addEventListener('click', copyShareLink);
 
@@ -4149,8 +2357,7 @@ button.resolve-option:focus-visible {
     }
 
     function renderSubscriptionStale() {
-        document.getElementById('subStale').style.display =
-            state && subscriptionOutOfDate(state) ? 'block' : 'none';
+        setNotice('subscription', state && subscriptionOutOfDate(state));
     }
 
     document.getElementById('subCopy').addEventListener('click', async () => {
@@ -4247,13 +2454,13 @@ button.resolve-option:focus-visible {
         if (!state) return;
         const result = writeSavedState(state.toSaved());
         if (result.ok) {
-            $storageWarning.style.display = 'none';
+            setNotice('storage', false);
         } else {
             // Previously a console warning, so a student could arrange a whole
             // timetable and lose it without ever being told.
             $storageWarningText.textContent =
                 result.error + ' Your timetable will be gone when you close this tab.';
-            $storageWarning.style.display = 'block';
+            setNotice('storage', true);
         }
     }
 
@@ -4285,6 +2492,14 @@ button.resolve-option:focus-visible {
 
     $undoBtn.addEventListener('click', () => { if (state) state.undo(); });
     $redoBtn.addEventListener('click', () => { if (state) state.redo(); });
+
+    // The toolbar's groups and More (REDESIGN-SPEC.md 5.2). Every button is
+    // bound above, so moving them between groups as the width changes keeps
+    // their listeners.
+    applyToolbarLayout(toolbarLayout(phoneQuery.matches), document);
+    phoneQuery.addEventListener('change',
+        () => applyToolbarLayout(toolbarLayout(phoneQuery.matches), document));
+    bindMoreMenu(document.getElementById('moreBtn'), document.getElementById('moreMenu'), document);
 
     document.addEventListener('keydown', (e) => {
         // Text fields keep their own undo. Taking Ctrl+Z here used to undo
@@ -4370,7 +2585,7 @@ button.resolve-option:focus-visible {
         // the timetable current and leaves the notice hidden.
         if (state && state.publicationId !== noticePublicationId) {
             noticePublicationId = state.publicationId;
-            $stale.style.display = 'none';
+            setNotice('republish', false);
             checkForRepublish();
         }
         renderPickerResults();

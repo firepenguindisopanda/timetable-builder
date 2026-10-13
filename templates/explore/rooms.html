@@ -14,7 +14,7 @@
       Rooms named in the published timetable, ordered by code. Booked hours
       count one teaching week, not the whole semester.
     </p>
-    <label class="search" style="margin-top:1.25rem; max-width:26rem;">
+    <label class="search" style="margin-top:var(--space-6); max-width:26rem;">
       <input type="search" id="listFilter" autocomplete="off"
              placeholder="Filter rooms" aria-label="Filter rooms"
              aria-controls="list">
@@ -22,7 +22,7 @@
   </header>
 
   <p class="result-count" id="listCount" role="status" aria-live="polite"
-     style="margin:0 0 0.6rem;"></p>
+     style="margin:0 0 var(--space-2);"></p>
 
   <ul class="rows" id="list" aria-label="Rooms">
     {% for room in rooms %}
