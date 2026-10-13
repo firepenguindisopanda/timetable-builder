@@ -605,6 +605,67 @@ def sessions_for_courses(
     return courses
 
 
+def publication_slots(
+    conn: psycopg.Connection, codes: list[str], publication_id: int
+) -> dict[str, list[dict[str, Any]]]:
+    """
+    Where these courses' classes sat in one past publication, by code.
+
+    A calendar subscription carries a student's choices as slot hashes made
+    against the publication they built on (subscription.py). Once UWI
+    republishes, a hash that no longer matches has to be looked up where it
+    was made to recover which class it meant, and only then followed to where
+    that class went. Sessions are kept per publication, so the old ones are
+    still here.
+
+    Only the fields a slot is made of, with rooms merged by block exactly as
+    `sessions_for_courses` merges them, or the hashes would not match. Unknown
+    publications simply return nothing.
+    """
+    if not codes:
+        return {}
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT c.code,
+                   s.id                AS "sessionId",
+                   s.activity_type     AS type,
+                   s.day::text         AS day,
+                   to_char(make_interval(mins => s.start_min), 'HH24:MI') AS "startTime",
+                   to_char(make_interval(mins => s.end_min),   'HH24:MI') AS "endTime",
+                   r.code              AS room,
+                   s.stream_label      AS "streamLabel",
+                   s.weeks,
+                   s.weeks_raw         AS "weeksRaw",
+                   s.raw_text          AS "rawText"
+              FROM sessions s
+              JOIN courses c    ON c.id = s.course_id
+              LEFT JOIN rooms r ON r.id = s.room_id
+             WHERE s.publication_id = %s
+               AND c.code = ANY(%s)
+             ORDER BY c.code, s.day, s.start_min, s.end_min, s.id
+            """,
+            (publication_id, codes),
+        )
+        rows = _rows(cur)
+
+    by_code: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        session = dict(row)
+        code = session.pop("code")
+        session["weeks"] = list(session["weeks"] or [])
+        session["staff"] = []
+        by_code.setdefault(code, []).append(session)
+    return {code: merge_block_rooms(sessions) for code, sessions in by_code.items()}
+
+
+def publication_ids(conn: psycopg.Connection) -> list[int]:
+    """Every publication the warehouse holds, so a link cannot name others."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM publications ORDER BY id")
+        return [row[0] for row in cur.fetchall()]
+
+
 #: How CELCAT itself separates the rooms of one block ("Rooms: ENG MD3; JFK
 #: AUD"), so a merged class reads the way an uploaded PDF of it already does.
 ROOM_SEPARATOR = "; "

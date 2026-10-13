@@ -17,6 +17,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'slot-identity.js',
   'timetable-state.js'
 );
 const TimetableState = api.get('TimetableState');

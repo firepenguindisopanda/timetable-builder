@@ -1,0 +1,24 @@
+{
+  "_about": "Made by tests/js/subscription-link.test.js, decoded by tests/test_subscription.py.",
+  "token": "MXwxMXxDT01QIDI2MTE6OWYxNGY3ZGQsYzMyMGNlYjA7Rk9VTiAxMDAxIChGVUxMICYgUEFSVC1USU1FKTo4OGMwY2I5OSFUdXRvcmlhbA",
+  "publicationId": 11,
+  "courses": [
+    {
+      "code": "COMP 2611",
+      "picks": [
+        "9f14f7dd",
+        "c320ceb0"
+      ],
+      "dismissed": []
+    },
+    {
+      "code": "FOUN 1001 (FULL & PART-TIME)",
+      "picks": [
+        "88c0cb99"
+      ],
+      "dismissed": [
+        "Tutorial"
+      ]
+    }
+  ]
+}

@@ -174,16 +174,6 @@ function icsRecurrence(weeks, day, startTime, weekOne) {
 
 // Identity
 
-/** FNV-1a over a string, as eight hex digits. */
-function _icsFnv(text, seed) {
-  let hash = seed >>> 0;
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
-}
-
 /**
  * A UID that stays the same for the same class across exports (spec 5.4).
  *
@@ -197,7 +187,7 @@ function _icsFnv(text, seed) {
 function icsUid(event) {
   const key = [event.courseKey, event.type || '', event.streamLabel || '',
     event.day, event.startTime, event.dated ? (event.weeks || []).join(',') : ''].join('|');
-  return `${_icsFnv(key, 0x811c9dc5)}${_icsFnv(key, 0x01000193)}@${ICS_UID_DOMAIN}`;
+  return `${fnv1aHex(key, 0x811c9dc5)}${fnv1aHex(key, 0x01000193)}@${ICS_UID_DOMAIN}`;
 }
 
 // Events

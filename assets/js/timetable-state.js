@@ -122,6 +122,10 @@ class TimetableState {
     // acknowledged it for. Until they do, the changed classes say so.
     this.changeLog = (savedState && savedState.changeLog) || null;
     this.seenPublicationId = (savedState && savedState.seenPublicationId) || null;
+    // What the student's calendar subscription shows (subscription-link.js),
+    // so the page can say when the timetable has moved on from it. Not part
+    // of undo: undoing back to the subscribed timetable matches it again.
+    this.subscribedBody = (savedState && savedState.subscribedBody) || null;
     this.history = (savedState && savedState.history) || [];
     this.future = (savedState && savedState.future) || [];
     this._listeners = [];
@@ -654,6 +658,7 @@ class TimetableState {
   refreshFromWarehouse(fetched, notFound, publicationId, publishedAt) {
     this._snapshot();
 
+    const previous = new Map(this.sourceData.courses.map(c => [c.courseKey, c]));
     for (const course of fetched || []) {
       const at = this.sourceData.courses.findIndex(
         c => c.courseKey === course.courseKey
@@ -683,9 +688,15 @@ class TimetableState {
     // filling the gap. On the 28 August 2026 republish that emptied ten of a
     // student's twelve blocks while the toast said nothing had changed, and
     // it only came back because opening the page again prunes.
+    //
+    // Before resolving, each placement is carried across by what its class
+    // is, because a republish gives every session a new id and none would
+    // resolve otherwise.
+    const before = this.placements.length;
+    const carried = this._carryAcross(previous, fetched || []);
     const index = this.groupIndex;
-    const kept = this.placements.filter(p => eventForPlacement(p, index) !== null);
-    const dropped = this.placements.length - kept.length;
+    const kept = carried.placements.filter(p => eventForPlacement(p, index) !== null);
+    const dropped = before - kept.length;
     this.placements = kept;
 
     const placedGroups = new Set(this.placements.map(p => p.groupId));
@@ -702,7 +713,66 @@ class TimetableState {
     }
 
     this._notify();
-    return { moved: dropped, stale: [...missing] };
+    // `replaced` is the classes that had to be placed afresh, which a
+    // subscribed calendar cannot follow.
+    return { moved: dropped + carried.moved, replaced: dropped, stale: [...missing] };
+  }
+
+  /**
+   * Each placement on a refreshed course, pointed at the session that is
+   * now its class (slot-identity.js), keeping its pin.
+   *
+   * A placement whose class cannot be told apart from the others is dropped,
+   * and the refill places that group again. One whose old session is not
+   * known is left for the resolve check to judge. Two placements that land
+   * on one session become one, pinned if either was.
+   *
+   * `moved` counts placements carried to a different slot: a class that kept
+   * its slot and only changed id has not moved.
+   */
+  _carryAcross(previous, fetched) {
+    const refreshed = new Map(fetched.map(c => [c.courseKey, c]));
+    const placements = [];
+    let moved = 0;
+
+    for (const placement of this.placements) {
+      const course = refreshed.get(placement.courseKey);
+      const old = previous.get(placement.courseKey);
+      const oldSession = old && (old.sessions || []).find(
+        s => s.sessionId === placement.selectedSessionId
+      );
+      if (!course || !oldSession) {
+        placements.push(placement);
+        continue;
+      }
+
+      const type = _typeOf(oldSession);
+      const next = resolveSlot(
+        oldSession,
+        old.sessions.filter(s => _typeOf(s) === type),
+        (course.sessions || []).filter(s => _typeOf(s) === type)
+      );
+      const group = next && this.optionGroups.find(
+        g => g.courseKey === placement.courseKey
+          && g.sessions.some(s => s.sessionId === next.sessionId)
+      );
+      if (!group) continue;
+
+      const same = placements.find(
+        p => p.groupId === group.groupId && p.selectedSessionId === next.sessionId
+      );
+      if (same) {
+        same.pinned = Boolean(same.pinned || placement.pinned);
+        continue;
+      }
+      if (slotKey(next) !== slotKey(oldSession)) moved += 1;
+      placements.push({
+        ...placement,
+        groupId: group.groupId,
+        selectedSessionId: next.sessionId,
+      });
+    }
+    return { placements, moved };
   }
 
   /**
@@ -882,6 +952,7 @@ class TimetableState {
       dismissedGroups: this.dismissedGroups,
       changeLog: this.changeLog,
       seenPublicationId: this.seenPublicationId,
+      subscribedBody: this.subscribedBody,
       history: this.history.slice(-MAX_HISTORY),
       future: this.future.slice(-MAX_HISTORY),
       savedAt: new Date().toISOString(),

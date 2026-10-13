@@ -465,6 +465,17 @@
 .ics-summary { margin: 4px 0 10px; color: var(--text-secondary); }
 .ics-steps { margin: 12px 0 8px; padding-left: 1.2rem; display: grid; gap: 4px; }
 .ics-note { margin: 0; color: var(--text-secondary); font-size: 0.8rem; }
+.ics-subtitle { font-size: 0.85rem; font-weight: 600; margin: 12px 0 0; }
+.sub-link { display: flex; gap: 6px; margin-bottom: 8px; }
+.sub-link input { min-width: 0; flex: 1; font-family: var(--font-data); font-size: 0.75rem; }
+.sub-apps { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.sub-stale-line {
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--accent-amber-dim);
+    color: var(--accent-amber-ink);
+}
 
 .coming-up-panel {
     background: var(--bg-surface);
@@ -1932,6 +1943,19 @@ button.resolve-option:focus-visible {
                class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
     </section>
 
+    <!-- The calendar the student subscribed to shows an older timetable -->
+    <div id="subStale" class="alert alert-info py-2 px-3 mb-3" role="status"
+         style="display: none; font-size: 0.8rem;">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-calendar-x" aria-hidden="true"></i>
+            <span class="flex-grow-1">Your subscribed calendar still shows your timetable as it
+                was before your changes.</span>
+            <button type="button" class="btn btn-sm btn-outline-info" id="subStaleOpen">
+                Get the new link
+            </button>
+        </div>
+    </div>
+
     <!-- Two ways in, offered only while the calendar is empty (9.1) -->
     <div id="modeChooser" style="display: none; margin-bottom: 16px;">
         <h2 style="font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 12px;">
@@ -2013,7 +2037,7 @@ button.resolve-option:focus-visible {
                 </button>
                 <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
                         aria-expanded="false" aria-controls="icsPanel"
-                        title="Download a file to import into Google, Apple or Outlook calendar">
+                        title="Subscribe in Google, Apple or Outlook calendar, or download a file">
                     <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to calendar
                 </button>
                 <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
@@ -2045,8 +2069,44 @@ button.resolve-option:focus-visible {
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
             </button>
         </div>
+        <!-- Subscribe: a link the calendar app fetches again every few hours -->
+        <div id="subSection">
+            <h3 class="ics-subtitle">Subscribe, and it stays up to date</h3>
+            <p class="ics-summary" id="subSummary">When UWI changes the timetable, your calendar
+                changes too. Calendar apps check every few hours; Google can take up to a day.</p>
+            <p class="sub-stale-line" id="subPanelStale" hidden>
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                You changed your timetable since you subscribed. Subscribe again with this new
+                link, then remove the old "UWI timetable" calendar.</p>
+            <div class="sub-link">
+                <label for="subUrl" class="visually-hidden">Calendar subscription link</label>
+                <input type="text" id="subUrl" class="form-control form-control-sm" readonly>
+                <button type="button" class="btn btn-accent btn-sm" id="subCopy">
+                    <i class="bi bi-clipboard" aria-hidden="true"></i> Copy link
+                </button>
+            </div>
+            <div class="sub-apps">
+                <a class="btn btn-outline-info btn-sm sub-app" id="subApple" href="#">
+                    <i class="bi bi-apple" aria-hidden="true"></i> Apple Calendar</a>
+                <a class="btn btn-outline-info btn-sm sub-app" id="subGoogle" href="#"
+                   target="_blank" rel="noopener">
+                    <i class="bi bi-google" aria-hidden="true"></i> Google Calendar</a>
+                <a class="btn btn-outline-info btn-sm sub-app" id="subOutlook" href="#"
+                   target="_blank" rel="noopener">
+                    <i class="bi bi-microsoft" aria-hidden="true"></i> Outlook</a>
+            </div>
+            <p class="ics-note">For Google, copy the link first: Google opens its "From URL" page,
+                and you paste it there.</p>
+            <p class="ics-note" id="subLeftOut" hidden></p>
+            <p class="ics-note">The link lists your courses, not your name, but your calendar
+                provider keeps it, and anyone you give it to can see them. It is this timetable as
+                it is now: if you change it here, subscribe again with the new link.</p>
+        </div>
+        <p class="ics-summary" id="subUnavailable" hidden></p>
+
+        <h3 class="ics-subtitle">Or download a file</h3>
         <p class="ics-summary" id="icsSummary"></p>
-        <button type="button" class="btn btn-accent btn-sm" id="icsDownload">
+        <button type="button" class="btn btn-outline-info btn-sm" id="icsDownload">
             <i class="bi bi-download" aria-hidden="true"></i> Download calendar file (.ics)
         </button>
         <ol class="ics-steps">
@@ -2195,8 +2255,10 @@ button.resolve-option:focus-visible {
 <script src="/assets/js/placement.js?v={{ asset_version }}"></script>
 <script src="/assets/js/conflict-resolve.js?v={{ asset_version }}"></script>
 <script src="/assets/js/detail-view.js?v={{ asset_version }}"></script>
+<script src="/assets/js/slot-identity.js?v={{ asset_version }}"></script>
 <script src="/assets/js/timetable-state.js?v={{ asset_version }}"></script>
 <script src="/assets/js/ics-export.js?v={{ asset_version }}"></script>
+<script src="/assets/js/subscription-link.js?v={{ asset_version }}"></script>
 <script src="/assets/js/my-week.js?v={{ asset_version }}"></script>
 <script>
 (function() {
@@ -3916,9 +3978,15 @@ button.resolve-option:focus-visible {
                 publishedAt,
                 courses,
             });
+            const subscribedBefore = subscriptionBody(state);
             const result = state.refreshFromWarehouse(
                 incoming.courses, notFound, incoming.publicationId,
                 incoming.publishedAt);
+            // The feed follows the same republish, so the subscription stays
+            // current unless a class had to be chosen afresh.
+            carrySubscription(state, subscribedBefore, result);
+            saveState();
+            renderSubscriptionStale();
             $stale.style.display = 'none';
             if (pendingChanges && pendingChanges.toPublication === incoming.publicationId) {
                 state.recordChanges({ ...pendingChanges, publishedAt: incoming.publishedAt });
@@ -4029,10 +4097,78 @@ button.resolve-option:focus-visible {
                 + 'your classes on the weeks they run, and any exams on their dates.' + left;
             download.hidden = false;
         }
+        const subscribable = fillSubscription();
         panel.hidden = false;
         $icsBtn.setAttribute('aria-expanded', 'true');
-        (download.hidden ? document.getElementById('icsClose') : download).focus();
+        (subscribable ? document.getElementById('subCopy')
+            : download.hidden ? document.getElementById('icsClose') : download).focus();
     }
+
+    // Subscribe (subscription-link.js)
+
+    /** Fill in the subscription link, or say why there is none. */
+    function fillSubscription() {
+        const { token, reason } = subscriptionToken(state);
+        const section = document.getElementById('subSection');
+        const unavailable = document.getElementById('subUnavailable');
+        section.hidden = !token;
+        unavailable.hidden = Boolean(token);
+        unavailable.textContent = token ? '' : reason;
+        if (!token) return false;
+
+        const urls = subscriptionUrls(location.origin, token);
+        document.getElementById('subUrl').value = urls.https;
+        document.getElementById('subApple').href = urls.webcal;
+        document.getElementById('subGoogle').href = urls.google;
+        document.getElementById('subOutlook').href = urls.outlook;
+        document.getElementById('subPanelStale').hidden = !subscriptionOutOfDate(state);
+
+        const { left } = subscribableCourses(state);
+        const leftOut = document.getElementById('subLeftOut');
+        leftOut.hidden = left.length === 0;
+        leftOut.textContent = left.length
+            ? `Not in the link, because UWI's current timetable does not publish them: ${left.join(', ')}.`
+            : '';
+        return true;
+    }
+
+    /** What the student just subscribed to, so a later change can say so. */
+    function markSubscribed() {
+        if (!state) return;
+        state.subscribedBody = subscriptionBody(state);
+        saveState();
+        renderSubscriptionStale();
+        document.getElementById('subPanelStale').hidden = true;
+    }
+
+    function renderSubscriptionStale() {
+        document.getElementById('subStale').style.display =
+            state && subscriptionOutOfDate(state) ? 'block' : 'none';
+    }
+
+    document.getElementById('subCopy').addEventListener('click', async () => {
+        const url = document.getElementById('subUrl').value;
+        if (!url) return;
+        markSubscribed();
+        try {
+            await navigator.clipboard.writeText(url);
+            toast('Subscription link copied.',
+                  `Paste it into your calendar app's "add by URL" or "subscribe" option.`);
+        } catch (err) {
+            // Outside a secure context the clipboard is refused; the link is
+            // still in the box, selected, to copy by hand.
+            const input = document.getElementById('subUrl');
+            input.focus();
+            input.select();
+        }
+    });
+    for (const id of ['subApple', 'subGoogle', 'subOutlook']) {
+        document.getElementById(id).addEventListener('click', markSubscribed);
+    }
+    document.getElementById('subStaleOpen').addEventListener('click', () => {
+        openIcsPanel();
+        document.getElementById('icsPanel').scrollIntoView({ block: 'nearest' });
+    });
 
     function closeIcsPanel() {
         const panel = document.getElementById('icsPanel');
@@ -4217,6 +4353,7 @@ button.resolve-option:focus-visible {
     function onStateChanged() {
         renderEvents();
         saveState();
+        renderSubscriptionStale();
         renderPickerResults();
         renderPastePreview();
         showChooserIfEmpty();
@@ -4246,6 +4383,7 @@ button.resolve-option:focus-visible {
             state.placeMissing();
             state.onChange(onStateChanged);
             renderEvents();
+            renderSubscriptionStale();
             // Write v3 straight away, so an upgraded timetable is not
             // re-migrated from v2 on every single load.
             saveState();

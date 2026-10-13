@@ -12,6 +12,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'slot-identity.js',
   'timetable-state.js',
   'conflict-resolve.js'
 );

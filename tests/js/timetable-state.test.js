@@ -12,6 +12,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'slot-identity.js',
   'timetable-state.js'
 );
 const TimetableState = api.get('TimetableState');
@@ -658,7 +659,7 @@ test('a placement whose class is gone is refilled, not left dangling', () => {
   assert.ok(state.placements.every((p) => ids.has(p.groupId)));
 });
 
-test('a class that moves while its group survives is refilled, not stranded', () => {
+test('a class that moves while its group survives is followed, not stranded', () => {
   /**
    * The 28 August 2026 republish. `refreshFromWarehouse` used to drop
    * placements whose *group* had gone, which misses the ordinary case: UWI
@@ -666,6 +667,9 @@ test('a class that moves while its group survives is refilled, not stranded', ()
    * a session id the new publication does not have. It rendered nothing, held
    * its group against the refill below, and reported nothing had changed.
    * Ten of a student's twelve blocks disappeared until they reloaded.
+   *
+   * One sitting gone and one arrived is now read as that class moving, so
+   * the placement follows it to Thursday.
    */
   const state = stateOf('COMP 1601');
   const group = state.optionGroups.find((g) => g.sessions.length > 1);
@@ -698,6 +702,91 @@ test('a class that moves while its group survives is refilled, not stranded', ()
       api.get('eventForPlacement')(p, index), null,
       p.groupId + ' renders nothing'
     );
+  }
+});
+
+/** The same courses as a real republish delivers them: every row renumbered. */
+function republished(...codes) {
+  const again = TimetableState.fromWarehouseResponse(response(...codes));
+  for (const c of again.courses) {
+    for (const s of c.sessions) s.sessionId += 40000;
+  }
+  return again;
+}
+
+/** What the student sees for a group: day and start of each placement. */
+function slotsOf(state, groupId) {
+  return state.getPlacedEvents()
+    .filter((e) => e.groupId === groupId)
+    .map((e) => `${e.day} ${e.startTime}`)
+    .sort();
+}
+
+test('a republish that renumbers every class keeps every choice and pin', () => {
+  /**
+   * Every publication stores every session as a new row. Resolving by id
+   * dropped the whole timetable on "Update my courses" and placed it again:
+   * a pinned Tuesday 8am lab came back unpinned on Monday 10am, and the
+   * toast said two classes had moved when none had.
+   */
+  const state = stateOf('COMP 1601');
+  const menu = state.optionGroups.find((g) => g.sessions.length > 1);
+  const placed = state.placements.find((p) => p.groupId === menu.groupId);
+  const other = menu.sessions.find((s) => s.sessionId !== placed.selectedSessionId);
+  state.moveEvent(menu.groupId, other.sessionId, placed.selectedSessionId);
+  const before = state.getPlacedEvents().map((e) => `${e.groupId} ${e.day} ${e.startTime}`).sort();
+
+  const result = state.refreshFromWarehouse(republished('COMP 1601').courses, [], 3);
+
+  assert.equal(result.moved, 0, 'nothing moved, so nothing is reported');
+  assert.deepEqual(
+    state.getPlacedEvents().map((e) => `${e.groupId} ${e.day} ${e.startTime}`).sort(),
+    before
+  );
+  const pinned = state.placements.find((p) => p.groupId === menu.groupId);
+  assert.equal(pinned.pinned, true);
+  assert.equal(pinned.selectedSessionId, other.sessionId + 40000);
+});
+
+test('an extra sitting survives a republish', () => {
+  const state = stateOf('COMP 1602');
+  const groupId = 'COMP 1602|Lecture|all';
+  const placed = new Set(state.placements.filter((p) => p.groupId === groupId)
+    .map((p) => p.selectedSessionId));
+  const extra = state.getGroup(groupId).sessions.find((s) => !placed.has(s.sessionId));
+  state.addSitting(groupId, extra.sessionId);
+  const before = slotsOf(state, groupId);
+
+  state.refreshFromWarehouse(republished('COMP 1602').courses, [], 3);
+
+  assert.deepEqual(slotsOf(state, groupId), before);
+});
+
+test('a choice that cannot be told apart is placed again and reported', () => {
+  // Two sittings of the chosen type moved at once, so which one is the
+  // student's cannot be known. Guessing would put them in the wrong room.
+  const state = stateOf('COMP 1601');
+  const menu = state.optionGroups.find((g) => g.sessions.length > 2);
+  const placed = state.placements.find((p) => p.groupId === menu.groupId);
+  const chosen = menu.sessions.find((s) => s.sessionId === placed.selectedSessionId);
+  const sibling = menu.sessions.find((s) => s.sessionId !== chosen.sessionId);
+
+  const again = republished('COMP 1601');
+  for (const s of again.courses[0].sessions) {
+    if (s.sessionId - 40000 === chosen.sessionId || s.sessionId - 40000 === sibling.sessionId) {
+      s.startTime = '20:00';
+      s.endTime = s.sessionId - 40000 === chosen.sessionId ? '21:00' : '22:00';
+    }
+  }
+
+  const result = state.refreshFromWarehouse(again.courses, [], 3);
+
+  assert.equal(result.moved, 1);
+  assert.equal(state.placements.filter((p) => p.groupId === menu.groupId).length, 1,
+    'the group is refilled, not left empty');
+  const index = state.groupIndex;
+  for (const p of state.placements) {
+    assert.notEqual(api.get('eventForPlacement')(p, index), null, p.groupId + ' renders nothing');
   }
 });
 

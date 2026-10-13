@@ -1,0 +1,4 @@
+# RFC 5545 requires CRLF line endings, and tests/fixtures/ics_golden.ics pins
+# them byte for byte. Without this, core.autocrlf stores it as LF and a Linux
+# checkout fails both suites' golden tests.
+*.ics -text
