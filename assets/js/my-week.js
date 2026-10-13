@@ -184,6 +184,33 @@ function weekSummaryDetails(summary) {
 }
 
 /**
+ * The free rooms page for a gap, so two hours between classes can become two
+ * hours somewhere to sit (UX plan 3.1 and 3.4). Without a week the page uses
+ * the current one.
+ */
+function freeRoomsHref(day, fromMins, toMins, week) {
+  const params = [['day', day], ['start', minsToTime(fromMins)], ['end', minsToTime(toMins)]];
+  if (Number.isInteger(week) && week > 0) params.push(['week', String(week)]);
+  return '/explore/free-rooms?'
+    + params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+}
+
+/** One link per gap in the week, labelled for the list under "My week". */
+function gapLinks(summary, week) {
+  if (!summary) return [];
+  const links = [];
+  for (const day of summary.days) {
+    for (const gap of day.gaps) {
+      links.push({
+        label: `Find a free room, ${day.day} ${displayTimeRange(minsToTime(gap.from), minsToTime(gap.to))}`,
+        href: freeRoomsHref(day.day, gap.from, gap.to, week),
+      });
+    }
+  }
+  return links;
+}
+
+/**
  * What choosing another time would do: which classes it would clash with,
  * week by week as the clash panel counts them, and how long its day would
  * then run. `others` are the student's other classes, without the one being

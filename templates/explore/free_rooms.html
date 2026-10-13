@@ -1,0 +1,76 @@
+{% extends "explore_base.html" %}
+
+{% block title %}Free rooms{% endblock %}
+{% block description %}Rooms with no class timetabled at a given time on the UWI St. Augustine campus, for studying between classes.{% endblock %}
+
+{% block content %}
+<div class="shell">
+
+  <header class="detail-head">
+    <p class="eyebrow">Free rooms</p>
+    <h1>{{ on_campus_count }} room{{ 's' if on_campus_count != 1 }} with no class</h1>
+    <p class="detail-sub">
+      {{ window.day }}{% if date_label %} {{ date_label }}{% endif %},
+      {{ start_label }}&ndash;{{ end_label }}, teaching week {{ window.week }}.
+      Out of {{ room_count }} rooms UWI timetables classes in.
+    </p>
+  </header>
+
+  <form class="filters free-form" method="get" action="/explore/free-rooms"
+        aria-label="Choose a time">
+    <div class="filters-inner">
+      <label>Day
+        <select name="day">
+          {% for d in days %}<option value="{{ d }}" {% if d == window.day %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>From <input type="time" name="start" value="{{ start_value }}" step="900" required></label>
+      <label>to <input type="time" name="end" value="{{ end_value }}" step="900" required></label>
+      <label>Week
+        <select name="week">
+          {% for w in weeks %}<option value="{{ w }}" {% if w == window.week %}selected{% endif %}>{{ w }}</option>{% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="free-go">Show rooms</button>
+    </div>
+  </form>
+
+  {% if refused %}
+  <p class="free-refused" role="status">Part of that time could not be read, so the
+    usual window is shown instead. The end has to be after the start.</p>
+  {% endif %}
+
+  <aside class="free-caveats" aria-label="What free means here">
+    <p><b>Free means no class is timetabled, not that the room is open.</b>
+      It may be locked, booked outside the timetable, or a department's lab.
+      Rooms with no timetable of their own, remote teaching and venues still
+      to be confirmed are left out.</p>
+  </aside>
+
+  {% if not groups %}
+  <div class="empty">
+    <h2>Every room has a class then</h2>
+    <p>Try another hour, or another day of the week.</p>
+  </div>
+  {% endif %}
+
+  {% for group in groups %}
+  <section class="free-group" aria-labelledby="b{{ loop.index }}">
+    <h2 class="free-building" id="b{{ loop.index }}">
+      {{ group.label }} <span class="free-n">{{ group.rooms | length }}</span>
+    </h2>
+    <ul class="rows">
+      {% for room in group.rooms %}
+      <li>
+        <a class="row free-row" href="/explore/room/{{ room.code | urlpath }}">
+          <div class="row-title">{{ room.code }}</div>
+          <div class="row-right">{{ room.until }}</div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+
+</div>
+{% endblock %}

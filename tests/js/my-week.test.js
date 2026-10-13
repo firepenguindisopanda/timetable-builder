@@ -117,3 +117,20 @@ test('a day with nothing else on says so', () => {
   assert.equal(optionEffectText(optionEffect(cls('Wednesday', '09:00', '11:00', 'FST'), [])),
     'No clash \u00b7 the only class on Wednesday');
 });
+
+// Somewhere to sit in a gap
+
+const { gapLinks, freeRoomsHref } = api.take('gapLinks', 'freeRoomsHref');
+
+test('each gap links to the free rooms for that time and week', () => {
+  const s = weekSummary([cls('Monday', '08:00', '10:00', 'FST'), cls('Monday', '13:00', '14:00', 'FST')]);
+  assert.deepEqual(gapLinks(s, 7), [{
+    label: 'Find a free room, Monday 10am–1pm',
+    href: '/explore/free-rooms?day=Monday&start=10%3A00&end=13%3A00&week=7',
+  }]);
+});
+
+test('an undated calendar leaves the week to the free rooms page', () => {
+  assert.equal(freeRoomsHref('Friday', 600, 720, null), '/explore/free-rooms?day=Friday&start=10%3A00&end=12%3A00');
+  assert.deepEqual(gapLinks(weekSummary([]), 3), []);
+});

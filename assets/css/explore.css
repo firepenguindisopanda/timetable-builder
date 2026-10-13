@@ -1053,6 +1053,60 @@ table.sessions tbody tr:hover td { background: var(--paper-sunk); }
 
 .foot p { margin: 0 0 0.4rem; max-width: 70ch; }
 
+/* Free rooms */
+
+.free-form { position: static; }
+.free-form label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--ink-2);
+}
+.free-form input[type="time"] {
+    font-family: var(--font-data);
+    font-size: 0.82rem;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-md);
+    padding: 0.36rem 0.5rem;
+}
+.free-form input[type="time"]:focus { outline: none; border-color: var(--gold); }
+.free-go {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--gold-ink);
+    background: var(--gold-soft);
+    border: 1px solid var(--gold);
+    border-radius: var(--r-md);
+    padding: 0.42rem 0.8rem;
+    cursor: pointer;
+}
+.free-refused { font-size: 0.82rem; color: var(--ink-2); margin: 0.75rem 0 0; }
+.free-caveats {
+    margin: 1rem 0 1.5rem;
+    padding: 0.8rem 1rem;
+    border-left: 3px solid var(--gold);
+    background: var(--paper-sunk);
+    border-radius: var(--r-md);
+    font-size: 0.84rem;
+    color: var(--ink-2);
+}
+.free-caveats p { margin: 0; }
+.free-caveats b { color: var(--ink); }
+.free-building {
+    font-size: 1rem;
+    margin: 0 0 0.6rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.free-n { font-family: var(--font-data); font-size: 0.78rem; color: var(--ink-3); font-weight: 500; }
+.free-group .rows { margin-bottom: 1.75rem; }
+.free-row { grid-template-columns: minmax(0, 1fr) auto; }
+
 /* Unavailable state */
 
 .notice {

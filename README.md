@@ -319,9 +319,33 @@ extraction tools stay behind the admin key.
 | `/explore/course/{code}` | One course: its week grid and every session |
 | `/explore/rooms`, `/explore/room/{code}` | Rooms and what is booked in them |
 | `/explore/staff`, `/explore/staff/{name}` | Lecturers and their teaching week |
+| `/explore/free-rooms?day=&start=&end=&week=` | Rooms with no class timetabled in a window, by building, and until when |
 
 Course codes are normalised, so `/explore/course/comp2601` and
 `/explore/course/COMP%202601` both resolve.
+
+### Free rooms
+
+Opens on the hour starting now in the current teaching week (evenings roll to
+8am the next day). "Free" means **no class is timetabled**, never that the
+room is open, and the page says so. `timetable_extractor/database/free_rooms.py`
+narrows the rooms to ones a student could use:
+
+| Rule | Why |
+|---|---|
+| Only rooms in the current registry | Only those have a room PDF of their own, so a complete list of bookings. A room named only in course PDFs looks free whenever we hold no course that books it |
+| Only rooms with at least one class this publication | 7 registry rooms are never timetabled (the ENG Undercroft, the Pan Theatre). Not ones we can vouch for |
+| No placeholders, no `Remote Teaching` | Not places anyone can sit |
+| Codes compared with whitespace collapsed | The registry writes `FHE CLL  Room  9`, the bookings `FHE CLL Room 9`; exact matching dropped 22 rooms, most of them CLL |
+| Couva Teaching Facility listed last, apart, and not counted in the headline | It is off campus |
+| A booking that only touches the window does not make a room busy | A class ending at 10 leaves the room free from 10 |
+| Cached per day and week | At most 7 x 12 entries, whatever windows are asked for |
+
+"My week" in the builder links each gap of two hours or more to this page for
+that day, time and week.
+
+The CLI's `free-rooms` command (`queries.free_rooms`) predates these rules and
+still lists every room.
 
 ### Freshness
 
