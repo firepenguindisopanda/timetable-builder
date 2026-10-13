@@ -55,6 +55,45 @@ def _print_table(rows: list[dict], columns: list[str] | None = None) -> None:
         print("  ".join(str(row.get(c, ""))[: widths[c]].ljust(widths[c]) for c in columns))
 
 
+def _load(args: argparse.Namespace) -> int:
+    """
+    Load the corpus without holding a connection across the extraction.
+
+    Every other command shares one connection from `main`, but `load` spends
+    four minutes reading PDFs, and a connection left idle that long is closed
+    by the server. On 12 Oct 2026 that killed the load at its first write.
+    The schema goes on a connection of its own, closed straight away, which
+    also stops a missing DATABASE_URL or an unreachable server before the
+    extraction rather than after it. `load_all` opens the one it writes with.
+    """
+    with connect() as conn:
+        apply_schema(conn)
+
+    root = Path(args.pdf_dir)
+    stats = load_all(
+        connect,
+        finder_xml=Path(args.registry),
+        pdf_dirs=[root, root / "staff", root / "rooms"],
+        replace=args.replace,
+    )
+    print()
+    print(f"Publication  : {stats.publication_id}"
+          f"{'  (already known)' if stats.reused_publication else '  (new)'}")
+    print(f"Published at : {stats.published_at}")
+    print(f"Index        : {stats.resources} resources "
+          f"({stats.courses} courses, {stats.staff} staff, {stats.rooms} rooms)")
+    print(f"PDFs read    : {stats.pdfs_read}  (failed: {stats.pdfs_failed})")
+    print(f"Raw records  : {stats.raw_records}")
+    print(f"Sessions     : {stats.sessions} after merging")
+    if stats.horizon:
+        print(f"Weeks from   : W{stats.horizon}  "
+              f"(past weeks carried onto {stats.weeks_carried} sessions)")
+    print(f"Links        : {stats.staff_links} staff, {stats.source_links} sources")
+    print(f"Changes      : {stats.changes} vs the previous publication"
+          f"{'  (first publication, nothing to compare)' if not stats.changes else ''}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.strip().split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -99,36 +138,13 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        if args.command == "load":
+            return _load(args)
+
         with connect() as conn:
             if args.command == "init":
                 apply_schema(conn)
                 print("Schema applied.")
-                return 0
-
-            if args.command == "load":
-                apply_schema(conn)
-                root = Path(args.pdf_dir)
-                stats = load_all(
-                    conn,
-                    finder_xml=Path(args.registry),
-                    pdf_dirs=[root, root / "staff", root / "rooms"],
-                    replace=args.replace,
-                )
-                print()
-                print(f"Publication  : {stats.publication_id}"
-                      f"{'  (already known)' if stats.reused_publication else '  (new)'}")
-                print(f"Published at : {stats.published_at}")
-                print(f"Index        : {stats.resources} resources "
-                      f"({stats.courses} courses, {stats.staff} staff, {stats.rooms} rooms)")
-                print(f"PDFs read    : {stats.pdfs_read}  (failed: {stats.pdfs_failed})")
-                print(f"Raw records  : {stats.raw_records}")
-                print(f"Sessions     : {stats.sessions} after merging")
-                if stats.horizon:
-                    print(f"Weeks from   : W{stats.horizon}  "
-                          f"(past weeks carried onto {stats.weeks_carried} sessions)")
-                print(f"Links        : {stats.staff_links} staff, {stats.source_links} sources")
-                print(f"Changes      : {stats.changes} vs the previous publication"
-                      f"{'  (first publication, nothing to compare)' if not stats.changes else ''}")
                 return 0
 
             if args.command == "stats":

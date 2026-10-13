@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import psycopg
 
@@ -458,7 +458,7 @@ def write_sessions(
 
 
 def load_all(
-    conn: psycopg.Connection,
+    open_connection: Callable[[], psycopg.Connection],
     *,
     finder_xml: Path,
     pdf_dirs: Iterable[Path],
@@ -486,6 +486,14 @@ def load_all(
     new publication becomes the current one the moment its row is committed,
     and a publication with no sessions yet is an empty timetable. Extraction
     needs no database, so it runs first and the writes follow it.
+
+    That is also why this takes a way to open a connection rather than an open
+    one. A connection held across extraction sits idle for its four minutes,
+    and the server closes it: the 17 Sep and 12 Oct 2026 loads both died on
+    the first statement afterwards with "SSL connection has been closed
+    unexpectedly". Neon suspends idle compute after about five minutes. The
+    connection is opened once the last PDF has been read, so the writes start
+    on a fresh one.
     """
     xml_bytes = finder_xml.read_bytes()
     resource_count = len(ET.fromstring(xml_bytes).findall("resource"))
@@ -522,105 +530,106 @@ def load_all(
             diagnostics.add("export_horizon_missing", source=path.name)
         raw.extend(records_from_extraction(result, source=path.name))
 
-    publication_id, reused = upsert_publication(
-        conn,
-        xml_bytes,
-        http_last_modified=http_last_modified,
-        http_etag=http_etag,
-        resource_count=resource_count,
-    )
-
-    index_counts = load_index(conn, xml_bytes, publication_id)
-
-    pdf_ids = register_pdfs(conn, paths)
-
-    # Snap course codes and staff spellings back onto the published index
-    # before merging. A wrapped or junk-suffixed code would otherwise become
-    # its own course row, splitting one course's timetable across two.
-    with conn.cursor() as cur:
-        cur.execute("SELECT name FROM staff WHERE resource_id IS NOT NULL")
-        name_index = build_name_index([row[0] for row in cur.fetchall()])
-        cur.execute("SELECT code FROM courses WHERE resource_id IS NOT NULL")
-        code_index = build_code_index([row[0] for row in cur.fetchall()])
-
-    for record in raw:
-        record.course_code = resolve_course_code(record.course_code, code_index)
-        record.staff = list(
-            dict.fromkeys(resolve_name(name, name_index) for name in record.staff)
+    with open_connection() as conn:
+        publication_id, reused = upsert_publication(
+            conn,
+            xml_bytes,
+            http_last_modified=http_last_modified,
+            http_etag=http_etag,
+            resource_count=resource_count,
         )
 
-    merged = merge_records(raw)
+        index_counts = load_index(conn, xml_bytes, publication_id)
 
-    # The PDFs only print weeks from the current teaching week on. Weeks that
-    # have passed are taken back from the publication before this one, or the
-    # diff reports every class as moved each week. See horizon.py.
-    distinct = sorted({h for h in horizons.values() if h is not None})
-    if len(distinct) > 1:
-        diagnostics.add("export_horizon_mixed", horizons=distinct)
-    # The diff takes the lowest, so no week a PDF still printed counts as past.
-    # Carrying is decided per record from its own sources, so it only needs to
-    # know whether any PDF has moved past week 1.
-    horizon = distinct[0] if distinct else None
+        pdf_ids = register_pdfs(conn, paths)
 
-    previous = previous_publication(conn, publication_id)
-    weeks_carried = 0
-    if previous and distinct and distinct[-1] > 1:
-        weeks_carried = carry_past_weeks(
-            merged, earlier_sittings(conn, previous), horizons, diagnostics
-        )
-    if progress and horizon:
-        print(
-            f"  weeks from W{horizon}: past weeks carried onto {weeks_carried} sessions",
-            flush=True,
-        )
-    diagnostics.emit(logger)
-    if progress:
-        for finding, count in sorted(diagnostics.findings.items()):
-            print(f"  ! {finding}: {count}", flush=True)
-
-    if replace and reused:
+        # Snap course codes and staff spellings back onto the published index
+        # before merging. A wrapped or junk-suffixed code would otherwise become
+        # its own course row, splitting one course's timetable across two.
         with conn.cursor() as cur:
-            # session_staff and session_sources cascade from sessions. Not
-            # committed here: write_sessions commits the insert, and readers
-            # see the old rows until then.
-            cur.execute(
-                "DELETE FROM sessions WHERE publication_id = %s", (publication_id,)
+            cur.execute("SELECT name FROM staff WHERE resource_id IS NOT NULL")
+            name_index = build_name_index([row[0] for row in cur.fetchall()])
+            cur.execute("SELECT code FROM courses WHERE resource_id IS NOT NULL")
+            code_index = build_code_index([row[0] for row in cur.fetchall()])
+
+        for record in raw:
+            record.course_code = resolve_course_code(record.course_code, code_index)
+            record.staff = list(
+                dict.fromkeys(resolve_name(name, name_index) for name in record.staff)
             )
-            removed = cur.rowcount
+
+        merged = merge_records(raw)
+
+        # The PDFs only print weeks from the current teaching week on. Weeks that
+        # have passed are taken back from the publication before this one, or the
+        # diff reports every class as moved each week. See horizon.py.
+        distinct = sorted({h for h in horizons.values() if h is not None})
+        if len(distinct) > 1:
+            diagnostics.add("export_horizon_mixed", horizons=distinct)
+        # The diff takes the lowest, so no week a PDF still printed counts as past.
+        # Carrying is decided per record from its own sources, so it only needs to
+        # know whether any PDF has moved past week 1.
+        horizon = distinct[0] if distinct else None
+
+        previous = previous_publication(conn, publication_id)
+        weeks_carried = 0
+        if previous and distinct and distinct[-1] > 1:
+            weeks_carried = carry_past_weeks(
+                merged, earlier_sittings(conn, previous), horizons, diagnostics
+            )
+        if progress and horizon:
+            print(
+                f"  weeks from W{horizon}: past weeks carried onto {weeks_carried} sessions",
+                flush=True,
+            )
+        diagnostics.emit(logger)
         if progress:
-            print(f"  replacing {removed} existing sessions", flush=True)
+            for finding, count in sorted(diagnostics.findings.items()):
+                print(f"  ! {finding}: {count}", flush=True)
 
-    written, staff_links, source_links = write_sessions(
-        conn, publication_id, merged, pdf_ids
-    )
+        if replace and reused:
+            with conn.cursor() as cur:
+                # session_staff and session_sources cascade from sessions. Not
+                # committed here: write_sessions commits the insert, and readers
+                # see the old rows until then.
+                cur.execute(
+                    "DELETE FROM sessions WHERE publication_id = %s", (publication_id,)
+                )
+                removed = cur.rowcount
+            if progress:
+                print(f"  replacing {removed} existing sessions", flush=True)
 
-    with conn.cursor() as cur:
-        cur.execute("SELECT published_at FROM publications WHERE id = %s", (publication_id,))
-        row = cur.fetchone()
-        published_at = row[0] if row else None
+        written, staff_links, source_links = write_sessions(
+            conn, publication_id, merged, pdf_ids
+        )
 
-    # What this republish changed, computed now rather than on every page view.
-    # A `--replace` reload rewrites the sessions the stored diff was derived
-    # from, so this recomputes rather than appending.
-    changes = store_diff(conn, previous, publication_id, horizon=horizon) if previous else 0
-    if progress and previous:
-        print(f"  changes vs publication {previous}: {changes}", flush=True)
+        with conn.cursor() as cur:
+            cur.execute("SELECT published_at FROM publications WHERE id = %s", (publication_id,))
+            row = cur.fetchone()
+            published_at = row[0] if row else None
 
-    return LoadStats(
-        publication_id=publication_id,
-        published_at=published_at,
-        resources=index_counts["resources"],
-        courses=index_counts["courses"],
-        staff=index_counts["staff"],
-        rooms=index_counts["rooms"],
-        pdfs_read=read,
-        pdfs_failed=failed,
-        raw_records=len(raw),
-        sessions=written,
-        staff_links=staff_links,
-        source_links=source_links,
-        reused_publication=reused,
-        changes=changes,
-        horizon=horizon,
-        weeks_carried=weeks_carried,
-    )
+        # What this republish changed, computed now rather than on every page view.
+        # A `--replace` reload rewrites the sessions the stored diff was derived
+        # from, so this recomputes rather than appending.
+        changes = store_diff(conn, previous, publication_id, horizon=horizon) if previous else 0
+        if progress and previous:
+            print(f"  changes vs publication {previous}: {changes}", flush=True)
+
+        return LoadStats(
+            publication_id=publication_id,
+            published_at=published_at,
+            resources=index_counts["resources"],
+            courses=index_counts["courses"],
+            staff=index_counts["staff"],
+            rooms=index_counts["rooms"],
+            pdfs_read=read,
+            pdfs_failed=failed,
+            raw_records=len(raw),
+            sessions=written,
+            staff_links=staff_links,
+            source_links=source_links,
+            reused_publication=reused,
+            changes=changes,
+            horizon=horizon,
+            weeks_carried=weeks_carried,
+        )

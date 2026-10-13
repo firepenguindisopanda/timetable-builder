@@ -67,11 +67,28 @@ class FakeConn:
     def __init__(self, log):
         self.log = log
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.log.append(("close", ""))
+        return False
+
     def cursor(self):
         return FakeCursor(self.log)
 
     def commit(self):
         self.log.append(("commit", ""))
+
+
+def opener(log):
+    """A stand-in for `connect`, logging the moment a connection is opened."""
+
+    def open_connection():
+        log.append(("connect", ""))
+        return FakeConn(log)
+
+    return open_connection
 
 
 @pytest.fixture
@@ -123,7 +140,7 @@ def run_load(monkeypatch, corpus, log, *, extract=None):
     monkeypatch.setattr(loader, "build_code_index", lambda codes: {})
 
     return loader.load_all(
-        FakeConn(log),
+        opener(log),
         finder_xml=finder,
         pdf_dirs=[pdfs],
         progress=False,
@@ -162,11 +179,12 @@ def test_a_dead_connection_fails_before_any_session_is_written(monkeypatch, corp
     """
     The 17 Sep 2026 failure, in the order that now applies.
 
-    The connection is opened before the load and sits idle for the whole
-    extraction, so the server can close it while no query is in flight. The
-    first statement afterwards is the one that raises. What matters is that
-    the load stops there rather than carrying on, because a publication whose
-    sessions never arrive is the empty timetable this module exists to avoid.
+    The connection used to be opened before the load and sit idle for the
+    whole extraction, so the server closed it with no query in flight and the
+    first statement afterwards raised. It is now opened after extraction, but
+    a connection can still die, and what matters is that the load stops there
+    rather than carrying on, because a publication whose sessions never arrive
+    is the empty timetable this module exists to avoid.
     """
     log = []
 
@@ -186,7 +204,7 @@ def test_a_dead_connection_fails_before_any_session_is_written(monkeypatch, corp
 
     with pytest.raises(RuntimeError):
         loader.load_all(
-            FakeConn(log),
+            opener(log),
             finder_xml=finder,
             pdf_dirs=[pdfs],
             progress=False,
@@ -195,6 +213,69 @@ def test_a_dead_connection_fails_before_any_session_is_written(monkeypatch, corp
     steps = [step for step, _ in log]
     assert steps.count("extract") == 2, "the PDFs should already have been read"
     assert "write_sessions" not in steps, "the load continued past a dead connection"
+
+
+# --- no connection sits idle across the extraction ---
+
+
+def test_the_connection_is_opened_after_the_last_pdf(monkeypatch, corpus):
+    """
+    The 12 Oct 2026 failure. A connection held across four minutes of
+    extraction is closed by the server, and the load dies on its first write.
+    """
+    log = []
+    run_load(monkeypatch, corpus, log)
+
+    steps = [step for step, _ in log]
+    last_extract = max(i for i, step in enumerate(steps) if step == "extract")
+    assert steps.count("connect") == 1
+    assert steps.index("connect") > last_extract, (
+        "the connection was opened before extraction finished, so it sits idle "
+        "for the whole extraction and the server closes it"
+    )
+    assert steps[-1] == "close", "the write connection was left open"
+
+
+def test_the_cli_holds_no_connection_while_loading(monkeypatch):
+    """
+    `load_all` opening late is no use if `cli load` keeps its own open.
+
+    Every other command shares one connection from `main`. Had `load` stayed
+    inside it, that connection would sit idle through the extraction, and
+    closing it afterwards would fail on the dropped socket even when the
+    load itself had succeeded.
+    """
+    from timetable_extractor.database import cli
+
+    open_now = []
+
+    class TrackedConn:
+        def __enter__(self):
+            open_now.append(self)
+            return self
+
+        def __exit__(self, *exc):
+            open_now.remove(self)
+            return False
+
+    def fake_load_all(open_connection, **kwargs):
+        assert not open_now, "a connection was held open across the extraction"
+        assert open_connection is cli.connect
+        return loader.LoadStats(
+            publication_id=11, published_at=None, resources=0, courses=0,
+            staff=0, rooms=0, pdfs_read=0, pdfs_failed=0, raw_records=0,
+            sessions=0, staff_links=0, source_links=0, reused_publication=False,
+        )
+
+    schema_applied = []
+    monkeypatch.setattr(cli, "connect", lambda: TrackedConn())
+    monkeypatch.setattr(cli, "apply_schema", lambda conn: schema_applied.append(conn))
+    monkeypatch.setattr(cli, "load_all", fake_load_all)
+    monkeypatch.setattr("sys.argv", ["cli", "load"])
+
+    assert cli.main() == 0
+    assert schema_applied, "the schema (and with it the view guard) was not applied"
+    assert not open_now
 
 
 # --- the view half of the guarantee ---

@@ -24,6 +24,24 @@ registry — which is the gate doing its job.
 
 ## What is here
 
+### Withdrawn between the publications of 29 September and 9 October 2026
+
+| File | Was |
+|---|---|
+| `m111695.pdf` | EDLA 11\*\*\*, Teaching Language Arts in the Primary School |
+| `m80307.pdf` | SLIN 6000, Graduate Success Workshop (Management Studies) |
+| `staff/s4054.pdf` | MATHISON, Natasha (School of Education) |
+| `staff/s4168.pdf` | PHILLIP, Sharon (School of Education) |
+
+Swept on 12 Oct 2026, before loading. The registry went 1,631 to 1,629 while
+the corpus stood at 1,633 against it; this batch removed 4 and added 2, and
+**both additions are reinstatements**: `rooms/r3479.pdf` (FHE SOE N 12,
+withdrawn 29 Sep) and `rooms/r3480.pdf` (FHE SOE N 13, withdrawn 17 Sep).
+N 12's old copy stays in `rooms/` here; N 13's 17 Sep copy was never put
+here, despite STATUS.md saying so. `pull` fetched fresh copies of both into
+`downloaded_pdfs`. The four strays were the only files `pull` did not rewrite,
+and the registry-against-disk name diff was empty both ways after the move.
+
 ### Withdrawn between the publications of 17 September and 29 September 2026
 
 | File | Was |
