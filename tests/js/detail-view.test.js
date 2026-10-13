@@ -104,6 +104,32 @@ test('a sitting already attended as an extra offers Remove, not Also attend', ()
   assert.ok(!html.includes('sitting-add'));
 });
 
+test('another time can be chosen with a button, not only by dragging', () => {
+  /**
+   * Moving a class was drag-only: no keyboard could do it, and a phone needed
+   * a one-second press (WCAG 2.5.7). "Use this time" names where it goes and
+   * where it comes from, so the page can move exactly that placement.
+   */
+  const state = stateOf('COMP 1602');
+  const model = modelFor(state, LECTURES);
+  const html = renderEventDetail(model);
+  const other = state.getOptions(LECTURES).find(s => s.sessionId !== model.details.sessionId);
+
+  const button = html.match(/<button[^>]*sitting-use[^>]*>/)[0];
+  assert.ok(button.includes(`data-session-id="${other.sessionId}"`));
+  assert.ok(button.includes(`data-from-session-id="${model.details.sessionId}"`));
+  assert.match(html, />Use this time</);
+});
+
+test('a time already attended is not offered to move onto', () => {
+  const state = stateOf('COMP 1602');
+  const other = state.getOptions(LECTURES).find(
+    s => !state.placements.some(
+      p => p.groupId === LECTURES && p.selectedSessionId === s.sessionId));
+  state.addSitting(LECTURES, other.sessionId);
+  assert.ok(!renderEventDetail(modelFor(state, LECTURES)).includes('sitting-use'));
+});
+
 test('the actions remove one class or the whole course, and name which', () => {
   const state = stateOf('COMP 1602');
   const html = renderEventDetail(modelFor(state, LECTURES));

@@ -166,6 +166,40 @@ function weekAbsenceText(absences) {
     .join(', ');
 }
 
+// One day at a time, on a phone
+
+/**
+ * The day a phone opens on: today when the week shown is this week, and
+ * Monday otherwise. The week grid at phone width was seven 90px columns in a
+ * sideways scroller that truncated "COMP 2602" to "COMI", so a phone shows
+ * one day, full width, and needs a day to start from.
+ */
+function defaultDayIndex(todayIso, week, weekOne) {
+  if (!weekOne || !week) return 0;
+  for (let i = 0; i < DAYS.length; i += 1) {
+    if (dateOfTeachingDay(week, DAYS[i], weekOne) === todayIso) return i;
+  }
+  return 0;
+}
+
+/**
+ * The phone's day buttons: each day's short name, its date when the week is
+ * dated, and how many classes it holds, so an empty Saturday says so before
+ * it is tapped.
+ */
+function dayStrip(weekEvents, week, weekOne) {
+  return DAYS.map((day, index) => {
+    const date = weekOne && week ? dateOfTeachingDay(week, day, weekOne) : null;
+    return {
+      index,
+      day,
+      short: day.slice(0, 3),
+      dayOfMonth: date ? Number(date.slice(8, 10)) : null,
+      count: weekEvents.filter((event) => event.day === day).length,
+    };
+  });
+}
+
 /**
  * Exams and other dated one-offs as FullCalendar events for one week.
  *

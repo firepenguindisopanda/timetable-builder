@@ -24,7 +24,10 @@
 
     --ink:          #0D1B2A;
     --ink-2:        #47596A;
-    --ink-3:        #7E8D99;
+    /* Tertiary text. Was #7E8D99, 3.4:1 on white and 2.7:1 on paper-sunk,
+       below WCAG's 4.5:1 for small text; now at least 4.57:1 on every
+       surface. The dark value went from 3.5:1 to at least 4.92:1. */
+    --ink-3:        #56677A;
 
     --rule:         #CBD5DC;
     --rule-soft:    #E2E8ED;
@@ -67,7 +70,7 @@
 
         --ink:        #E7EEF4;
         --ink-2:      #9DB0BE;
-        --ink-3:      #687C8B;
+        --ink-3:      #8396A5;
 
         --rule:       #21333F;
         --rule-soft:  #182734;

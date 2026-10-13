@@ -169,7 +169,7 @@
 
 .event-list-type {
     color: var(--text-secondary);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
@@ -205,9 +205,9 @@
 }
 
 .detail-placeholder .hint {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     margin-top: 0.5rem;
-    opacity: 0.6;
+    color: var(--text-secondary);
 }
 
 .detail-content {
@@ -276,7 +276,7 @@
 }
 
 .detail-section-title {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -546,7 +546,7 @@
 }
 
 .conflict-heading {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -571,7 +571,7 @@
 .conflict-when,
 .conflict-weeks {
     color: var(--text-secondary);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     margin-top: 2px;
 }
 
@@ -580,12 +580,13 @@
 .conflict-action { margin-top: 6px; }
 
 .conflict-action .btn {
-    font-size: 0.68rem;
-    padding: 2px 8px;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    min-height: 28px;
 }
 
 .conflict-stuck {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--text-tertiary);
     font-style: italic;
 }
@@ -600,7 +601,7 @@
 }
 
 .group-override .why {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--text-tertiary);
     line-height: 1.5;
 }
@@ -719,6 +720,8 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 }
 
 .calendar-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: var(--border-subtle) transparent;
     overflow-y: auto;
@@ -749,7 +752,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
     height: 100%;
     box-sizing: border-box;
     padding: 4px 6px;
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     cursor: grab;
     z-index: 2;
     overflow: hidden;
@@ -804,7 +807,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 
 .calendar-event .event-course {
     font-weight: 700;
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -816,7 +819,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
    theme and lightens it on the dark one, the direction that gains contrast
    in both. */
 .calendar-event .event-type {
-    font-size: 0.54rem;
+    font-size: 0.65rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -839,11 +842,19 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 
 .calendar-event .event-time,
 .calendar-event .event-room {
-    font-size: 0.58rem;
+    font-size: 0.68rem;
+}
+
+/* Time and type share a line, time first, so a one-hour block keeps its room
+   in view at readable sizes and a long type is cut before the time is. */
+.calendar-event .event-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .calendar-event .event-pin {
-    font-size: 0.55rem;
+    font-size: 0.65rem;
     flex-shrink: 0;
 }
 
@@ -856,12 +867,15 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
     padding-right: 20px;
 }
 
+/* Decorative: the block's own label says "clash", and a button inside the
+   block's button was two controls in one (WCAG 4.1.2). A tap on it still
+   opens the resolve dialog, through the block's click handler. */
 .clash-badge {
     position: absolute;
     top: 2px;
     right: 2px;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     border: none;
     background: var(--accent-red);
@@ -1064,7 +1078,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 }
 
 .resolve-side-type {
-    font-size: 0.64rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -1072,14 +1086,14 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 }
 
 .resolve-pinned {
-    font-size: 0.62rem;
+    font-size: 0.75rem;
     color: var(--text-tertiary);
     margin-left: auto;
     white-space: nowrap;
 }
 
 .resolve-side-title {
-    font-size: 0.68rem;
+    font-size: 0.78rem;
     color: var(--text-tertiary);
     margin: 3px 0 0;
     overflow: hidden;
@@ -1148,12 +1162,12 @@ button.resolve-option:focus-visible {
 }
 
 .resolve-option .ro-where {
-    font-size: 0.66rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
 }
 
 .resolve-option .ro-note {
-    font-size: 0.64rem;
+    font-size: 0.75rem;
 }
 
 .resolve-option .ro-note.ok { color: var(--accent-green); }
@@ -1163,7 +1177,7 @@ button.resolve-option:focus-visible {
 
 .resolve-option .ro-note em {
     font-style: normal;
-    font-size: 0.6rem;
+    font-size: 1em;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -1205,12 +1219,13 @@ button.resolve-option:focus-visible {
 .sitting-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    padding: 6px 8px;
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
     border-radius: 6px;
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     flex-shrink: 0;
 }
 
@@ -1224,24 +1239,33 @@ button.resolve-option:focus-visible {
     white-space: nowrap;
 }
 
+/* Room and group wrap rather than clip: a cut-off room is a wrong room. */
 .sitting-where {
     color: var(--text-secondary);
-    font-size: 0.66rem;
+    font-size: 0.78rem;
     flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 6rem;
+    overflow-wrap: anywhere;
 }
 
 .sitting-state {
-    font-size: 0.62rem;
-    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
     white-space: nowrap;
 }
 
+.sitting-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* At least 28px tall: they were about 20 (WCAG 2.5.8 asks for 24). */
 .sitting-row .btn {
-    font-size: 0.64rem;
-    padding: 1px 8px;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    min-height: 28px;
     white-space: nowrap;
 }
 
@@ -1275,7 +1299,8 @@ button.resolve-option:focus-visible {
 .mode-card:focus-visible {
     border-color: var(--border-medium);
     background: var(--bg-elevated);
-    outline: none;
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
 }
 
 .mode-card h3 {
@@ -1305,6 +1330,7 @@ button.resolve-option:focus-visible {
 
 .picker-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
@@ -1313,7 +1339,8 @@ button.resolve-option:focus-visible {
 }
 
 .picker-head input {
-    flex: 1;
+    flex: 1 1 12rem;
+    min-width: 0;
     background: var(--bg-deep);
     border: 1px solid var(--border-subtle);
     color: var(--text-primary);
@@ -1357,8 +1384,8 @@ button.resolve-option:focus-visible {
 
 .picker-check {
     margin: 0 0 0 14px;
-    width: 15px;
-    height: 15px;
+    width: 22px;
+    height: 22px;
     accent-color: var(--accent-cyan);
     cursor: pointer;
 }
@@ -1456,7 +1483,7 @@ button.resolve-option:focus-visible {
 }
 
 .paste-preview h4 {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-tertiary);
@@ -1491,7 +1518,7 @@ button.resolve-option:focus-visible {
 }
 
 .picker-meta {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1500,7 +1527,7 @@ button.resolve-option:focus-visible {
 
 .picker-right {
     text-align: right;
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     color: var(--text-tertiary);
     white-space: nowrap;
 }
@@ -1571,7 +1598,31 @@ button.resolve-option:focus-visible {
     margin-top: 4px;
     padding-left: 21px;
     color: var(--text-secondary);
-    font-size: 0.7rem;
+    font-size: 0.78rem;
+}
+
+.toast-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.toast-undo { min-height: 32px; }
+
+.toast-close {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-secondary);
+}
+
+.toast-close:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
 }
 
 @keyframes toast-in {
@@ -1591,6 +1642,64 @@ button.resolve-option:focus-visible {
     .picker-code { grid-column: 1; }
     .picker-right { grid-column: 2; grid-row: 1 / span 2; }
     .picker-name { grid-column: 1 / -1; }
+}
+
+/* The week grid needs room for seven days. A phone shows one instead: the
+   week at phone width was seven 90px columns in a sideways scroller, inside
+   a 70vh vertical one, and "COMP 2602" was cut to "COMI". */
+@media (min-width: 768px) {
+    .calendar-wrapper { min-width: 700px; }
+}
+
+.day-strip { display: none; }
+
+.day-button {
+    min-height: 44px;
+    padding: 4px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 1px solid var(--border-medium);
+    border-radius: 6px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.day-button .day-date { font-weight: 600; font-size: 0.9rem; }
+.day-button .day-count { color: var(--text-secondary); font-size: 0.72rem; }
+
+.day-button[aria-pressed="true"] {
+    border-color: var(--accent-cyan);
+    background: var(--accent-cyan-dim);
+}
+
+.day-button:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+
+@media (max-width: 767.98px) {
+    .day-strip {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+        margin: 0 0 10px;
+    }
+
+    /* The page scrolls, not a box inside it. */
+    .calendar-scroll-wrapper {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .events-list-column,
+    .events-detail-column {
+        max-height: none !important;
+    }
 }
 
 /* Responsive: stack on small screens */
@@ -1760,7 +1869,7 @@ button.resolve-option:focus-visible {
                 <i class="bi bi-upload me-1"></i> Add a PDF
             </a>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose"
-                    aria-label="Close the course picker">Done</button>
+                    title="Close the course picker">Done</button>
         </div>
 
         <div class="picker-paste" id="pickerPaste" style="display: none;">
@@ -1773,7 +1882,7 @@ button.resolve-option:focus-visible {
             </button>
         </div>
 
-        <div class="picker-status" id="pickerStatus">Loading courses...</div>
+        <div class="picker-status" id="pickerStatus" role="status">Loading courses...</div>
         <ul class="picker-results" id="pickerResults" aria-label="Search results"></ul>
 
         <div class="picker-actions" id="pickerActions" style="display: none;">
@@ -1870,8 +1979,10 @@ button.resolve-option:focus-visible {
             <i class="bi bi-pin-angle-fill" style="margin-left: 8px;" aria-hidden="true"></i> Locked (you chose this)
             <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
         </p>
-        <div class="calendar-scroll-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-            <div id="calendarWrapper" class="calendar-wrapper" style="min-width: 700px;">
+        <!-- A phone shows one day at a time; these pick which. -->
+        <div class="day-strip" id="dayStrip" aria-label="Day"></div>
+        <div class="calendar-scroll-wrapper">
+            <div id="calendarWrapper" class="calendar-wrapper">
                 <!-- 7 day columns -->
             </div>
         </div>
@@ -1902,9 +2013,9 @@ button.resolve-option:focus-visible {
             <div class="events-list-column">
                 <div class="events-list-header">
                     <span><i class="bi bi-list me-1"></i> My classes (<span id="eventCount">0</span>)</span>
-                    <input type="text" id="searchBox" placeholder="Search..." style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; width: 120px;">
+                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; width: min(100%, 11rem); min-height: 28px;">
                 </div>
-                <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="Event list" tabindex="0">
+                <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="My classes">
                     <!-- Event list items rendered by JS -->
                 </div>
             </div>
@@ -1916,20 +2027,21 @@ button.resolve-option:focus-visible {
                     <p>No event selected</p>
                     <p class="hint">Select a class here or tap one on the grid</p>
                 </div>
-                <div id="detailContent" class="detail-content" style="display: none;" role="region" aria-label="Event details" aria-live="polite">
+                <div id="detailContent" class="detail-content" style="display: none;" role="region" aria-label="Event details">
                     <!-- Detail content rendered by JS -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toasts -->
-    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 
 </div>
 {% endblock %}
 
 {% block body_end %}
+<!-- Toasts. A direct child of <body>, so a dialog can leave it un-inert and
+     a note about what the dialog just did is still announced and tappable. -->
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 <!--
   Filled by renderPrintView() on every render, shown only to a printer.
   Direct child of <body> so the `body > *:not(#printView)` rule in print.css
@@ -2000,6 +2112,17 @@ button.resolve-option:focus-visible {
     //: The week the grid shows. It opens on the current teaching week.
     let shownWeek = teaching ? teachingWeekOf(todayIso(), weekOne, totalWeeks) : null;
 
+    //: A phone shows one day at a time, the one picked in the day strip.
+    const phoneQuery = window.matchMedia('(max-width: 767.98px)');
+    let shownDay = defaultDayIndex(todayIso(), shownWeek, weekOne);
+
+    /** The date of the day a phone shows, dated or in the anchor week. */
+    function shownDate() {
+        return teaching
+            ? dateOfTeachingDay(shownWeek, DAYS[shownDay], weekOne)
+            : dateOfTeachingDay(1, DAYS[shownDay], ANCHOR_MONDAY);
+    }
+
     /** Monday of the week shown, which is where the grid draws classes. */
     function shownMonday() {
         return teaching ? dateOfTeachingDay(shownWeek, 'Monday', weekOne) : ANCHOR_MONDAY;
@@ -2019,10 +2142,18 @@ button.resolve-option:focus-visible {
         }
 
         calendar = new FullCalendar.Calendar(calendarWrapper, {
-            initialView: 'timeGridWeek',
+            initialView: phoneQuery.matches ? 'timeGridDay' : 'timeGridWeek',
             // The week shown. Without semester dates it is the anchor week,
             // dated internally and never shown.
-            initialDate: shownMonday(),
+            initialDate: phoneQuery.matches ? shownDate() : shownMonday(),
+            // A phone's one day is headed with its full name and date.
+            views: {
+                timeGridDay: {
+                    dayHeaderFormat: teaching
+                        ? { weekday: 'long', day: 'numeric', month: 'long' }
+                        : { weekday: 'long' },
+                },
+            },
             firstDay: 1,
             // The week bar above the grid does the navigating.
             headerToolbar: false,
@@ -2070,6 +2201,7 @@ button.resolve-option:focus-visible {
             eventClick: onBlockClick,
             eventDidMount: arg => {
                 const p = arg.event.extendedProps;
+                if (!p.dated) arg.el.dataset.eventKey = arg.event.id;
                 const bits = [p.label, p.type || '', `${p.day} ${displayTime(p.startTime)} to ${displayTime(p.endTime)}`];
                 if (p.room) bits.push(p.room);
                 if (p.clash) bits.push('clash');
@@ -2151,12 +2283,10 @@ button.resolve-option:focus-visible {
         const stale = course && course.stale;
         return { html: `
             <div class="event-course">${escapeHtml(p.label)}${p.pinned ? '<i class="bi bi-pin-angle-fill event-pin" title="Locked: you chose this time"></i>' : ''}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
-            <div class="event-type">${escapeHtml(p.type || 'Event')}</div>
-            <div class="event-time">${escapeHtml(displayTimeRange(p.startTime, p.endTime))}</div>
+            <div class="event-meta"><span class="event-time">${escapeHtml(displayTimeRange(p.startTime, p.endTime))}</span> · <span class="event-type">${escapeHtml(p.type || 'Event')}</span></div>
             ${p.room ? `<div class="event-room">${escapeHtml(p.room)}</div>` : ''}
-            ${p.clash ? `<button type="button" class="clash-badge"
-                title="Clashes with another class. Resolve it."
-                aria-label="Resolve the clash on this class"><i class="bi bi-exclamation"></i></button>` : ''}
+            ${p.clash ? `<span class="clash-badge" aria-hidden="true"
+                title="Clashes with another class. Tap to fix it."><i class="bi bi-exclamation"></i></span>` : ''}
         ` };
     }
 
@@ -2202,7 +2332,7 @@ button.resolve-option:focus-visible {
                 data-session-id="${escapeHtml(String(event.sessionId))}"
                 role="option"
                 aria-selected="${isSelected}"
-                tabindex="0">
+                tabindex="-1">
                 <span class="event-dot ${typeClass}"></span>
                 <span class="event-list-time">${event.day.substring(0,3)} ${escapeHtml(displayTime(event.startTime))}</span>
                 <span class="event-list-course">${escapeHtml(event.courseTitle || '?')}</span>
@@ -2211,6 +2341,12 @@ button.resolve-option:focus-visible {
         });
 
         listEl.innerHTML = html;
+        // One tab stop for the whole list, on the selected row or the first;
+        // the arrow keys move between rows. Every row used to be its own tab
+        // stop, so tabbing past a twelve-class list took twelve presses.
+        const rows = listEl.querySelectorAll('.event-list-item');
+        const current = listEl.querySelector('.event-list-item.selected') || rows[0];
+        if (current) current.tabIndex = 0;
     }
 
     // One delegated listener instead of per-row inline handlers, and a single
@@ -2221,11 +2357,21 @@ button.resolve-option:focus-visible {
         if (row) showEventDetail(row.dataset.groupId, parseSessionId(row.dataset.sessionId));
     });
     document.getElementById('eventsList').addEventListener('keydown', event => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
         const row = event.target.closest('.event-list-item');
         if (!row) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            showEventDetail(row.dataset.groupId, parseSessionId(row.dataset.sessionId));
+            return;
+        }
+        const rows = [...document.querySelectorAll('#eventsList .event-list-item')];
+        const at = rows.indexOf(row);
+        const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: rows.length - 1 }[event.key];
+        if (to === undefined || !rows[to]) return;
         event.preventDefault();
-        showEventDetail(row.dataset.groupId, parseSessionId(row.dataset.sessionId));
+        rows.forEach(r => { r.tabIndex = -1; });
+        rows[to].tabIndex = 0;
+        rows[to].focus();
     });
 
     /**
@@ -2275,7 +2421,10 @@ button.resolve-option:focus-visible {
         if (item) {
             item.classList.add('selected');
             item.setAttribute('aria-selected', 'true');
-            item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            item.scrollIntoView({
+                block: 'nearest',
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            });
         }
     }
 
@@ -2326,9 +2475,24 @@ button.resolve-option:focus-visible {
             const mode = regroup.classList.contains('group-split') ? 'split' : null;
             state.setOptionGroupOverride(courseKey, type, mode);
             toast(`Regrouped ${courseKey} ${String(type).toLowerCase()}.`,
-                  'Saved with your timetable. Ctrl+Z to undo.');
+                  'Saved with your timetable.', undefined, { undo: true });
             // The old group ids are gone, so there is nothing left to show.
             ctx.close();
+            return;
+        }
+
+        const use = event.target.closest('.sitting-use');
+        if (use) {
+            const groupId = use.dataset.groupId;
+            const target = parseSessionId(use.dataset.sessionId);
+            state.moveEvent(groupId, target, parseSessionId(use.dataset.fromSessionId));
+            const moved = state.getPlacedEventDetails(groupId, target);
+            if (moved) {
+                toast(`Moved to ${moved.day.slice(0, 3)} ${displayTimeRange(moved.startTime, moved.endTime)}.`,
+                      'It stays there now.', undefined, { undo: true });
+                // The details follow the class to its new time.
+                ctx.show(groupId, target);
+            }
             return;
         }
 
@@ -2336,7 +2500,7 @@ button.resolve-option:focus-visible {
         if (add) {
             if (state.addSitting(add.dataset.groupId,
                     parseSessionId(add.dataset.sessionId))) {
-                toast('Added that time too.', 'Ctrl+Z takes it back off.');
+                toast('Added that time too.', '', undefined, { undo: true });
                 // Redrawn so the row flips to "Remove".
                 ctx.rerender();
             }
@@ -2348,7 +2512,7 @@ button.resolve-option:focus-visible {
             state.removePlacement(
                 dropSitting.dataset.groupId,
                 parseSessionId(dropSitting.dataset.sessionId));
-            toast('Removed that time.', 'Ctrl+Z puts it back.');
+            toast('Removed that time.', '', undefined, { undo: true });
             ctx.rerender();
             return;
         }
@@ -2361,8 +2525,8 @@ button.resolve-option:focus-visible {
             if (removed) {
                 const gone = !state.placements.some(p => p.groupId === groupId);
                 toast('Class removed.', gone
-                    ? 'It will not come back on its own. Ctrl+Z puts it back now.'
-                    : 'Ctrl+Z puts it back.');
+                    ? 'It will not come back on its own.'
+                    : '', undefined, { undo: true });
                 ctx.close();
             }
             return;
@@ -2396,9 +2560,57 @@ button.resolve-option:focus-visible {
                     selectedEventKey.slice(0, at),
                     parseSessionId(selectedEventKey.slice(at + 1)));
             },
+            show: (groupId, sessionId) => showEventDetail(groupId, sessionId),
             close: closeDetailPanel,
         });
     });
+
+    // Dialogs: the page behind is inert while one is open
+
+    //: What was made inert for the open dialog, to be given back on close.
+    let inertBehindDialog = [];
+
+    /**
+     * Shut the page behind a dialog off from focus and pointer.
+     *
+     * The dialogs said aria-modal but nothing enforced it: Tab walked out of
+     * the dialog into the page underneath. `inert` on everything beside the
+     * overlay keeps focus inside, for keyboard and screen reader alike.
+     */
+    function holdFocusIn(overlay) {
+        releaseFocusHold();
+        inertBehindDialog = [...document.body.children]
+            .filter(el => el !== overlay && el.id !== 'toastStack' && !el.inert);
+        inertBehindDialog.forEach(el => { el.inert = true; });
+    }
+
+    function releaseFocusHold() {
+        inertBehindDialog.forEach(el => { el.inert = false; });
+        inertBehindDialog = [];
+    }
+
+    /**
+     * Put focus back where the dialog was opened from.
+     *
+     * That element is often gone: the grid redraws on every change, so the
+     * block that was tapped is replaced while the dialog is open, and focus
+     * fell to the top of the page. Failing the original, the class's block
+     * as it is now, then its row in the list.
+     */
+    function returnFocus(original, key) {
+        if (original && document.contains(original)) {
+            original.focus();
+            return;
+        }
+        if (!key) return;
+        const at = key.lastIndexOf(' ');
+        const block = document.querySelector(`[data-event-key="${CSS.escape(key)}"]`);
+        const row = document.querySelector(
+            `.event-list-item[data-group-id="${CSS.escape(key.slice(0, at))}"]` +
+            `[data-session-id="${CSS.escape(key.slice(at + 1))}"]`);
+        const target = block || row;
+        if (target) target.focus();
+    }
 
     // The detail dialog
 
@@ -2437,6 +2649,7 @@ button.resolve-option:focus-visible {
         document.body.appendChild(overlay);
 
         detailReturnFocus = document.activeElement;
+        holdFocusIn(overlay);
         const closeButton = overlay.querySelector('.resolve-close');
         if (closeButton) closeButton.focus();
 
@@ -2445,14 +2658,27 @@ button.resolve-option:focus-visible {
                 closeDetailDialog();
                 return;
             }
+            const redraw = () => {
+                const body = overlay.querySelector('.detail-content');
+                const fresh = buildDetailModel(groupId, sessionId, 'Dialog');
+                if (fresh && body) {
+                    body.innerHTML = renderEventDetail(fresh);
+                } else {
+                    closeDetailDialog();
+                }
+            };
             handleDetailAction(event, {
-                rerender: () => {
-                    const body = overlay.querySelector('.detail-content');
-                    const fresh = buildDetailModel(groupId, sessionId, 'Dialog');
-                    if (fresh && body) {
-                        body.innerHTML = renderEventDetail(fresh);
-                    } else {
-                        closeDetailDialog();
+                rerender: redraw,
+                show: (movedGroup, movedSession) => {
+                    groupId = movedGroup;
+                    sessionId = movedSession;
+                    selectedEventKey = eventKeyOf(groupId, sessionId);
+                    redraw();
+                    // The button that was pressed is gone with the redraw.
+                    const heading = overlay.querySelector('.detail-course-title');
+                    if (heading) {
+                        heading.setAttribute('tabindex', '-1');
+                        heading.focus();
                     }
                 },
                 close: closeDetailDialog,
@@ -2464,9 +2690,8 @@ button.resolve-option:focus-visible {
         const overlay = document.querySelector('.detail-overlay');
         if (!overlay) return;
         overlay.remove();
-        if (detailReturnFocus && document.contains(detailReturnFocus)) {
-            detailReturnFocus.focus();
-        }
+        releaseFocusHold();
+        returnFocus(detailReturnFocus, selectedEventKey);
         detailReturnFocus = null;
     }
 
@@ -2555,13 +2780,13 @@ button.resolve-option:focus-visible {
         const fixable = conflicts.filter(c => c.resolvable);
         const stuck = conflicts.filter(c => !c.resolvable);
         if (fixable.length) {
-            html += `<h4 class="conflict-heading">${fixable.length} can be fixed</h4>`;
+            html += `<h2 class="conflict-heading">${fixable.length} can be fixed</h2>`;
         }
         html += conflicts
             .map((c, i) => (c.resolvable ? conflictItemHtml(c, i) : ''))
             .join('');
         if (stuck.length) {
-            html += `<h4 class="conflict-heading stuck">${stuck.length} cannot be avoided</h4>`;
+            html += `<h2 class="conflict-heading stuck">${stuck.length} cannot be avoided</h2>`;
         }
         html += conflicts
             .map((c, i) => (!c.resolvable ? conflictItemHtml(c, i) : ''))
@@ -2610,6 +2835,33 @@ button.resolve-option:focus-visible {
         absent.hidden = !text;
         absent.textContent = text;
     }
+
+    /** The phone's day buttons. Hidden by CSS on wider screens. */
+    function renderDayStrip(weekEvents) {
+        const strip = document.getElementById('dayStrip');
+        strip.innerHTML = dayStrip(weekEvents, shownWeek, weekOne).map(d => {
+            const date = d.dayOfMonth ? ` ${d.dayOfMonth}` : '';
+            const classes = d.count === 1 ? '1 class' : `${d.count} classes`;
+            return `<button type="button" class="day-button" data-day="${d.index}"
+                    aria-pressed="${d.index === shownDay}" aria-label="${escapeHtml(d.day + date)}, ${classes}">
+                <span class="day-name">${escapeHtml(d.short)}</span>
+                ${d.dayOfMonth ? `<span class="day-date">${d.dayOfMonth}</span>` : ''}
+                <span class="day-count">${d.count || '–'}</span>
+            </button>`;
+        }).join('');
+    }
+
+    document.getElementById('dayStrip').addEventListener('click', event => {
+        const button = event.target.closest('.day-button');
+        if (!button) return;
+        shownDay = Number(button.dataset.day);
+        renderEvents();
+        const again = document.querySelector(`.day-button[data-day="${shownDay}"]`);
+        if (again) again.focus();
+    });
+
+    // Turning a phone sideways, or narrowing a window, swaps day and week.
+    phoneQuery.addEventListener('change', () => renderEvents());
 
     function showWeek(week) {
         if (!teaching) return;
@@ -2685,6 +2937,7 @@ button.resolve-option:focus-visible {
         document.body.appendChild(overlay);
 
         resolveReturnFocus = document.activeElement;
+        holdFocusIn(overlay);
         const first = overlay.querySelector('button.resolve-option')
             || overlay.querySelector('.resolve-close');
         if (first) first.focus();
@@ -2701,7 +2954,7 @@ button.resolve-option:focus-visible {
                 parseSessionId(option.dataset.sessionId),
                 parseSessionId(option.dataset.fromSessionId)
             );
-            toast('Moved it.', 'It stays where you put it. Ctrl+Z to undo.');
+            toast('Moved it.', 'It stays where you put it.', undefined, { undo: true });
             closeResolveDialog();
         });
     }
@@ -2710,9 +2963,8 @@ button.resolve-option:focus-visible {
         const overlay = document.querySelector('.resolve-overlay');
         if (!overlay) return;
         overlay.remove();
-        if (resolveReturnFocus && document.contains(resolveReturnFocus)) {
-            resolveReturnFocus.focus();
-        }
+        releaseFocusHold();
+        returnFocus(resolveReturnFocus, null);
         resolveReturnFocus = null;
     }
 
@@ -2805,6 +3057,7 @@ button.resolve-option:focus-visible {
             // An empty list and an empty detail panel say nothing the empty
             // state does not, so they wait until there is a class to show.
             document.getElementById('eventsPanel').hidden = true;
+            document.getElementById('dayStrip').innerHTML = '';
             if ($emptyState) $emptyState.style.display = 'block';
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
@@ -2845,12 +3098,16 @@ button.resolve-option:focus-visible {
             cal.batchRendering(() => {
                 cal.setOption('slotMinTime', range.slotMinTime);
                 cal.setOption('slotMaxTime', range.slotMaxTime);
-                cal.gotoDate(shownMonday());
+                const view = phoneQuery.matches ? 'timeGridDay' : 'timeGridWeek';
+                const date = phoneQuery.matches ? shownDate() : shownMonday();
+                if (cal.view.type !== view) cal.changeView(view, date);
+                else cal.gotoDate(date);
                 cal.removeAllEventSources();
                 cal.addEventSource(toCalendarEvents(weekEvents, clashKeys, shownMonday()).concat(datedEvents));
             });
         }
         renderWeekBar(events);
+        renderDayStrip(weekEvents.concat(datedEvents.map(e => e.extendedProps)));
 
         renderEventsList(events, filter);
         renderConflicts();
@@ -2880,19 +3137,49 @@ button.resolve-option:focus-visible {
      * said out loud: how many classes went down, and whether any of them
      * clashed with what was already there.
      */
-    function toast(message, detail, tone) {
+    function toast(message, detail, tone, options) {
         const $stack = document.getElementById('toastStack');
+        const undo = Boolean(options && options.undo);
         const note = document.createElement('div');
+        // No role of its own: the stack is the one live region. A role=status
+        // inside an aria-live stack was two regions announcing one note.
         note.className = 'toast-note' + (tone ? ' ' + tone : '');
-        note.setAttribute('role', 'status');
         const icon = { warn: 'bi-exclamation-triangle', bad: 'bi-x-circle' }[tone]
             || 'bi-check-circle';
         note.innerHTML =
-            `<div class="toast-line"><i class="bi ${icon}"></i>` +
+            `<div class="toast-line"><i class="bi ${icon}" aria-hidden="true"></i>` +
             `<span>${escapeHtml(message)}</span></div>` +
-            (detail ? `<small>${escapeHtml(detail)}</small>` : '');
+            (detail ? `<small>${escapeHtml(detail)}</small>` : '') +
+            `<div class="toast-actions">` +
+            (undo ? `<button type="button" class="btn btn-outline-info btn-sm toast-undo">Undo</button>` : '') +
+            `<button type="button" class="toast-close" aria-label="Dismiss">` +
+            `<i class="bi bi-x-lg" aria-hidden="true"></i></button></div>`;
         $stack.appendChild(note);
-        setTimeout(() => note.remove(), 6000);
+
+        // "Ctrl+Z" means nothing on a phone, so a change that can be undone
+        // says Undo where the student can tap it. A note with something to do
+        // stays longer, never leaves while pointed at or focused, and an error
+        // stays until dismissed: six seconds was the only record of
+        // "not published: X" (WCAG 2.2.1).
+        let timer = null;
+        const leave = () => { clearTimeout(timer); note.remove(); };
+        const wait = () => {
+            clearTimeout(timer);
+            if (tone !== 'bad') timer = setTimeout(leave, undo ? 10000 : 6000);
+        };
+        note.addEventListener('mouseenter', () => clearTimeout(timer));
+        note.addEventListener('mouseleave', wait);
+        note.addEventListener('focusin', () => clearTimeout(timer));
+        note.addEventListener('focusout', wait);
+        note.querySelector('.toast-close').addEventListener('click', leave);
+        const undoButton = note.querySelector('.toast-undo');
+        if (undoButton) {
+            undoButton.addEventListener('click', () => {
+                if (state) state.undo();
+                leave();
+            });
+        }
+        wait();
     }
 
     // Course picker
@@ -3142,8 +3429,8 @@ button.resolve-option:focus-visible {
         if (clashes) detail.push(`${clashes} clash${clashes === 1 ? '' : 'es'} to sort out`);
 
         toast(`Added ${n} course${n === 1 ? '' : 's'}.`,
-              detail.length ? detail.join('. ') + '.' : 'Ctrl+Z takes the whole batch back.',
-              notFound.length || clashes ? 'warn' : undefined);
+              detail.length ? detail.join('. ') + '.' : '',
+              notFound.length || clashes ? 'warn' : undefined, { undo: true });
     }
 
     // Paste a list
@@ -3235,7 +3522,7 @@ button.resolve-option:focus-visible {
 
     function removeCourse(courseKey) {
         if (!state || !state.removeCourse(courseKey)) return;
-        toast(`${courseKey} removed.`, 'Ctrl+Z puts it back.');
+        toast(`${courseKey} removed.`, '', undefined, { undo: true });
         renderPickerResults();
     }
 
@@ -3559,15 +3846,12 @@ button.resolve-option:focus-visible {
         if (!state) return;
         const count = state.courseKeys.length;
         if (!count) return;
-        // Confirmed because it throws away work, but still undoable, and
-        // saying so is what makes the confirmation answerable.
-        const ask = `Remove all ${count} course${count === 1 ? '' : 's'} and `
-            + 'start over?\n\nCtrl+Z undoes this.';
-        if (!confirm(ask)) return;
-
+        // Not confirmed: it is one Undo away, and the Undo button sits in the
+        // note that says it happened. A confirm box asked the same question
+        // the button already had, and Remove COURSE never asked at all.
         state.clearAll();
         if ($searchBox) $searchBox.value = '';
-        toast('Timetable cleared.', 'Ctrl+Z to undo.');
+        toast(`Removed all ${count} course${count === 1 ? '' : 's'}.`, '', undefined, { undo: true });
     });
 
     $undoBtn.addEventListener('click', () => { if (state) state.undo(); });
