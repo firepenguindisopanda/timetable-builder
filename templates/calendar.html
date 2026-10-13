@@ -269,11 +269,11 @@
         <!-- Legend, beside the grid it explains -->
         <p class="calendar-legend">
             <span class="legend-dot" style="background: var(--type-lecture);"></span>Lecture
-            <span class="legend-dot" style="background: var(--type-lab); margin-left: 8px;"></span>Lab
-            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: 8px;"></span>Tutorial
-            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: 8px;"></span>Other
-            <i class="bi bi-pin-angle-fill" style="margin-left: 8px;" aria-hidden="true"></i> Locked (you chose this)
-            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: 8px;"></span>Clash
+            <span class="legend-dot" style="background: var(--type-lab); margin-left: var(--space-2);"></span>Lab
+            <span class="legend-dot" style="background: var(--type-tutorial); margin-left: var(--space-2);"></span>Tutorial
+            <span class="legend-dot" style="background: var(--text-tertiary); margin-left: var(--space-2);"></span>Other
+            <i class="bi bi-pin-angle-fill" style="margin-left: var(--space-2);" aria-hidden="true"></i> Locked (you chose this)
+            <span class="legend-dot" style="background: var(--accent-red); border-radius: 50%; margin-left: var(--space-2);"></span>Clash
         </p>
         <!-- A phone shows one day at a time; these pick which. -->
         <div class="day-strip" id="dayStrip" aria-label="Day"></div>
@@ -286,7 +286,7 @@
 
     <!-- Empty -->
     <div id="emptyState" class="text-center py-4" style="display: none; max-width: 420px; margin: 0 auto;">
-        <p class="mt-3" style="color: var(--text-secondary); font-size: 0.9rem;">
+        <p class="mt-3" style="color: var(--text-secondary); font-size: var(--text-sm);">
             Nothing on your timetable yet.
         </p>
     </div>
@@ -307,7 +307,7 @@
             <div class="events-list-column">
                 <div class="events-list-header">
                     <span>My classes (<span id="eventCount">0</span>)</span>
-                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: var(--r-md); font-size: 0.8rem; width: min(100%, 11rem); min-height: 28px;">
+                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: var(--space-1) var(--space-2); border-radius: var(--r-md); font-size: var(--text-sm); width: min(100%, 11rem); min-height: 28px;">
                 </div>
                 <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="My classes">
                     <!-- Event list items rendered by JS -->
@@ -672,7 +672,7 @@
         const countEl = document.getElementById('eventCount');
 
         if (!events || events.length === 0) {
-            listEl.innerHTML = '<div style="padding: 20px; color: var(--text-tertiary); text-align: center;">No events</div>';
+            listEl.innerHTML = '<div style="padding: var(--space-6); color: var(--text-tertiary); text-align: center;">No events</div>';
             countEl.textContent = '0';
             return;
         }

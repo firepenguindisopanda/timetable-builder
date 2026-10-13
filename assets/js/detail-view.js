@@ -204,7 +204,7 @@ function _sittingsSectionHtml(details, sessions, attendedIds, effects) {
   return `<div class="detail-section">
       <h4 class="detail-section-title">All times (${sessions.length})</h4>
       <div class="sittings-list">${rows.join('')}</div>
-      <div class="detail-field" style="padding-top: 8px;">
+      <div class="detail-field" style="padding-top: var(--space-2);">
           <span class="detail-field-value empty">${escapeDetail(hint)}</span>
       </div>
     </div>`;
@@ -330,7 +330,7 @@ function renderEventDetail(model) {
   // Two sizes of removal, smallest first. Taking one class off is the
   // everyday act; taking the whole course is the destructive one and keeps
   // the red.
-  html += `<div class="detail-section" style="display: flex; gap: 8px; flex-wrap: wrap;">
+  html += `<div class="detail-section" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
       ${resolveButton}
       <button type="button" class="btn btn-outline-secondary btn-sm detail-remove-class"
           data-group-id="${escapeDetail(details.groupId)}"

@@ -75,7 +75,7 @@
             <td>
               {{ s.activity_type or '-' }}
               {% if s.stream_label %}<span class="chip chip--stream">{{ s.stream_label }}</span>{% endif %}
-              {% if s.notes %}<div class="muted" style="font-size:0.74rem;">{{ s.notes }}</div>{% endif %}
+              {% if s.notes %}<div class="muted" style="font-size:var(--text-xs);">{{ s.notes }}</div>{% endif %}
             </td>
             <td>{{ ui.room_link(s.room) }}</td>
             <td>{{ ui.staff_links(s.staff) }}</td>

@@ -93,13 +93,13 @@
         {% endif %}
       </div>
 
-      <label class="search" style="margin-top:1.25rem; max-width:26rem;">
+      <label class="search" style="margin-top:var(--space-6); max-width:26rem;">
         <input type="search" id="changesFilter" autocomplete="off"
                placeholder="Search a course code, title or room"
                aria-label="Search changes" aria-controls="changesList">
       </label>
       <p class="result-count" id="changesCount" role="status" aria-live="polite"
-         style="margin:0.6rem 0 0;"></p>
+         style="margin:var(--space-2) 0 0;"></p>
     {% endif %}
   </header>
 

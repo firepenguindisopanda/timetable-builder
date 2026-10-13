@@ -17,19 +17,19 @@
         <div class="loading-overlay" id="extractLoading">
             <div class="text-center">
                 <div class="spinner-border" role="status"></div>
-                <div class="mt-2" style="font-size: 0.8rem; color: var(--text-tertiary);">Extracting…</div>
+                <div class="mt-2" style="font-size: var(--text-sm); color: var(--text-tertiary);">Extracting…</div>
             </div>
         </div>
 
         <form id="extractForm" class="p-4">
             <div class="upload-zone mb-3" id="uploadZone">
                 <i class="bi bi-file-earmark-pdf"></i>
-                <div style="font-weight: 500; font-size: 0.85rem; margin-bottom: 0.25rem;">Drop PDFs here or click to browse</div>
-                <div style="font-size: 0.72rem; color: var(--text-tertiary);">Supports multiple files</div>
+                <div style="font-weight: 500; font-size: var(--text-sm); margin-bottom: var(--space-1);">Drop PDFs here or click to browse</div>
+                <div style="font-size: var(--text-xs); color: var(--text-tertiary);">Supports multiple files</div>
                 <label for="pdfFiles" class="upload-label-trigger"></label>
                 <input type="file" id="pdfFiles" multiple accept=".pdf" class="d-none">
             </div>
-            <div id="fileList" class="mb-3" style="font-size: 0.8rem;"></div>
+            <div id="fileList" class="mb-3" style="font-size: var(--text-sm);"></div>
             <button type="submit" class="btn btn-accent w-100" id="extractBtn" disabled>
                 Extract Timetables
             </button>
@@ -102,12 +102,12 @@
                 const entries = result.entries || [];
                 
                 html += `<div class="mb-3">`;
-                html += `<div class="d-flex align-items-center mb-2" style="font-size: 0.85rem; font-weight: 600;">`;
+                html += `<div class="d-flex align-items-center mb-2" style="font-size: var(--text-sm); font-weight: 600;">`;
                 html += `${escapeHtml(filename)}`;
                 if (result.semester) {
-                    html += `<span class="badge ms-2" style="background: var(--accent-cyan-dim); color: var(--accent-cyan); font-size: 0.7rem;">${escapeHtml(result.semester)}</span>`;
+                    html += `<span class="badge ms-2" style="background: var(--accent-cyan-dim); color: var(--accent-cyan); font-size: var(--text-xs);">${escapeHtml(result.semester)}</span>`;
                 }
-                html += `<span class="ms-auto" style="font-size: 0.72rem; color: var(--text-tertiary);">${entries.length} entries</span>`;
+                html += `<span class="ms-auto" style="font-size: var(--text-xs); color: var(--text-tertiary);">${entries.length} entries</span>`;
                 html += `</div>`;
                 
                 if (entries.length > 0) {
@@ -154,7 +154,7 @@
         html += '</tbody></table></div>';
         
         if (records.length > 100) {
-            html += `<p style="font-size: 0.75rem; color: var(--text-tertiary);">Showing first 100 of ${records.length} records</p>`;
+            html += `<p style="font-size: var(--text-xs); color: var(--text-tertiary);">Showing first 100 of ${records.length} records</p>`;
         }
         
         return html;
@@ -168,7 +168,7 @@
             return;
         }
         
-        let html = '<div style="color: var(--text-secondary); margin-bottom: 0.5rem;">Selected files:</div>';
+        let html = '<div style="color: var(--text-secondary); margin-bottom: var(--space-2);">Selected files:</div>';
         selectedFiles.forEach((file, index) => {
             html += `<div class="d-flex align-items-center justify-content-between p-2 mb-1" style="background: var(--bg-deep); border-radius: var(--r-md);">
                 <span>${escapeHtml(file.name)}</span>

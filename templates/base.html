@@ -79,7 +79,8 @@
             background: var(--paper);
             color: var(--ink);
             font-family: var(--font-body);
-            font-size: 0.94rem;
+            /* 16px body text, as on the explorer (REDESIGN-SPEC.md 3, rule 7). */
+            font-size: var(--text-md);
             line-height: 1.55;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -125,8 +126,8 @@
 
         .version-badge {
             font-family: var(--font-data);
-            font-size: 0.6rem;
-            padding: 2px 6px;
+            font-size: var(--text-xs);
+            padding: 2px var(--space-2);
             border-radius: var(--r-sm);
             background: var(--gold-soft);
             color: var(--gold-ink);
@@ -137,9 +138,9 @@
         .api-dot {
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: var(--space-2);
             font-family: var(--font-data);
-            font-size: 0.66rem;
+            font-size: var(--text-xs);
             color: var(--ink-3);
             white-space: nowrap;
         }
@@ -161,7 +162,6 @@
             background: var(--card);
             border: 1px solid var(--rule);
             border-radius: var(--r-lg);
-            box-shadow: var(--shadow);
         }
 
         /*
@@ -281,8 +281,8 @@
             border: 1px solid var(--rule);
             color: var(--ink);
             border-radius: var(--r-md);
-            padding: 0.6rem 0.9rem;
-            font-size: 0.85rem;
+            padding: var(--space-2) var(--space-4);
+            font-size: var(--text-sm);
         }
 
         .form-control::placeholder { color: var(--ink-3); }
@@ -297,16 +297,16 @@
         .form-label {
             font-family: var(--font-data);
             font-weight: 400;
-            font-size: 0.66rem;
+            font-size: var(--text-xs);
             color: var(--ink-3);
-            margin-bottom: 0.4rem;
+            margin-bottom: var(--space-2);
             text-transform: uppercase;
             letter-spacing: 0.1em;
         }
 
-        .form-text { color: var(--ink-3); font-size: 0.72rem; }
+        .form-text { color: var(--ink-3); font-size: var(--text-xs); }
 
-        .form-check-label { color: var(--ink-2); font-size: 0.8rem; }
+        .form-check-label { color: var(--ink-2); font-size: var(--text-sm); }
 
         .form-check-input {
             background-color: var(--paper);
@@ -321,7 +321,7 @@
         .upload-zone {
             border: 1px dashed var(--rule);
             border-radius: var(--r-lg);
-            padding: 2.5rem 1.5rem;
+            padding: var(--space-12) var(--space-6);
             text-align: center;
             cursor: pointer;
             transition: border-color 0.2s ease, background 0.2s ease;
@@ -335,9 +335,9 @@
         }
 
         .upload-zone i {
-            font-size: 2rem;
+            font-size: var(--text-xl);
             color: var(--ink-3);
-            margin-bottom: 0.5rem;
+            margin-bottom: var(--space-2);
             transition: color 0.2s ease;
         }
 
@@ -369,23 +369,23 @@
             --bs-table-hover-bg: var(--paper-sunk);
             --bs-table-hover-color: var(--ink);
             margin-bottom: 0;
-            font-size: 0.8rem;
+            font-size: var(--text-sm);
         }
 
         .table thead th {
             background: var(--card);
             font-family: var(--font-data);
-            font-size: 0.63rem;
+            font-size: var(--text-xs);
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--ink-3);
             font-weight: 400;
             border-bottom: 1px solid var(--rule);
-            padding: 0.7rem 0.6rem;
+            padding: var(--space-3) var(--space-2);
         }
 
         .table tbody td {
-            padding: 0.6rem;
+            padding: var(--space-2);
             vertical-align: middle;
             border-bottom: 1px solid var(--rule-soft);
             color: var(--ink-2);
@@ -398,7 +398,7 @@
             color: var(--gold-ink) !important;
             font-family: var(--font-data);
             font-weight: 500;
-            font-size: 0.65rem;
+            font-size: var(--text-xs);
         }
 
         /* Alerts */
@@ -406,8 +406,8 @@
         .result-alert {
             border-radius: var(--r-md);
             border: 1px solid;
-            font-size: 0.8rem;
-            padding: 0.75rem 1rem;
+            font-size: var(--text-sm);
+            padding: var(--space-3) var(--space-4);
         }
 
         .alert-danger {
@@ -460,13 +460,13 @@
             background: var(--card);
             border: 1px solid var(--rule);
             border-radius: var(--r-md);
-            padding: 0.85rem 1rem;
+            padding: var(--space-3) var(--space-4);
             text-align: center;
         }
 
         .stat-value {
             font-family: var(--font-display);
-            font-size: 1.45rem;
+            font-size: var(--text-lg);
             font-weight: 700;
             letter-spacing: -0.03em;
             line-height: 1.2;
@@ -480,11 +480,11 @@
 
         .stat-label {
             font-family: var(--font-data);
-            font-size: 0.62rem;
+            font-size: var(--text-xs);
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--ink-3);
-            margin-top: 0.25rem;
+            margin-top: var(--space-1);
         }
 
         .fade-up {
@@ -507,16 +507,16 @@
         .text-muted { color: var(--ink-3) !important; }
 
         .section-title {
-            font-size: 0.9rem;
+            font-size: var(--text-sm);
             font-weight: 600;
             color: var(--ink);
-            margin-bottom: 0.25rem;
+            margin-bottom: var(--space-1);
         }
 
         .section-desc {
-            font-size: 0.75rem;
+            font-size: var(--text-xs);
             color: var(--ink-3);
-            margin-bottom: 1rem;
+            margin-bottom: var(--space-4);
         }
 
         /* Left-aligned, as the explorer's titles are: a centred title over
@@ -546,10 +546,10 @@
         .tools-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
+            gap: var(--space-4);
             max-width: 900px;
             margin: 0 auto;
-            padding: 1rem 0;
+            padding: var(--space-4) 0;
         }
 
         .tool-card {
@@ -557,29 +557,27 @@
             background: var(--card);
             border: 1px solid var(--rule);
             border-radius: var(--r-lg);
-            box-shadow: var(--shadow);
-            padding: 1.5rem;
+            padding: var(--space-6);
             text-decoration: none;
             color: var(--ink);
-            transition: border-color 0.2s ease, transform 0.2s ease;
+            transition: border-color 150ms ease-out;
         }
 
         .tool-card:hover {
             border-color: var(--ink-3);
             color: var(--ink);
-            transform: translateY(-2px);
         }
 
 
         .tool-card .tool-title {
             font-family: var(--font-display);
-            font-size: 1rem;
+            font-size: var(--text-md);
             font-weight: 700;
-            margin-bottom: 0.35rem;
+            margin-bottom: var(--space-1);
         }
 
         .tool-card .tool-desc {
-            font-size: 0.8rem;
+            font-size: var(--text-sm);
             color: var(--ink-3);
             margin-bottom: 0;
         }
