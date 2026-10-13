@@ -46,6 +46,39 @@ function _detailTime12(time24) {
   return displayTime(time24);
 }
 
+/**
+ * Links into the explorer, where every class in a room or taught by a
+ * lecturer is listed. Encoded as one path segment, as the explorer's own
+ * urlpath filter does.
+ */
+function _detailLinks(kind, names) {
+  return names.map((name) =>
+    `<a class="detail-link" href="/explore/${kind}/${encodeURIComponent(name)}">${escapeDetail(name)}</a>`
+  ).join(', ');
+}
+
+/** A field whose value is already HTML. Empty says "Not published by UWI". */
+function _detailHtmlField(label, html) {
+  const isEmpty = !html;
+  return `<div class="detail-field">
+      <span class="detail-field-label">${escapeDetail(label)}</span>
+      <span class="detail-field-value${isEmpty ? ' empty' : ''}">${isEmpty ? 'Not published by UWI' : html}</span>
+    </div>`;
+}
+
+/**
+ * How sure the timetable is of a class, from how many of UWI's timetables
+ * list it (course, room and lecturer PDFs). One means nothing else confirms
+ * it, which is worth checking before relying on it.
+ */
+function describeSources(details) {
+  if (details.origin === 'upload') return 'Your upload: ' + (details.sourceFile || 'PDF');
+  const n = details.sourceCount;
+  if (!n) return 'Published timetable';
+  if (n === 1) return 'Listed in only one UWI timetable. Check with your department.';
+  return `Listed in ${n} UWI timetables`;
+}
+
 /** Empty fields say "Not published", never nothing at all (E9). */
 function _detailField(label, value) {
   const isEmpty = value === null || value === undefined || value === '';
@@ -135,7 +168,7 @@ function _groupOverrideHtml(details) {
  * the same lab, or none. Adding and removing individual sittings is how the
  * timetable stops arguing with them about it.
  */
-function _sittingsSectionHtml(details, sessions, attendedIds) {
+function _sittingsSectionHtml(details, sessions, attendedIds, effects) {
   if (!sessions.length) return '';
   const attended = new Set(attendedIds);
 
@@ -165,10 +198,13 @@ function _sittingsSectionHtml(details, sessions, attendedIds) {
         </span>`;
     }
 
+    // What choosing this time would do to the week, before choosing it.
+    const effect = !isViewing && !isAttended && effects && effects[String(session.sessionId)];
     return `<div class="sitting-row${isViewing ? ' viewing' : ''}">
         <span class="sitting-when">${escapeDetail(when)}</span>
         <span class="sitting-where">${escapeDetail(where)}</span>
         ${tail}
+        ${effect ? `<span class="sitting-effect${/^Clashes/.test(effect) ? ' clashes' : ''}">${escapeDetail(effect)}</span>` : ''}
       </div>`;
   });
 
@@ -229,6 +265,8 @@ function _rawDataText(details) {
  * - `weekOne`: Monday of teaching week 1, when the calendar is dated, so a
  *   one-week class can say its date.
  * - `showRawData`: whether to offer the extractor's raw fields.
+ * - `optionEffects`: per other time, keyed by session id, what choosing it
+ *   would do ("No clash · Tuesday would run 9am–7pm").
  */
 function renderEventDetail(model) {
   const details = model.details;
@@ -254,28 +292,43 @@ function renderEventDetail(model) {
       ${_detailField('Weeks', describeDetailWeeks(details, model.weekOne))}
     </div>`;
 
+  // Rooms and lecturers link to their explorer pages for a published class.
+  // An upload's names may be spelled in ways the explorer does not know.
+  const linkable = details.origin !== 'upload';
+  const rooms = String(details.room || '').split(';').map((r) => r.trim()).filter(Boolean);
+  const staff = details.staff || [];
+
   html += `<div class="detail-section">
       <h4 class="detail-section-title"><i class="bi bi-geo-alt"></i> Location</h4>
-      ${_detailField('Room', details.room)}
+      ${linkable
+        ? _detailHtmlField(rooms.length > 1 ? 'Rooms' : 'Room', _detailLinks('room', rooms))
+        : _detailField('Room', details.room)}
     </div>`;
 
   html += `<div class="detail-section">
       <h4 class="detail-section-title"><i class="bi bi-person"></i> People</h4>
-      ${_detailField('Staff', (details.staff || []).join(', '))}
+      ${linkable
+        ? _detailHtmlField('Staff', _detailLinks('staff', staff))
+        : _detailField('Staff', staff.join(', '))}
     </div>`;
+
+  if (details.notes) {
+    html += `<div class="detail-section">
+        <h4 class="detail-section-title"><i class="bi bi-sticky"></i> Note from the timetable</h4>
+        <p class="detail-note">${escapeDetail(details.notes)}</p>
+      </div>`;
+  }
 
   html += `<div class="detail-section">
       <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
       ${_detailField('Course', details.courseKey)}
       ${_detailField('Placed', details.pinned ? 'You picked this time' : 'Picked for you')}
-      ${_detailField('Source', details.origin === 'upload'
-          ? 'Your upload: ' + (details.sourceFile || 'PDF')
-          : 'Published timetable')}
+      ${_detailField('Source', describeSources(details))}
       ${_groupOverrideHtml(details)}
     </div>`;
 
   html += _sittingsSectionHtml(details, model.sessions || [],
-      model.attendedSessionIds || []);
+      model.attendedSessionIds || [], model.optionEffects);
 
   // The clash's own shortcut sits with the actions: a student who opened
   // this class because it is ringed red should not have to go find the

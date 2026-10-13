@@ -401,3 +401,11 @@ test('the day strip names each day, its date, and how many classes it holds', ()
   assert.equal(strip[5].count, 0, 'an empty Saturday says so');
   assert.equal(dayStrip([], null, null)[0].dayOfMonth, null, 'undated, no dates');
 });
+
+test('a class the last republish changed is marked until seen', () => {
+  const [event] = toCalendarEvents([placed({ changed: true })], new Set());
+  assert.ok(event.className.split(' ').includes('changed'));
+  assert.equal(event.extendedProps.changed, true);
+  const [plain] = toCalendarEvents([placed({})], new Set());
+  assert.ok(!plain.className.split(' ').includes('changed'));
+});

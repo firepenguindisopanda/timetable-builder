@@ -276,13 +276,14 @@ function toCalendarEvents(placedEvents, clashKeys, anchorMonday = ANCHOR_MONDAY)
     const key = eventKeyOf(event.groupId, event.sessionId);
     const clash = clashKeys.has(key);
     const pinned = Boolean(event.pinned);
+    const changed = Boolean(event.changed);
 
     events.push({
       id: key,
       start: `${date}T${_clock(startMins)}:00`,
       end: `${date}T${_clock(endMins)}:00`,
       className: ['calendar-event', typeClassOf(event.type)]
-        .concat(clash ? ['clash'] : [], pinned ? ['pinned'] : [])
+        .concat(clash ? ['clash'] : [], pinned ? ['pinned'] : [], changed ? ['changed'] : [])
         .join(' '),
       extendedProps: {
         groupId: event.groupId,
@@ -296,6 +297,7 @@ function toCalendarEvents(placedEvents, clashKeys, anchorMonday = ANCHOR_MONDAY)
         room: event.room,
         pinned,
         clash,
+        changed,
       },
     });
   }

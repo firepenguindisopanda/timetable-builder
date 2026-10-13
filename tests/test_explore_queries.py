@@ -325,3 +325,11 @@ def test_a_lone_session_is_returned_as_it_was():
     row = _row(71, "ENG MD3", MATH_0100_EXAM)
     expected = {k: v for k, v in row.items() if k != "rawText"}
     assert merge_block_rooms([row]) == [expected]
+
+
+def test_a_merged_class_keeps_its_note():
+    merged = merge_block_rooms([
+        _row(81, "ENG MD3", MATH_0100_EXAM, notes="Bring your ID"),
+        _row(82, "JFK AUD", MATH_0100_EXAM, notes="Bring your ID"),
+    ])
+    assert merged[0]["notes"] == "Bring your ID"

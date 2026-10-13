@@ -217,3 +217,55 @@ test('a one-week class says so, with its date when the calendar is dated', () =>
   assert.equal(describeDetailWeeks(exam), 'Week 7 only');
   assert.equal(describeDetailWeeks(exam, '2026-08-31'), 'Week 7 only · Thu 15 Oct');
 });
+
+// Notes, links and how sure we are
+
+test('the room and lecturer link to their explorer pages', () => {
+  const model = modelFor(stateOf('COMP 1602'), LECTURES);
+  model.details.room = 'ENG MD3; JFK AUD';
+  model.details.staff = ['HOSEIN,Michael'];
+  const html = renderEventDetail(model);
+
+  assert.match(html, /href="\/explore\/room\/ENG%20MD3">ENG MD3<\/a>/);
+  assert.match(html, /href="\/explore\/room\/JFK%20AUD">JFK AUD<\/a>/);
+  assert.match(html, /href="\/explore\/staff\/HOSEIN%2CMichael">HOSEIN,Michael<\/a>/);
+});
+
+test('a lecturer not published says so, never "unknown"', () => {
+  const model = modelFor(stateOf('COMP 1602'), LECTURES);
+  model.details.staff = [];
+  assert.match(renderEventDetail(model), /Not published by UWI/);
+});
+
+test('an uploaded class is not linked into the explorer', () => {
+  const model = modelFor(stateOf('COMP 1602'), LECTURES);
+  model.details.origin = 'upload';
+  assert.doesNotMatch(renderEventDetail(model), /href="\/explore\//);
+});
+
+test('a note from the timetable is shown, escaped', () => {
+  const model = modelFor(stateOf('COMP 1602'), LECTURES);
+  model.details.notes = 'Bring a laptop <b>';
+  const html = renderEventDetail(model);
+  assert.match(html, /Note from the timetable/);
+  assert.match(html, /Bring a laptop &lt;b&gt;/);
+});
+
+test('a class only one UWI timetable lists says to check', () => {
+  const describeSources = api.get('describeSources');
+  assert.equal(describeSources({ sourceCount: 3 }), 'Listed in 3 UWI timetables');
+  assert.match(describeSources({ sourceCount: 1 }), /only one UWI timetable\. Check with your department/);
+  assert.equal(describeSources({ origin: 'upload', sourceFile: 'law.pdf' }), 'Your upload: law.pdf');
+});
+
+test('each other time says what choosing it would do', () => {
+  const state = stateOf('COMP 1602');
+  const model = modelFor(state, LECTURES);
+  const other = state.getOptions(LECTURES).find(s => s.sessionId !== model.details.sessionId);
+  model.optionEffects = { [String(other.sessionId)]: 'Clashes with COMP 2602 Lecture \u00b7 Monday would run 9am\u20135pm' };
+  const html = renderEventDetail(model);
+
+  assert.match(html, /class="sitting-effect clashes">Clashes with COMP 2602 Lecture/);
+  // The time already shown has nothing to compare against.
+  assert.equal((html.match(/sitting-effect/g) || []).length, 1);
+});

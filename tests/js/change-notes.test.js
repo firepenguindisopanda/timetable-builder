@@ -112,7 +112,7 @@ test('a dropped sitting says which one it was', () => {
   const line = describeChange(change({
     displayKind: 'sitting_removed', before: [slot({ day: 'Tuesday' })], after: [],
   }));
-  assert.equal(line.text, 'one Lecture sitting dropped — was Tue 9am');
+  assert.equal(line.text, 'one Lecture time dropped — was Tue 9am');
   assert.equal(line.severity, 'act');
 });
 
@@ -189,4 +189,9 @@ test('what costs the student something is listed first', () => {
 
 test('a null change list is treated as no changes', () => {
   assert.equal(summariseChanges(null).total, 0);
+});
+
+test('each line names its activity type, so the calendar can mark that class', () => {
+  assert.equal(describeChange(change()).type, 'Lecture');
+  assert.equal(describeChange(change({ activityType: null })).type, null);
 });
