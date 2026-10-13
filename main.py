@@ -542,6 +542,12 @@ async def calendar_page(request: Request):
         context["teaching_calendar"] = explore_router.teaching_calendar_context()
     except Exception:
         context["teaching_calendar"] = None
+    # The explorer's freshness line, so a student sees where the classes
+    # came from and how recently, on the page they actually build from.
+    try:
+        context["freshness"] = explore_router.freshness_context()
+    except Exception:
+        context["freshness"] = None
     return templates.TemplateResponse(
         request=request,
         name="calendar.html",

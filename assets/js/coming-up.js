@@ -105,7 +105,7 @@ function comingUpHtml(result) {
   return items.map((item) => `<li class="up-item">
     <span class="up-date">${_upEscape(comingUpDateLabel(item.date, item.day))}<span class="up-week">Week ${item.week}</span></span>
     <span class="up-what"><strong>${_upEscape(item.courseKey)}</strong> ${_upEscape(item.label)}
-      <span class="up-where">${_upEscape(item.startTime)}–${_upEscape(item.endTime)} · ${_upEscape(comingUpWhere(item.rooms))}</span>
+      <span class="up-where">${_upEscape(displayTimeRange(item.startTime, item.endTime))} · ${_upEscape(comingUpWhere(item.rooms))}</span>
     </span>
   </li>`).join('');
 }

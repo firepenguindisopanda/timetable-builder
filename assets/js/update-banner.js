@@ -15,6 +15,11 @@
    localStorage throws rather than returning null in some privacy modes, so
    every access is guarded: a student who cannot save a dismissal should
    still be able to dismiss it for this page view.
+
+   It also dates the freshness rail, which the timetable builder now carries
+   too. The rail prints ISO timestamps for the browser to localise, and
+   explore.js does that on explorer pages; the builder does not load
+   explore.js, so without this its rail read "2026-10-12T22:45:55+00:00".
 */
 (function () {
   if (typeof document === 'undefined') { return; }
@@ -55,9 +60,49 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wire);
-  } else {
+  // The same two shapes explore.js renders, so the rail reads identically
+  // on every page.
+  function absolute(date) {
+    return date.toLocaleString(undefined, {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function relative(date) {
+    if (!window.Intl || !Intl.RelativeTimeFormat) { return absolute(date); }
+    var seconds = (date.getTime() - Date.now()) / 1000;
+    var units = [['year', 31536000], ['month', 2592000], ['week', 604800],
+      ['day', 86400], ['hour', 3600], ['minute', 60]];
+    var rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+    for (var i = 0; i < units.length; i++) {
+      var amount = seconds / units[i][1];
+      if (Math.abs(amount) >= 1) { return rtf.format(Math.round(amount), units[i][0]); }
+    }
+    return rtf.format(Math.round(seconds), 'second');
+  }
+
+  function dateRail() {
+    var nodes = document.querySelectorAll('.rail time[data-ts]');
+    Array.prototype.forEach.call(nodes, function (node) {
+      var date = new Date(node.getAttribute('data-ts'));
+      if (isNaN(date.getTime())) { return; }
+      node.setAttribute('datetime', date.toISOString());
+      node.setAttribute('title', absolute(date));
+      node.textContent = node.getAttribute('data-format') === 'rel'
+        ? relative(date)
+        : absolute(date);
+    });
+  }
+
+  function start() {
+    dateRail();
     wire();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
   }
 })();

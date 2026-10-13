@@ -43,8 +43,7 @@ function _detailTypeIcon(type) {
 }
 
 function _detailTime12(time24) {
-  if (!time24) return '';
-  return timeLabel(timeToMins(time24));
+  return displayTime(time24);
 }
 
 /** Empty fields say "Not published", never nothing at all (E9). */
@@ -62,15 +61,28 @@ function _detailField(label, value) {
  * expanded array to count. Saying "Not published" for those would be a lie:
  * the weeks are right there, just not as data.
  */
-function describeDetailWeeks(details) {
-  if (details.weeksRaw) {
-    const count = details.weeks ? ` (${details.weeks.length} weeks)` : '';
-    return details.weeksRaw + count;
+function describeDetailWeeks(details, weekOne) {
+  const weeks = Array.isArray(details.weeks)
+    ? [...new Set(details.weeks)].sort((a, b) => a - b)
+    : [];
+  if (weeks.length === 1) {
+    // One week is a date, and on a dated calendar it says which.
+    const date = weekOne ? dateOfTeachingDay(weeks[0], details.day, weekOne) : null;
+    return `Week ${weeks[0]} only` + (date ? ' · ' + comingUpDateLabel(date, details.day) : '');
   }
-  if (details.weeks && details.weeks.length) {
-    return 'W' + details.weeks.join(', W');
+  if (weeks.length) {
+    // The expanded list, not the printed text: since past weeks are carried
+    // forward, a class that began in week 1 can print "W6-W12".
+    const runs = [];
+    for (const w of weeks) {
+      const last = runs[runs.length - 1];
+      if (last && w === last[1] + 1) last[1] = w;
+      else runs.push([w, w]);
+    }
+    return 'Weeks ' + runs.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
   }
-  return '';
+  // An upload has its printed text and nothing else.
+  return details.weeksRaw || '';
 }
 
 /**
@@ -81,9 +93,9 @@ function describeDetailWeeks(details) {
  * hatch. Section 4 of the spec calls for it explicitly.
  */
 const DETAIL_GROUP_REASON = {
-  sittings: 'This runs more than once a week and you attend one sitting. ' +
-            'Drag it to pick a different one.',
-  single: 'Only one sitting of this is published.',
+  sittings: 'This is published at several times a week and you go to one. ' +
+            'Drag it to pick a different time.',
+  single: 'Only one time is published for this.',
   overlap: 'These run at the same time, so you can only be at one.',
   split: 'You said this course runs more than one of these a week.',
 };
@@ -128,7 +140,7 @@ function _sittingsSectionHtml(details, sessions, attendedIds) {
   const attended = new Set(attendedIds);
 
   const rows = sessionsInTimetableOrder(sessions).map(session => {
-    const when = `${session.day.slice(0, 3)} ${session.startTime}-${session.endTime}`;
+    const when = `${session.day.slice(0, 3)} ${displayTimeRange(session.startTime, session.endTime)}`;
     const where = [session.streamLabel, session.room].filter(Boolean).join(' · ');
     const isViewing = session.sessionId === details.sessionId;
     const isAttended = attended.has(session.sessionId);
@@ -143,7 +155,7 @@ function _sittingsSectionHtml(details, sessions, attendedIds) {
     } else {
       tail = `<button type="button" class="btn btn-outline-secondary btn-sm sitting-add"
           data-group-id="${escapeDetail(details.groupId)}"
-          data-session-id="${escapeDetail(String(session.sessionId))}">Also attend</button>`;
+          data-session-id="${escapeDetail(String(session.sessionId))}">Add this time too</button>`;
     }
 
     return `<div class="sitting-row${isViewing ? ' viewing' : ''}">
@@ -154,12 +166,12 @@ function _sittingsSectionHtml(details, sessions, attendedIds) {
   });
 
   const hint = sessions.length > 1
-    ? 'Drag the block on the grid to swap this sitting for another.'
-    : 'Only one sitting of this is published.';
+    ? 'Drag the block on the grid to move it to another time.'
+    : 'Only one time is published for this.';
 
   return `<div class="detail-section">
       <h4 class="detail-section-title"><i class="bi bi-collection"></i>
-          Sittings (${sessions.length})</h4>
+          All times (${sessions.length})</h4>
       <div class="sittings-list">${rows.join('')}</div>
       <div class="detail-field" style="padding-top: 8px;">
           <span class="detail-field-value empty">${escapeDetail(hint)}</span>
@@ -207,6 +219,9 @@ function _rawDataText(details) {
  *   way into the resolve dialog.
  * - `idSuffix`: keeps the raw-data region's id unique when the panel and the
  *   dialog both hold a copy of this markup at once.
+ * - `weekOne`: Monday of teaching week 1, when the calendar is dated, so a
+ *   one-week class can say its date.
+ * - `showRawData`: whether to offer the extractor's raw fields.
  */
 function renderEventDetail(model) {
   const details = model.details;
@@ -229,7 +244,7 @@ function renderEventDetail(model) {
       ${_detailField('Day', details.day)}
       ${_detailField('Start Time', _detailTime12(details.startTime))}
       ${_detailField('End Time', _detailTime12(details.endTime))}
-      ${_detailField('Weeks', describeDetailWeeks(details))}
+      ${_detailField('Weeks', describeDetailWeeks(details, model.weekOne))}
     </div>`;
 
   html += `<div class="detail-section">
@@ -245,7 +260,7 @@ function renderEventDetail(model) {
   html += `<div class="detail-section">
       <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
       ${_detailField('Course', details.courseKey)}
-      ${_detailField('Chosen by', details.pinned ? 'You' : 'Auto-placement')}
+      ${_detailField('Placed', details.pinned ? 'You picked this time' : 'Picked for you')}
       ${_detailField('Source', details.origin === 'upload'
           ? 'Your upload: ' + (details.sourceFile || 'PDF')
           : 'Published timetable')}
@@ -281,6 +296,10 @@ function renderEventDetail(model) {
           <i class="bi bi-trash me-1"></i> Remove ${escapeDetail(details.courseKey)}
       </button>
     </div>`;
+
+  // What the extractor read, for whoever is debugging it. Students never
+  // need groupId and sessionId, so it shows only where dev tools are on.
+  if (!model.showRawData) return html;
 
   html += `<button type="button" class="detail-raw-toggle"
       aria-expanded="false"

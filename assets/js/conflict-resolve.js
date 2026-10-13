@@ -149,7 +149,7 @@ function _optionHtml(side, option) {
   const note = _optionNote(option);
   const label = [
     option.day.slice(0, 3),
-    option.startTime + '-' + option.endTime,
+    displayTimeRange(option.startTime, option.endTime),
   ].join(' ');
   const detail = [option.streamLabel, option.room]
     .filter(Boolean).join(' · ');
@@ -210,7 +210,7 @@ function renderResolveDialog(model) {
         ${escapeResolve(model.sides[0].courseKey)} and
         ${escapeResolve(model.sides[1].courseKey)} overlap on
         ${escapeResolve(model.day)}, ${escapeResolve(when)}.
-        Pick another sitting for either one, or drag it on the grid later.
+        Pick another time for either one, or drag it on the grid later.
       </p>
       <button type="button" class="resolve-close" aria-label="Close without changing anything">
         <i class="bi bi-x-lg"></i>

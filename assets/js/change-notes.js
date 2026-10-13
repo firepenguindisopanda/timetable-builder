@@ -33,7 +33,7 @@ function _short(day) {
 function _at(slot) {
   if (!slot) return '';
   const day = _short(slot.day);
-  return slot.startTime ? day + ' ' + slot.startTime : day;
+  return slot.startTime ? day + ' ' + displayTime(slot.startTime) : day;
 }
 
 function _sameTime(a, b) {
