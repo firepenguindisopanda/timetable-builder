@@ -428,6 +428,21 @@
 }
 
 /* Exams, relocations and make-ups: listed by date, never placed weekly. */
+.ics-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 10px 12px 12px;
+    font-size: 0.85rem;
+}
+
+.ics-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ics-title { font-size: 0.95rem; font-weight: 600; margin: 0; }
+.ics-summary { margin: 4px 0 10px; color: var(--text-secondary); }
+.ics-steps { margin: 12px 0 8px; padding-left: 1.2rem; display: grid; gap: 4px; }
+.ics-note { margin: 0; color: var(--text-secondary); font-size: 0.8rem; }
+
 .coming-up-panel {
     background: var(--bg-surface);
     border: 1px solid var(--border-medium);
@@ -1915,6 +1930,11 @@ button.resolve-option:focus-visible {
                         title="Print, or save as a PDF from the print dialog">
                     <i class="bi bi-printer"></i> Print
                 </button>
+                <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
+                        aria-expanded="false" aria-controls="icsPanel"
+                        title="Download a file to import into Google, Apple or Outlook calendar">
+                    <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to calendar
+                </button>
                 <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
                         title="Show the timetable on its own, filling the screen">
                     <i class="bi bi-arrows-fullscreen"></i> Full screen
@@ -1933,6 +1953,31 @@ button.resolve-option:focus-visible {
             </div>
         </div>
     </div>
+
+    <!-- Add to calendar: the .ics download and how to import it -->
+    <section id="icsPanel" class="ics-panel" aria-labelledby="icsTitle" hidden>
+        <div class="ics-head">
+            <h2 id="icsTitle" class="ics-title">
+                <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to your calendar app
+            </h2>
+            <button type="button" class="toast-close" id="icsClose" aria-label="Close">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="ics-summary" id="icsSummary"></p>
+        <button type="button" class="btn btn-accent btn-sm" id="icsDownload">
+            <i class="bi bi-download" aria-hidden="true"></i> Download calendar file (.ics)
+        </button>
+        <ol class="ics-steps">
+            <li><b>Google Calendar</b>, on a computer (the phone app cannot import):
+                make a new calendar called "UWI timetable", then Settings, Import &amp; export,
+                and import the file into it.</li>
+            <li><b>Apple Calendar</b>: open the file and choose a new calendar when asked.</li>
+            <li><b>Outlook</b>: Add calendar, then Upload from file, into a new calendar.</li>
+        </ol>
+        <p class="ics-note">The file is a copy, not a live link. When your timetable changes,
+            delete that calendar and import a new file, so no old class is left behind.</p>
+    </section>
 
     <!-- Conflicts Warning -->
     <div id="conflictsPanel" class="conflicts-panel" style="display: none;">
@@ -2065,6 +2110,7 @@ button.resolve-option:focus-visible {
 <script src="/assets/js/conflict-resolve.js?v={{ asset_version }}"></script>
 <script src="/assets/js/detail-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/timetable-state.js?v={{ asset_version }}"></script>
+<script src="/assets/js/ics-export.js?v={{ asset_version }}"></script>
 <script>
 (function() {
     'use strict';
@@ -2073,6 +2119,7 @@ button.resolve-option:focus-visible {
     const $redoBtn = document.getElementById('redoBtn');
     const $clearBtn = document.getElementById('clearBtn');
     const $printBtn = document.getElementById('printBtn');
+    const $icsBtn = document.getElementById('icsBtn');
     const $fullscreenBtn = document.getElementById('fullscreenBtn');
     const $exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
     const $clearAllBtn = document.getElementById('clearAllBtn');
@@ -3039,6 +3086,8 @@ button.resolve-option:focus-visible {
         // calendar also clears the sheet rather than leaving the last
         // printable version behind it.
         if ($printBtn) $printBtn.disabled = currentEvents.length === 0;
+        if ($icsBtn) $icsBtn.disabled = currentEvents.length === 0;
+        if (currentEvents.length === 0) closeIcsPanel();
         if ($fullscreenBtn) $fullscreenBtn.disabled = currentEvents.length === 0;
         // Keyed off chosen courses rather than placed classes: a course whose
         // classes could not be placed is still a course to clear.
@@ -3782,6 +3831,85 @@ button.resolve-option:focus-visible {
      * because Ctrl+P and the browser's own print menu never touch the button
      * and would otherwise print whatever was last built.
      */
+    // Add to calendar
+
+    /** "9 Oct 2026", the date UWI published the timetable this was built on. */
+    function publishedLabel() {
+        if (!state || !state.publishedAt) return '';
+        const at = new Date(state.publishedAt);
+        return isNaN(at) ? '' : at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function icsFile() {
+        return buildIcsCalendar(state.getPlacedEvents(), state.datedSessions, {
+            weekOne,
+            publicationId: state.publicationId,
+            now: new Date(),
+            publishedLabel: publishedLabel(),
+            pageUrl: location.origin + '/calendar',
+        });
+    }
+
+    /**
+     * Open the panel and say what the file will hold, before the download.
+     * A semester with no known dates says so and offers nothing to download,
+     * rather than a file with guessed dates in it.
+     */
+    function openIcsPanel() {
+        const panel = document.getElementById('icsPanel');
+        const result = icsFile();
+        const summary = document.getElementById('icsSummary');
+        const download = document.getElementById('icsDownload');
+        if (!result.ok) {
+            summary.textContent = result.reason;
+            download.hidden = true;
+        } else {
+            const left = result.skipped.length
+                ? ` Left out, because no weeks were published for them: ${result.skipped.join(', ')}.`
+                : '';
+            summary.textContent = `${result.events} ${result.events === 1 ? 'event' : 'events'}: `
+                + 'your classes on the weeks they run, and any exams on their dates.' + left;
+            download.hidden = false;
+        }
+        panel.hidden = false;
+        $icsBtn.setAttribute('aria-expanded', 'true');
+        (download.hidden ? document.getElementById('icsClose') : download).focus();
+    }
+
+    function closeIcsPanel() {
+        const panel = document.getElementById('icsPanel');
+        if (panel.hidden) return;
+        panel.hidden = true;
+        $icsBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    $icsBtn.addEventListener('click', () => {
+        if (document.getElementById('icsPanel').hidden) openIcsPanel();
+        else closeIcsPanel();
+    });
+    document.getElementById('icsClose').addEventListener('click', () => {
+        closeIcsPanel();
+        $icsBtn.focus();
+    });
+
+    document.getElementById('icsDownload').addEventListener('click', () => {
+        if (!state) return;
+        const result = icsFile();
+        if (!result.ok) {
+            toast('No calendar file made.', result.reason, 'bad');
+            return;
+        }
+        const url = URL.createObjectURL(new Blob([result.text], { type: 'text/calendar;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'uwi-timetable.ics';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('Calendar file downloaded.', 'Import it into a new calendar, as the steps say.');
+    });
+
     function buildPrintSheet() {
         const target = document.getElementById('printView');
         if (!target) return;
