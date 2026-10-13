@@ -15,6 +15,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'slot-identity.js',
   'timetable-state.js'
 );
 const {
@@ -453,7 +454,7 @@ test('storage that throws on write is reported, not thrown', () => {
 });
 
 test('a localStorage global that throws when touched reads as no storage', () => {
-  const blocked = load('calendar-utils.js', 'option-groups.js', 'placement.js', 'timetable-state.js');
+  const blocked = load('calendar-utils.js', 'option-groups.js', 'placement.js', 'slot-identity.js', 'timetable-state.js');
   Object.defineProperty(blocked.get('globalThis'), 'localStorage', {
     get() {
       const error = new Error('The operation is insecure.');

@@ -91,6 +91,31 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str)
 
 
+#: Routes whose query string is a student's data rather than a parameter. A
+#: calendar subscription link carries their course list (subscription.py).
+PRIVATE_QUERY_PATHS = ("/api/timetable/calendar.ics",)
+
+
+class RedactPrivateQueries(logging.Filter):
+    """
+    Keep subscription tokens out of uvicorn's access log.
+
+    The app logs request paths only, but uvicorn's access line prints the
+    whole request target, query and all, so every calendar fetch would have
+    written a student's courses and IP address side by side into the
+    platform's logs. Its record args are (client, method, target, version,
+    status); the target is cut at the query on the private routes.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) >= 3 and isinstance(args[2], str):
+            path, sep, _ = args[2].partition("?")
+            if sep and path.startswith(PRIVATE_QUERY_PATHS):
+                record.args = (*args[:2], f"{path}?[redacted]", *args[3:])
+        return True
+
+
 def configure_logging(level: str | None = None, json_output: bool | None = None) -> None:
     """
     Install the root handler. Safe to call more than once.
@@ -117,6 +142,12 @@ def configure_logging(level: str | None = None, json_output: bool | None = None)
     )
     root.addHandler(handler)
     root.setLevel(level)
+
+    # uvicorn's dictConfig keeps filters already on its loggers, so this
+    # survives whichever of the two is configured first.
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, RedactPrivateQueries) for f in access.filters):
+        access.addFilter(RedactPrivateQueries())
 
 
 def get_logger(name: str) -> logging.Logger:

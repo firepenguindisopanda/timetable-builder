@@ -1,0 +1,103 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//UWI Timetable Builder//Timetable Export//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:My UWI timetable
+X-WR-TIMEZONE:America/Port_of_Spain
+BEGIN:VTIMEZONE
+TZID:America/Port_of_Spain
+BEGIN:STANDARD
+DTSTART:19700101T000000
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0400
+TZNAME:AST
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:81dfa75c92e4dad6@timetable.uwi-sta
+DTSTAMP:20261012T223005Z
+SEQUENCE:11
+SUMMARY:COMP 2601 Lecture
+DESCRIPTION:Computer Architecture\nDr. Lecturer One\, Mr. Second\, Assistan
+ t\nFrom UWI's timetable published 9 Oct 2026.\nYour timetable: https://cel
+ cat-timetable-extraction.fastapicloud.dev/calendar
+LOCATION:FST C1
+DTSTART;TZID=America/Port_of_Spain:20260902T140000
+DTEND;TZID=America/Port_of_Spain:20260902T150000
+RRULE:FREQ=WEEKLY;UNTIL=20261118T180000Z
+EXDATE;TZID=America/Port_of_Spain:20261021T140000
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:16022dfde2ac48eb@timetable.uwi-sta
+DTSTAMP:20261012T223005Z
+SEQUENCE:11
+SUMMARY:COMP 2601 Lab (L2)
+DESCRIPTION:Computer Architecture\nHeld in CSL 1\, CSL 2. Check which room 
+ is yours.\nFrom UWI's timetable published 9 Oct 2026.\nYour timetable: htt
+ ps://celcat-timetable-extraction.fastapicloud.dev/calendar
+LOCATION:CSL 1 / CSL 2 (check which is yours)
+DTSTART;TZID=America/Port_of_Spain:20260911T200000
+DTEND;TZID=America/Port_of_Spain:20260911T220000
+RRULE:FREQ=WEEKLY;UNTIL=20261121T000000Z
+EXDATE;TZID=America/Port_of_Spain:20260918T200000
+EXDATE;TZID=America/Port_of_Spain:20261002T200000
+EXDATE;TZID=America/Port_of_Spain:20261016T200000
+EXDATE;TZID=America/Port_of_Spain:20261030T200000
+EXDATE;TZID=America/Port_of_Spain:20261113T200000
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:2de7aa06fcafce64@timetable.uwi-sta
+DTSTAMP:20261012T223005Z
+SEQUENCE:11
+SUMMARY:COMP 2601 Tutorial
+DESCRIPTION:Computer Architecture\nFrom UWI's timetable published 9 Oct 202
+ 6.\nYour timetable: https://celcat-timetable-extraction.fastapicloud.dev/c
+ alendar
+LOCATION:Salle É — a room name long enough that the location line has to
+  fold somewhere in the middle of it
+DTSTART;TZID=America/Port_of_Spain:20260928T090000
+DTEND;TZID=America/Port_of_Spain:20260928T100000
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:0aa2d9fcfe17e27e@timetable.uwi-sta
+DTSTAMP:20261012T223005Z
+SEQUENCE:11
+SUMMARY:MATH-1115-UPLOADED Lecture
+DESCRIPTION:From UWI's timetable published 9 Oct 2026.\nYour timetable: htt
+ ps://celcat-timetable-extraction.fastapicloud.dev/calendar
+DTSTART;TZID=America/Port_of_Spain:20260915T080000
+DTEND;TZID=America/Port_of_Spain:20260915T090000
+RRULE:FREQ=WEEKLY;UNTIL=20261006T120000Z
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:ea9e75b4d89611f2@timetable.uwi-sta
+DTSTAMP:20261012T223005Z
+SEQUENCE:11
+SUMMARY:COMP 2601 Examination
+DESCRIPTION:Computer Architecture\nHeld in ENG MD3\, JFK AUD. Check which r
+ oom is yours.\nFrom UWI's timetable published 9 Oct 2026.\nYour timetable:
+  https://celcat-timetable-extraction.fastapicloud.dev/calendar
+LOCATION:ENG MD3 / JFK AUD (check which is yours)
+DTSTART;TZID=America/Port_of_Spain:20261015T090000
+DTEND;TZID=America/Port_of_Spain:20261015T110000
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:ed6e9df4342fb036@timetable.uwi-sta
+DTSTAMP:20261012T223005Z
+SEQUENCE:11
+SUMMARY:COMP 2601 Examination
+DESCRIPTION:Computer Architecture\nFrom UWI's timetable published 9 Oct 202
+ 6.\nYour timetable: https://celcat-timetable-extraction.fastapicloud.dev/c
+ alendar
+LOCATION:JFK AUD
+DTSTART;TZID=America/Port_of_Spain:20261119T090000
+DTEND;TZID=America/Port_of_Spain:20261119T110000
+TRANSP:OPAQUE
+END:VEVENT
+END:VCALENDAR

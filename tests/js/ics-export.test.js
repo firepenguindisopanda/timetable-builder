@@ -16,6 +16,7 @@ const api = load(
   'coming-up.js',
   'option-groups.js',
   'placement.js',
+  'slot-identity.js',
   'timetable-state.js',
   'ics-export.js'
 );

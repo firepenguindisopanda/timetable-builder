@@ -1,0 +1,118 @@
+{
+  "_about": "One timetable both ICS writers must turn into tests/fixtures/ics_golden.ics byte for byte: assets/js/ics-export.js for the download, timetable_extractor/ics.py for the subscription feed. Regenerate the golden with UPDATE_GOLDEN=1 node --test tests/js/ics-golden.test.js, and only on purpose.",
+  "meta": {
+    "weekOne": "2026-08-31",
+    "now": "2026-10-12T22:30:05Z",
+    "publicationId": 11,
+    "publishedLabel": "9 Oct 2026",
+    "pageUrl": "https://celcat-timetable-extraction.fastapicloud.dev/calendar"
+  },
+  "placed": [
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Lecture",
+      "streamLabel": null,
+      "day": "Wednesday",
+      "startTime": "14:00",
+      "endTime": "15:00",
+      "room": "FST C1",
+      "staff": ["Dr. Lecturer One", "Mr. Second, Assistant"],
+      "weeks": [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12],
+      "weeksRaw": "W1-W7, W9-W12"
+    },
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Lab",
+      "streamLabel": "L2",
+      "day": "Friday",
+      "startTime": "20:00",
+      "endTime": "22:00",
+      "room": "CSL 1; CSL 2",
+      "staff": [],
+      "weeks": [2, 4, 6, 8, 10, 12],
+      "weeksRaw": "W2, W4, W6, W8, W10, W12"
+    },
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Tutorial",
+      "streamLabel": null,
+      "day": "Monday",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "room": "Salle É — a room name long enough that the location line has to fold somewhere in the middle of it",
+      "staff": [],
+      "weeks": [5],
+      "weeksRaw": "W5"
+    },
+    {
+      "courseKey": "MATH-1115-UPLOADED",
+      "courseTitle": "MATH-1115-UPLOADED",
+      "type": "Lecture",
+      "streamLabel": null,
+      "day": "Tuesday",
+      "startTime": "08:00",
+      "endTime": "09:00",
+      "room": null,
+      "staff": [],
+      "weeks": null,
+      "weeksRaw": "W3-W6"
+    },
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Seminar",
+      "streamLabel": null,
+      "day": "Thursday",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "room": "FST C2",
+      "staff": [],
+      "weeks": null,
+      "weeksRaw": null
+    }
+  ],
+  "dated": [
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Examination",
+      "streamLabel": null,
+      "day": "Thursday",
+      "startTime": "09:00",
+      "endTime": "11:00",
+      "room": "JFK AUD",
+      "staff": [],
+      "weeks": [7],
+      "weeksRaw": "W7"
+    },
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Examination",
+      "streamLabel": null,
+      "day": "Thursday",
+      "startTime": "09:00",
+      "endTime": "11:00",
+      "room": "ENG MD3",
+      "staff": [],
+      "weeks": [7],
+      "weeksRaw": "W7"
+    },
+    {
+      "courseKey": "COMP 2601",
+      "courseTitle": "Computer Architecture",
+      "type": "Examination",
+      "streamLabel": null,
+      "day": "Thursday",
+      "startTime": "09:00",
+      "endTime": "11:00",
+      "room": "JFK AUD",
+      "staff": [],
+      "weeks": [12],
+      "weeksRaw": "W12"
+    }
+  ]
+}

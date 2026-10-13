@@ -436,13 +436,48 @@ this way, since the PDF is on the sender's machine.
 
 A saved timetable records the publication it was built against. On load it asks
 `/explore/ops.json` which publication is current, and offers to update if they
-differ. Updating keeps every placement that still resolves, refills any whose
-class has moved, and keeps a course the new publication no longer carries,
+differ. Every republish gives every session a new row id, so updating matches
+each placement to its class by **slot** (type, day, times, room, stream,
+weeks; `assets/js/slot-identity.js`) rather than by id. A class whose room or
+weeks changed, or that moved when it was the only one of its type to move, is
+followed and keeps its pin. One that cannot be told apart is placed again and
+counted as moved. A course the new publication no longer carries is kept,
 marked stale rather than deleted.
+
+### Calendar subscription
+
+"Add to calendar" offers a subscription link as well as the `.ics` download:
+
+```
+GET /api/timetable/calendar.ics?t=<token>
+```
+
+Nothing is stored server-side. The token is the timetable: `base64url` of
+`1|<publicationId>|<code>:<slot hash>,...[!<removed type>,...];...`, made by
+`assets/js/subscription-link.js` and read by
+`timetable_extractor/subscription.py` (SUBSCRIPTION-FEED-SPEC.md). Each fetch
+resolves the choices against the current publication with the browser's own
+slot rules, reading the token's own publication to follow a class that moved.
+What cannot be resolved becomes an all-day note in the calendar rather than a
+guess. Every exam on the courses is included, so new exams arrive by themselves.
+
+| Behaviour | Why |
+|---|---|
+| Same rules as the browser, held to `tests/fixtures/slot_resolution.json` | A phone and a browser must not disagree about which lab a student takes |
+| Calendar text matches the download byte for byte (`tests/fixtures/ics_golden.ics`) | `timetable_extractor/ics.py` ports `ics-export.js`, since calendar servers run no JavaScript |
+| `DTSTAMP` is the publication's time; `ETag` is the body's hash | The same publication always gives the same bytes, so `If-None-Match` gets a 304 |
+| `REFRESH-INTERVAL` and `Cache-Control` are 6 hours | UWI republished ten times in nine weeks; Google takes 8 to 24 hours whatever it is told |
+| A bad token is a plain-text 400; unknown dates or no database is a 503 | Calendar apps keep their last good copy through a 503 |
+| Only publications the warehouse holds are read | A token cannot make the server query arbitrary ids |
+| The token is redacted from uvicorn's access log | It is a course list, logged next to an IP address (`RedactPrivateQueries`) |
+
+The link changes when the timetable does, so the page remembers what the
+student subscribed to (`subscribedBody` in v3 saved state) and says when the
+timetable has moved on from it. A republish the feed can follow does not count.
 
 ### The API it reads
 
-One public, read-only endpoint, which lives in `explore_router.py` alongside the
+A public, read-only endpoint, which lives in `explore_router.py` alongside the
 explorer so that both share a single connection pool and cache.
 
 ```

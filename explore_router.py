@@ -12,21 +12,24 @@ expensive aggregate queries sit behind a short in-process cache.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import threading
 import time
 from collections import Counter
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import quote
 
 import psycopg
 from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.templating import Jinja2Templates
 
 import static_version
+from timetable_extractor import ics
+from timetable_extractor import subscription as sub
 from timetable_extractor.database import changes as cq
 from timetable_extractor.database import explore_queries as eq
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
@@ -905,4 +908,157 @@ async def timetable_changes(
             "notFound": not_found,
         },
         headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+#: How often a subscribed calendar is asked to fetch again. UWI republished
+#: ten times in nine weeks, so a day is too slow; Google ignores the hint and
+#: takes 8-24 hours whatever it says, which the page tells students.
+FEED_REFRESH_HOURS = 6
+
+#: Campus time, for dating a note "today". Trinidad never shifts.
+CAMPUS_TZ = timezone(timedelta(hours=-4))
+
+
+def _short_date(value: datetime) -> str:
+    """"9 Oct 2026", as the builder writes a publication date."""
+    return f"{value.day} {value.strftime('%b %Y')}"
+
+
+def _feed_error(status_code: int, message: str) -> PlainTextResponse:
+    # Plain text, because the reader is a calendar app's error log or a
+    # student who pasted the link into a browser, not a script.
+    return PlainTextResponse(message, status_code=status_code, headers={"Cache-Control": "no-store"})
+
+
+@api_router.api_route("/calendar.ics", methods=["GET", "HEAD"])
+async def timetable_calendar(
+    request: Request,
+    t: str = Query(
+        ...,
+        description=(
+            "The subscription token the timetable builder made: the student's "
+            "courses and chosen classes, encoded. Nothing is stored server-side."
+        ),
+    ),
+):
+    """
+    A student's timetable as a calendar their phone subscribes to.
+
+    Fetched by Google, Apple or Outlook every few hours, so every republish
+    reaches the student without a re-import. The link carries their choices
+    (SUBSCRIPTION-FEED-SPEC.md), and each fetch resolves them against the
+    current publication with the browser's own rules: the same class under a
+    new id, a room change, a move that can be followed. What cannot be
+    resolved is not guessed; it becomes a note in their calendar.
+
+    Read-only and public, like the rest of this router: the link names
+    courses, not a person.
+    """
+    try:
+        token = sub.decode_token(t)
+    except sub.TokenError:
+        return _feed_error(
+            400,
+            "This is not a calendar link this site made, or it was cut short. "
+            "Open your timetable and copy the subscription link again.",
+        )
+
+    teaching = teaching_calendar_context()
+    if teaching is None:
+        return _feed_error(503, "The timetable's dates are not available right now.")
+
+    try:
+        index = cached(
+            "code_index", lambda: eq.build_code_index(query(eq.course_codes))
+        )
+        freshness = cached("freshness", lambda: query(eq.freshness))
+        publication_id = freshness.get("publication_id")
+
+        published = {
+            wanted.code: eq.resolve_published_code(wanted.code, index)
+            for wanted in token.courses
+        }
+        current: dict[str, Any] = {}
+        misses = []
+        for code in {p for p in published.values() if p}:
+            hit = cache_get(f"sessions:{code}", stat="sessions")
+            if hit is MISSING:
+                misses.append(code)
+            else:
+                current[code] = hit
+        if misses:
+            for course in query(eq.sessions_for_courses, sorted(misses)):
+                cache_put(f"sessions:{course['code']}", course)
+                current[course["code"]] = course
+        by_token_code = {
+            code: current[p] for code, p in published.items() if p and p in current
+        }
+
+        # The old publication is read only when some choice no longer
+        # matches, and only one the warehouse holds: a link cannot make the
+        # server query publications that never existed.
+        hashes = {
+            sub.slot_hash(s)
+            for course in by_token_code.values()
+            for s in course.get("sessions") or []
+        }
+        stale = any(p not in hashes for wanted in token.courses for p in wanted.picks)
+        previous = None
+        if stale and token.publication_id != publication_id:
+            known = cached("publication_ids", lambda: query(eq.publication_ids))
+            if token.publication_id in known:
+                previous = query(
+                    eq.publication_slots,
+                    sorted({w.code for w in token.courses}),
+                    token.publication_id,
+                )
+    except ExplorerUnavailable:
+        return _feed_error(503, "The timetable is not reachable right now.")
+
+    plan = sub.plan_feed(token, by_token_code, previous)
+    published_at = freshness.get("published_at")
+    calendar = ics.build_calendar(
+        plan.weekly,
+        plan.dated,
+        week_one=date.fromisoformat(teaching["weekOne"]),
+        # The publication's own time, not the fetch's, so the same
+        # publication always yields the same bytes and the ETag holds.
+        now=published_at or datetime(1970, 1, 1, tzinfo=timezone.utc),
+        publication_id=publication_id,
+        published_label=_short_date(published_at.astimezone(CAMPUS_TZ)) if published_at else "",
+        page_url=str(request.base_url).rstrip("/") + "/calendar",
+        name="UWI timetable",
+        refresh_hours=FEED_REFRESH_HOURS,
+        notes=plan.notes,
+        today=datetime.now(CAMPUS_TZ).date(),
+    )
+
+    # Counts only: the token is a course list, and logs are not the place
+    # to keep students' course lists.
+    logger.info(
+        "timetable.feed",
+        extra={
+            "event": "timetable.feed",
+            "courses": len(token.courses),
+            "picks": sum(len(c.picks) for c in token.courses),
+            "followed": plan.followed,
+            "notes": len(plan.notes),
+            "events": calendar.events,
+            "behind": token.publication_id != publication_id,
+        },
+    )
+
+    etag = '"' + hashlib.sha256(calendar.text.encode("utf-8")).hexdigest()[:24] + '"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": f"public, max-age={FEED_REFRESH_HOURS * 3600}",
+        "Content-Disposition": 'inline; filename="uwi-timetable.ics"',
+    }
+    if etag in request.headers.get("if-none-match", ""):
+        return Response(status_code=304, headers=headers)
+    return Response(
+        content=calendar.text,
+        media_type="text/calendar; charset=utf-8",
+        headers=headers,
     )
