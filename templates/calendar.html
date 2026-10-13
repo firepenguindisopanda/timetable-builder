@@ -3056,7 +3056,10 @@ button.resolve-option:focus-visible {
         panel.hidden = !line;
         document.getElementById('myWeekLine').textContent = line;
         document.getElementById('myWeekDetails').innerHTML = weekSummaryDetails(summary)
-            .map(text => `<li>${escapeHtml(text)}</li>`).join('');
+            .map(text => `<li>${escapeHtml(text)}</li>`)
+            .concat(gapLinks(summary, weekOne ? shownWeek : null).map(link =>
+                `<li><a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a></li>`))
+            .join('');
     }
 
     /** The phone's day buttons. Hidden by CSS on wider screens. */

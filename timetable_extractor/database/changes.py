@@ -54,7 +54,7 @@ class Change:
     after: dict[str, Any] | None = None
 
 
-def _is_placeholder_room(room: str | None) -> bool:
+def is_placeholder_room(room: str | None) -> bool:
     if not room or not room.strip():
         return True
     lowered = room.lower()
@@ -113,7 +113,7 @@ def _is_venue_confirmation(
     b, a = before[0], after[0]
     if (b["day"], b["startTime"], b["endTime"]) != (a["day"], a["startTime"], a["endTime"]):
         return False
-    return _is_placeholder_room(b["room"]) and not _is_placeholder_room(a["room"])
+    return is_placeholder_room(b["room"]) and not is_placeholder_room(a["room"])
 
 
 def _finished_before(row: dict[str, Any], horizon: int | None) -> bool:

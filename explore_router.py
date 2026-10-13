@@ -32,6 +32,7 @@ from timetable_extractor import ics
 from timetable_extractor import subscription as sub
 from timetable_extractor.database import changes as cq
 from timetable_extractor.database import explore_queries as eq
+from timetable_extractor.database import free_rooms as fr
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
 from timetable_extractor.database.weeks import teaching_start
 from timetable_extractor.observability import correlation_id, get_logger
@@ -631,6 +632,93 @@ async def rooms_page(request: Request):
         request=request,
         name="explore/rooms.html",
         context=page_context(request, "rooms", rooms=rooms),
+    )
+
+
+def _clock(minutes: int | None) -> str:
+    """ "2pm", "10:30am": the builder's time format, which students read."""
+    if minutes is None:
+        return ""
+    hours, mins = divmod(minutes, 60)
+    suffix = "am" if hours < 12 else "pm"
+    hours = hours % 12 or 12
+    return f"{hours}{suffix}" if mins == 0 else f"{hours}:{mins:02d}{suffix}"
+
+
+@router.get("/free-rooms", include_in_schema=False)
+async def free_rooms_page(
+    request: Request,
+    day: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    week: str | None = None,
+):
+    """
+    Rooms with nothing timetabled in a window, for studying between classes.
+
+    Opens on the hour starting now in this teaching week. The page states its
+    caveats, because "not timetabled" is all the data can say: a room can be
+    locked, booked outside CELCAT, or someone's lab (UX plan 3.4).
+    """
+    teaching = teaching_calendar_context()
+    week_one = date.fromisoformat(teaching["weekOne"]) if teaching else None
+    default = fr.default_window(datetime.now(CAMPUS_TZ), week_one, eq.TOTAL_WEEKS)
+    window, refused = fr.window_from(default, eq.TOTAL_WEEKS, day, start, end, week)
+
+    try:
+        # Keyed by day and week only, so the cache holds at most 7 x 12
+        # entries however many windows students ask about.
+        data = cached(
+            f"free_rooms:{window.day}:{window.week}",
+            lambda: query(fr.free_rooms_page, window.day, window.week),
+        )
+    except ExplorerUnavailable as exc:
+        return _unavailable(request, "free-rooms", str(exc))
+
+    free = fr.free_in_window(data["rooms"], data["bookings"], window.start_min, window.end_min)
+    groups = [
+        {
+            "label": label,
+            "on_campus": rooms[0].on_campus,
+            "rooms": [
+                {
+                    "code": r.code,
+                    "until": (
+                        f"free until {_clock(r.free_until)}"
+                        if r.free_until is not None
+                        else "nothing else booked today"
+                    ),
+                }
+                for r in rooms
+            ],
+        }
+        for label, rooms in fr.group_by_building(free)
+    ]
+    date_label = None
+    if week_one is not None:
+        on = week_one + timedelta(days=(window.week - 1) * 7 + fr.DAYS.index(window.day))
+        date_label = f"{on.day} {on.strftime('%b')}"
+
+    return templates.TemplateResponse(
+        request=request,
+        name="explore/free_rooms.html",
+        context=page_context(
+            request,
+            "free-rooms",
+            window=window,
+            refused=refused,
+            start_label=_clock(window.start_min),
+            end_label=_clock(window.end_min),
+            start_value=f"{window.start_min // 60:02d}:{window.start_min % 60:02d}",
+            end_value=f"{window.end_min // 60:02d}:{window.end_min % 60:02d}",
+            date_label=date_label,
+            days=fr.DAYS,
+            weeks=range(1, eq.TOTAL_WEEKS + 1),
+            groups=groups,
+            free_count=len(free),
+            on_campus_count=sum(1 for r in free if r.on_campus),
+            room_count=len(data["rooms"]),
+        ),
     )
 
 
