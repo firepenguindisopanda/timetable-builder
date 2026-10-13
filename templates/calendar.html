@@ -27,33 +27,41 @@
 
 {% block content %}
 <div class="fade-up">
+    <!-- Left-aligned and plain, as the explorer's titles are. The hint is
+         worded for the device in hand: dragging is not the phone's way to
+         move a class (REDESIGN-SPEC.md 5.4). -->
     <div class="page-header">
-        <h1 class="page-title">
-            <span class="text-accent">My</span> Timetable
-        </h1>
-        <p class="page-subtitle">
-            Tap a class for its details, or drag it to another of its times.
+        <h1 class="page-title">My timetable</h1>
+        <p class="page-subtitle" id="pageHint" hidden>
+            <span class="hint-touch">Tap a class to see it or move it.</span>
+            <span class="hint-pointer">Select a class to see it, or drag it to another of its times.</span>
             Anything you place yourself stays put.
         </p>
     </div>
 
+    <!--
+      Notices. Each one says whether it wants to show; noticesToShow()
+      (notices.js) decides, so two never repeat each other and the grid is
+      not pushed off a phone's first screen (REDESIGN-SPEC.md 5.3).
+    -->
+
     <!-- Storage failure, which used to be logged and never shown (E14) -->
-    <div id="storageWarning" class="alert alert-warning py-2 px-3 mb-3" role="alert"
-         style="display: none; font-size: 0.8rem;">
-        <span id="storageWarningText"></span>
+    <div id="storageWarning" class="notice notice--bad" role="alert" hidden>
+        <p class="notice-title" id="storageWarningText"></p>
     </div>
 
     <!-- The warehouse was reloaded under a saved timetable (E16) -->
-    <div id="staleWarning" class="alert alert-info py-2 px-3 mb-3"
-         role="status" style="display: none; font-size: 0.8rem;">
-        <div class="d-flex align-items-center gap-2">
-            <span class="flex-grow-1" id="staleWarningText"></span>
-            <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
-                Update my courses
-            </button>
-            <button type="button" class="btn btn-sm btn-link text-decoration-none" id="staleDismiss">
-                Not now
-            </button>
+    <div id="staleWarning" class="notice notice--change" role="status" hidden>
+        <div class="notice-head">
+            <p class="notice-title" id="staleWarningText"></p>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
+                    Update my courses
+                </button>
+                <button type="button" class="btn btn-sm btn-link" id="staleDismiss">
+                    Not now
+                </button>
+            </div>
         </div>
         <!-- Filled in by describeWhatChanged once the endpoint answers. The
              warning above is useful without it, so both start empty and
@@ -64,49 +72,46 @@
     </div>
 
     <!-- What the last republish changed for this student, kept after they
-         updated, until they say they have seen it. -->
-    <section id="changesPanel" class="changes-panel" aria-labelledby="changesTitle" hidden>
-        <div class="ics-head">
-            <h2 id="changesTitle" class="ics-title">
-                What changed for you
-            </h2>
-            <button type="button" class="btn btn-outline-info btn-sm" id="changesSeen">Got it</button>
+         updated, until they say they have seen it. The same notice as the
+         one above, after the update. -->
+    <section id="changesPanel" class="notice notice--change" aria-labelledby="changesTitle" hidden>
+        <div class="notice-head">
+            <h2 id="changesTitle" class="notice-title">What changed for you</h2>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-outline-info btn-sm" id="changesSeen">Got it</button>
+            </div>
         </div>
-        <p class="ics-summary" id="changesWhen"></p>
+        <p class="notice-body" id="changesWhen"></p>
         <ul id="changesList" class="stale-changes"></ul>
         <a class="stale-see-all" href="/explore/changes?from=calendar">See everything that changed</a>
     </section>
 
     <!-- The calendar the student subscribed to shows an older timetable -->
-    <div id="subStale" class="alert alert-info py-2 px-3 mb-3" role="status"
-         style="display: none; font-size: 0.8rem;">
-        <div class="d-flex align-items-center gap-2">
-            <span class="flex-grow-1">Your subscribed calendar still shows your timetable as it
-                was before your changes.</span>
-            <button type="button" class="btn btn-sm btn-outline-info" id="subStaleOpen">
-                Get the new link
-            </button>
+    <div id="subStale" class="notice notice--info" role="status" hidden>
+        <div class="notice-head">
+            <p class="notice-title">Your subscribed calendar still shows your timetable as it
+                was before your changes.</p>
+            <div class="notice-actions">
+                <button type="button" class="btn btn-sm btn-outline-info" id="subStaleOpen">
+                    Get the new link
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Two ways in, offered only while the calendar is empty (9.1) -->
-    <div id="modeChooser" style="display: none; margin-bottom: 16px;">
-        <h2 style="font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 12px;">
-            Build your timetable
-        </h2>
-        <div class="mode-chooser">
-            <button type="button" class="mode-card" id="choosePicker">
-                <h3>Pick your courses</h3>
-                <p>Search every published course and we will fill in the days,
-                   times and rooms.</p>
-            </button>
-            <a class="mode-card upload" href="/extract">
-                <h3>Upload timetable PDFs</h3>
-                <p>For a course the university has not published, or a draft
-                   you were sent.</p>
-            </a>
-        </div>
-    </div>
+    <!-- The first visit: one way in, and the two others beside it. Shown only
+         while there are no courses; the toolbar, legend and grid wait for the
+         first one (REDESIGN-SPEC.md 5.5). -->
+    <section id="modeChooser" class="first-visit" aria-labelledby="firstVisitTitle" hidden>
+        <h2 id="firstVisitTitle" class="first-visit-title">Add your courses</h2>
+        <p class="first-visit-body">Search for each course you take and we will lay out
+            your week: every lecture, lab and tutorial, with its day, time and room.</p>
+        <button type="button" class="btn btn-accent" id="choosePicker">Add courses</button>
+        <p class="first-visit-more">
+            <button type="button" class="btn btn-link" id="choosePaste">Paste a list of codes</button>
+            <a class="btn btn-link" href="/extract">Upload a timetable PDF</a>
+        </p>
+    </section>
 
     <!-- Course picker -->
     <div id="pickerPanel" class="picker-panel" style="display: none;">
@@ -149,45 +154,55 @@
         </div>
     </div>
 
-    <!-- Controls -->
-    <div class="container mt-3">
-        <div class="row align-items-center mb-2">
-            <div class="col-auto">
-                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">Undo</button>
-                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">Redo</button>
-                <button id="addCoursesBtn" class="btn btn-accent btn-sm">
-                    Add courses
-                </button>
-                <button id="clearBtn" class="btn btn-outline-warning btn-sm"
-                        title="May move classes you did not place yourself">Re-arrange</button>
-                <button id="shareBtn" class="btn btn-outline-info btn-sm"
-                        title="Copy a link that rebuilds this timetable">
-                    Share
-                </button>
-                <button id="printBtn" class="btn btn-outline-info btn-sm" disabled
-                        title="Print, or save as a PDF from the print dialog">
-                    Print
-                </button>
-                <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
-                        aria-expanded="false" aria-controls="icsPanel"
-                        title="Subscribe in Google, Apple or Outlook calendar, or download a file">
-                    Add to calendar
-                </button>
-                <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
-                        title="Show the timetable on its own, filling the screen">
-                    Full screen
-                </button>
-                <!--
-                  Last in the row and the only destructive one here, so a
-                  mis-aimed click on the everyday actions cannot land on it.
-                -->
-                <button id="clearAllBtn" class="btn btn-outline-danger btn-sm" disabled
-                        title="Remove every course and start again">
-                    Clear all
-                </button>
-            </div>
-            <div class="col">
-                <small class="text-muted">Drag a class to another of its times. Anything you move stays where you put it.</small>
+    <!--
+      Controls, grouped by purpose (REDESIGN-SPEC.md 5.2). more-menu.js moves
+      buttons between the groups and More as the width changes, so each
+      button exists once and keeps its listeners. Hidden until there is a
+      course to act on.
+    -->
+    <div class="toolbar" id="toolbar" hidden>
+        <div class="toolbar-group" id="tbPrimary">
+            <button id="addCoursesBtn" class="btn btn-accent btn-sm">Add courses</button>
+        </div>
+        <div class="toolbar-group" id="tbHistory">
+            <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">Undo</button>
+            <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">Redo</button>
+        </div>
+        <div class="toolbar-group" id="tbOutput">
+            <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
+                    aria-expanded="false" aria-controls="icsPanel"
+                    title="Subscribe in Google, Apple or Outlook calendar, or download a file">
+                Add to calendar
+            </button>
+            <button id="printBtn" class="btn btn-outline-info btn-sm" disabled
+                    title="Print, or save as a PDF from the print dialog">
+                Print
+            </button>
+            <button id="shareBtn" class="btn btn-outline-info btn-sm"
+                    title="Copy a link that rebuilds this timetable">
+                Share
+            </button>
+        </div>
+        <div class="toolbar-more">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="moreBtn"
+                    aria-expanded="false" aria-controls="moreMenu">More</button>
+            <div class="more-menu" id="moreMenu" hidden>
+                <div class="more-items" id="moreItems">
+                    <button id="clearBtn" class="btn btn-outline-warning btn-sm"
+                            title="May move classes you did not place yourself">Re-arrange</button>
+                    <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
+                            title="Show the timetable on its own, filling the screen">
+                        Full screen
+                    </button>
+                </div>
+                <!-- The only destructive action, last and apart, so a
+                     mis-aimed tap on the everyday ones cannot land on it. -->
+                <div class="more-danger">
+                    <button id="clearAllBtn" class="btn btn-outline-danger btn-sm" disabled
+                            title="Remove every course and start again">
+                        Clear all
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -266,7 +281,7 @@
     </div>
 
     <!-- Calendar -->
-    <div class="surface-card calendar-card">
+    <div class="surface-card calendar-card" id="calendarCard" hidden>
         <div class="calendar-fullscreen-bar">
             <span class="calendar-fullscreen-title">Your timetable</span>
             <button type="button" id="exitFullscreenBtn" class="btn btn-outline-info btn-sm"
@@ -388,6 +403,8 @@
 <script src="/assets/js/ics-export.js?v={{ asset_version }}"></script>
 <script src="/assets/js/subscription-link.js?v={{ asset_version }}"></script>
 <script src="/assets/js/my-week.js?v={{ asset_version }}"></script>
+<script src="/assets/js/notices.js?v={{ asset_version }}"></script>
+<script src="/assets/js/more-menu.js?v={{ asset_version }}"></script>
 <script>
 (function() {
     'use strict';
@@ -406,6 +423,28 @@
     const $detailContent = document.getElementById('detailContent');
     const $storageWarning = document.getElementById('storageWarning');
     const $storageWarningText = document.getElementById('storageWarningText');
+    const $calendarCard = document.getElementById('calendarCard');
+
+    //: Which notices want to show. Nothing sets a notice's visibility
+    //: directly: noticesToShow() (notices.js) decides, so a republish on
+    //: offer and the last update's list of the same changes never show
+    //: together (REDESIGN-SPEC.md 5.3). `republish` is 'offer',
+    //: 'dismissed' or false.
+    const noticeWants = { storage: false, republish: false, changes: false, subscription: false };
+    const NOTICE_ELEMENTS = {
+        storage: 'storageWarning',
+        republish: 'staleWarning',
+        changes: 'changesPanel',
+        subscription: 'subStale',
+    };
+
+    function setNotice(name, wanted) {
+        noticeWants[name] = name === 'republish' ? (wanted || false) : Boolean(wanted);
+        const shown = new Set(noticesToShow(noticeWants));
+        for (const [notice, id] of Object.entries(NOTICE_ELEMENTS)) {
+            document.getElementById(id).hidden = !shown.has(notice);
+        }
+    }
 
     let currentEvents = [];
     let state = null;
@@ -1165,7 +1204,9 @@
             `Week ${shownWeek} <span class="week-dates">· ${escapeHtml(weekRangeLabel(shownWeek, weekOne))}</span>`;
         document.getElementById('weekPrev').disabled = shownWeek <= 1;
         document.getElementById('weekNext').disabled = shownWeek >= totalWeeks;
-        document.getElementById('weekToday').disabled = shownWeek === current;
+        // Offered only when another week is showing, rather than sitting
+        // disabled on the current one (REDESIGN-SPEC.md 5.1).
+        document.getElementById('weekToday').hidden = shownWeek === current;
 
         const text = weekAbsenceText(weekAbsences(events, shownWeek));
         absent.hidden = !text;
@@ -1225,8 +1266,12 @@
 
     document.getElementById('weekPrev').addEventListener('click', () => showWeek(shownWeek - 1));
     document.getElementById('weekNext').addEventListener('click', () => showWeek(shownWeek + 1));
-    document.getElementById('weekToday').addEventListener('click',
-        () => showWeek(teachingWeekOf(todayIso(), weekOne, totalWeeks)));
+    document.getElementById('weekToday').addEventListener('click', () => {
+        showWeek(teachingWeekOf(todayIso(), weekOne, totalWeeks));
+        // The button hides itself on the current week; keep focus in the bar.
+        const $next = document.getElementById('weekNext');
+        (($next.disabled ? document.getElementById('weekPrev') : $next)).focus();
+    });
 
     /** Today as YYYY-MM-DD in the student's own zone, which is the campus's. */
     function todayIso() {
@@ -1416,7 +1461,9 @@
             document.getElementById('eventsPanel').hidden = true;
             document.getElementById('dayStrip').innerHTML = '';
             document.getElementById('myWeek').hidden = true;
-            if ($emptyState) $emptyState.style.display = 'block';
+            if ($emptyState) {
+                $emptyState.style.display = state && state.courseKeys.length ? 'block' : 'none';
+            }
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
             if (countEl) countEl.textContent = '0';
@@ -1641,7 +1688,7 @@
 
     function openPicker() {
         $picker.style.display = 'block';
-        $modeChooser.style.display = 'none';
+        $modeChooser.hidden = true;
         $pickerQuery.focus();
         $pickerStatus.textContent = 'Loading courses...';
         loadCourseIndex()
@@ -1664,7 +1711,20 @@
 
     function showChooserIfEmpty() {
         const empty = !state || state.courseKeys.length === 0;
-        $modeChooser.style.display = empty && $picker.style.display === 'none' ? 'block' : 'none';
+        $modeChooser.hidden = !(empty && $picker.style.display === 'none');
+        // Nothing to act on or look at yet, so the first visit is one block
+        // with one action: no disabled toolbar, no legend, no empty grid
+        // (REDESIGN-SPEC.md 5.5).
+        const $toolbar = document.getElementById('toolbar');
+        const focusInToolbar = $toolbar.contains(document.activeElement);
+        $toolbar.hidden = empty;
+        document.getElementById('pageHint').hidden = empty;
+        $calendarCard.hidden = empty;
+        // Clear all empties the timetable from inside the toolbar it then
+        // hides, which dropped focus on the page body.
+        if (empty && focusInToolbar && !$modeChooser.hidden) {
+            document.getElementById('choosePicker').focus();
+        }
     }
 
     /**
@@ -1927,6 +1987,10 @@
 
     $pickerQuery.addEventListener('input', renderPickerResults);
     document.getElementById('choosePicker').addEventListener('click', openPicker);
+    document.getElementById('choosePaste').addEventListener('click', () => {
+        openPicker();
+        if ($paste.style.display === 'none') togglePaste();
+    });
     document.getElementById('pickerClose').addEventListener('click', closePicker);
     document.getElementById('addCoursesBtn').addEventListener('click', () => {
         if ($picker.style.display === 'block') closePicker(); else openPicker();
@@ -2004,7 +2068,7 @@
             if (!current || current === state.publicationId) return;
 
             document.getElementById('staleWarningText').textContent = GENERIC_STALE_TEXT;
-            $stale.style.display = 'block';
+            setNotice('republish', 'offer');
             $stale.dataset.publicationId = current;
 
             // Then replace "may have moved" with what actually moved. Second,
@@ -2082,9 +2146,8 @@
     let pendingChanges = null;
 
     function renderChangesPanel() {
-        const panel = document.getElementById('changesPanel');
         const log = state && state.unseenChanges;
-        panel.hidden = !log;
+        setNotice('changes', log);
         if (!log) return;
         const when = log.publishedAt ? new Date(log.publishedAt) : null;
         // Only promise markers when a class is actually marked: a new exam or a
@@ -2120,7 +2183,7 @@
             carrySubscription(state, subscribedBefore, result);
             saveState();
             renderSubscriptionStale();
-            $stale.style.display = 'none';
+            setNotice('republish', false);
             if (pendingChanges && pendingChanges.toPublication === incoming.publicationId) {
                 state.recordChanges({ ...pendingChanges, publishedAt: incoming.publishedAt });
             }
@@ -2140,7 +2203,7 @@
 
     document.getElementById('staleRefresh').addEventListener('click', refreshFromWarehouse);
     document.getElementById('staleDismiss').addEventListener('click', () => {
-        $stale.style.display = 'none';
+        setNotice('republish', 'dismissed');
     });
     document.getElementById('shareBtn').addEventListener('click', copyShareLink);
 
@@ -2275,8 +2338,7 @@
     }
 
     function renderSubscriptionStale() {
-        document.getElementById('subStale').style.display =
-            state && subscriptionOutOfDate(state) ? 'block' : 'none';
+        setNotice('subscription', state && subscriptionOutOfDate(state));
     }
 
     document.getElementById('subCopy').addEventListener('click', async () => {
@@ -2373,13 +2435,13 @@
         if (!state) return;
         const result = writeSavedState(state.toSaved());
         if (result.ok) {
-            $storageWarning.style.display = 'none';
+            setNotice('storage', false);
         } else {
             // Previously a console warning, so a student could arrange a whole
             // timetable and lose it without ever being told.
             $storageWarningText.textContent =
                 result.error + ' Your timetable will be gone when you close this tab.';
-            $storageWarning.style.display = 'block';
+            setNotice('storage', true);
         }
     }
 
@@ -2411,6 +2473,14 @@
 
     $undoBtn.addEventListener('click', () => { if (state) state.undo(); });
     $redoBtn.addEventListener('click', () => { if (state) state.redo(); });
+
+    // The toolbar's groups and More (REDESIGN-SPEC.md 5.2). Every button is
+    // bound above, so moving them between groups as the width changes keeps
+    // their listeners.
+    applyToolbarLayout(toolbarLayout(phoneQuery.matches), document);
+    phoneQuery.addEventListener('change',
+        () => applyToolbarLayout(toolbarLayout(phoneQuery.matches), document));
+    bindMoreMenu(document.getElementById('moreBtn'), document.getElementById('moreMenu'), document);
 
     document.addEventListener('keydown', (e) => {
         // Text fields keep their own undo. Taking Ctrl+Z here used to undo
@@ -2496,7 +2566,7 @@
         // the timetable current and leaves the notice hidden.
         if (state && state.publicationId !== noticePublicationId) {
             noticePublicationId = state.publicationId;
-            $stale.style.display = 'none';
+            setNotice('republish', false);
             checkForRepublish();
         }
         renderPickerResults();

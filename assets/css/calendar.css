@@ -401,14 +401,159 @@
 }
 
 /* Exams, relocations and make-ups: listed by date, never placed weekly. */
-.changes-panel {
-    background: var(--bg-surface);
-    border: 1px solid var(--accent-amber);
+/* Notices above the grid (REDESIGN-SPEC.md 5.3). The tone is a tinted
+   ground and a title that says what happened, never a stripe down the side.
+   Which ones show is decided in notices.js. */
+.notice {
+    background: var(--notice-bg, var(--paper-sunk));
+    border: 1px solid var(--notice-edge, var(--rule));
     border-radius: var(--r-lg);
-    margin-bottom: 12px;
-    padding: 10px 12px 12px;
-    font-size: 0.85rem;
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--ink);
 }
+
+.notice--change {
+    --notice-bg: var(--gold-soft);
+    --notice-edge: color-mix(in srgb, var(--gold) 45%, transparent);
+}
+
+.notice--info {
+    --notice-bg: var(--teal-soft);
+    --notice-edge: color-mix(in srgb, var(--teal) 35%, transparent);
+}
+
+.notice--bad {
+    --notice-bg: var(--coral-soft);
+    --notice-edge: color-mix(in srgb, var(--coral) 45%, transparent);
+}
+
+/* Title and actions share a row while there is room, and the actions drop
+   under the title on a phone instead of squeezing it to three words a line. */
+.notice-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+}
+
+.notice-title {
+    flex: 1 1 18rem;
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.notice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.notice-actions .btn { white-space: nowrap; }
+
+.notice-body { margin: var(--space-1) 0 0; color: var(--ink-2); }
+
+.notice .stale-changes li { font-size: var(--text-sm); }
+
+/* The toolbar: groups by purpose, a gap between them, and the rare actions
+   behind More (REDESIGN-SPEC.md 5.2). One row from 320px up. */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-6);
+    margin: 0 0 var(--space-3);
+}
+
+.toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.toolbar-more { position: relative; margin-left: auto; }
+
+/* Opens under More, aligned to its right edge so it never runs off a phone. */
+.more-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--space-1));
+    z-index: 1050;
+    min-width: 13rem;
+    padding: var(--space-1);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-overlay);
+}
+
+.more-menu .btn {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-border-color: transparent;
+}
+
+.more-items { display: grid; gap: 2px; }
+
+.more-danger {
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 767.98px) {
+    .toolbar { gap: var(--space-2); }
+}
+
+/* At 320px the three phone buttons needed 314px of a 296px bar and wrapped.
+   Narrower side padding keeps them on one row there. */
+@media (max-width: 400px) {
+    .toolbar .btn { --bs-btn-padding-x: var(--space-2); }
+}
+
+/* The hint names the gesture the device has. */
+.hint-touch { display: none; }
+
+@media (pointer: coarse) {
+    .hint-touch { display: inline; }
+    .hint-pointer { display: none; }
+}
+
+/* The first visit: one block, one primary action (REDESIGN-SPEC.md 5.5). */
+.first-visit {
+    max-width: 36rem;
+    margin: var(--space-6) 0 var(--space-8);
+}
+
+.first-visit-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    margin: 0 0 var(--space-2);
+}
+
+.first-visit-body {
+    font-size: var(--text-md);
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0 0 var(--space-4);
+}
+
+.first-visit-more {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-2);
+    margin: var(--space-3) 0 0;
+}
+
+.first-visit-more .btn-link { --bs-btn-padding-x: 0; margin-right: var(--space-3); }
 
 /* A class whose time or room changed in the last republish, until seen. */
 .calendar-event .event-changed {
@@ -1339,52 +1484,6 @@ button.resolve-option:focus-visible {
    its own palette and its own light and dark handling, and this page is dark
    throughout. Same facts, same order, this page's colours. */
 
-.mode-chooser {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-    max-width: 720px;
-    margin: 0 auto;
-}
-
-.mode-card {
-    display: block;
-    text-align: left;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--r-lg);
-    padding: 18px;
-    color: inherit;
-    text-decoration: none;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.mode-card:hover,
-.mode-card:focus-visible {
-    border-color: var(--border-medium);
-    background: var(--bg-elevated);
-    outline: 2px solid var(--accent-cyan);
-    outline-offset: 2px;
-}
-
-.mode-card h3 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin: 0 0 6px;
-    color: var(--accent-cyan);
-}
-
-/* Two equal choices, told apart by hue rather than by one looking louder. */
-.mode-card.upload h3 { color: var(--accent-green); }
-
-.mode-card p {
-    font-size: 0.78rem;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.5;
-}
-
 .picker-panel {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
@@ -1835,9 +1934,11 @@ button.resolve-option:focus-visible {
     transform: translateY(-0.2em);
 }
 
+/* "MGMT 2021" is one name: on a phone it broke across two lines. */
 .stale-changes li b {
     color: var(--text-primary);
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .stale-changes li.chg-act::before { background: var(--accent-amber); }

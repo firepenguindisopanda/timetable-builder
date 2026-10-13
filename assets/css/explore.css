@@ -1189,7 +1189,11 @@ table.sessions tbody tr:hover td { background: var(--paper-sunk); }
 
     .heat-grid { grid-template-columns: 2rem repeat(13, minmax(0, 1fr)); }
     .heat-hour:nth-child(even) { visibility: hidden; }
-    .rail details { margin-left: 0; flex-basis: 100%; }
+    /* One line: the status and the publication date. The other two dates
+       and their explanation pushed the week bar off a phone's first screen
+       (REDESIGN-SPEC.md 5.4). */
+    .rail-inner { flex-wrap: nowrap; padding: 0.45rem 1rem; }
+    .rail-facts > :not(:first-child), .rail details { display: none; }
     .row { grid-template-columns: minmax(0, 1fr); padding: 0.7rem 1rem; }
     /* One line for the counts rather than two, so a phone shows more rows. */
     .row-right { display: flex; gap: 0.5rem; align-items: baseline; }

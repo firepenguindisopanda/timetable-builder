@@ -519,23 +519,24 @@
             margin-bottom: 1rem;
         }
 
+        /* Left-aligned, as the explorer's titles are: a centred title over
+           left-aligned content read as a landing page, not a tool. */
         .page-header {
-            text-align: center;
-            margin: 1.5rem 0 2rem;
+            margin: var(--space-6) 0 var(--space-4);
         }
 
         .page-title {
-            font-size: clamp(1.5rem, 3.6vw, 2rem);
+            font-size: var(--text-xl);
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: var(--space-1);
         }
 
         .page-subtitle {
-            font-size: 0.86rem;
+            font-size: var(--text-md);
             color: var(--ink-2);
-            max-width: 520px;
-            margin: 0 auto;
-            line-height: 1.55;
+            max-width: 40rem;
+            margin: 0;
+            line-height: 1.5;
         }
 
         .tabs-wrapper { max-width: 900px; margin: 0 auto; }
