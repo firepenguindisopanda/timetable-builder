@@ -32,7 +32,7 @@ from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, Uplo
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.templating import Jinja2Templates
@@ -349,13 +349,16 @@ def _build_extract_response(results: list[dict]) -> ExtractResponse:
 
 
 @app.get("/", include_in_schema=False)
-async def index(request: Request):
-    """Serve the single-page dashboard."""
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context=_page_context(request, "home"),
-    )
+async def index():
+    """
+    Send visitors to the explorer.
+
+    `/` was a dashboard of extraction tools, which nobody arriving from UWI
+    needs: a student wants their classes (REDESIGN-SPEC.md, decision R2).
+    The tools are listed on `/admin`. Temporary rather than permanent, so a
+    browser does not hold on to it if `/` becomes a page again.
+    """
+    return RedirectResponse("/explore", status_code=307)
 
 
 @app.get("/health", response_model=HealthResponse)

@@ -138,7 +138,7 @@ class TestDevToolsGate:
 
         assert main.require_dev_tools in guards
 
-    @pytest.mark.parametrize("path", ["/", "/extract", "/calendar", "/health"])
+    @pytest.mark.parametrize("path", ["/extract", "/calendar", "/health"])
     def test_the_public_pages_are_unaffected(self, disabled_client, path):
         assert disabled_client.get(path).status_code == 200
 
@@ -279,9 +279,15 @@ class TestKeyComparison:
 class TestPublicEndpoints:
     """The student-facing routes must stay open."""
 
-    @pytest.mark.parametrize("path", ["/health", "/", "/calendar", "/extract"])
+    @pytest.mark.parametrize("path", ["/health", "/calendar", "/extract"])
     def test_still_reachable_without_a_key(self, client, path):
         assert client.get(path).status_code == 200
+
+    def test_the_root_sends_students_to_the_explorer(self, client):
+        """`/` was a tool dashboard; it now goes where students want to be."""
+        response = client.get("/", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == "/explore"
 
     def test_uploading_your_own_pdf_needs_no_key(self, client):
         """`/extract` takes an upload, not a server path, so it stays public."""
