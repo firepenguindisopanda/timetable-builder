@@ -31,7 +31,7 @@
             </div>
             <div id="fileList" class="mb-3" style="font-size: 0.8rem;"></div>
             <button type="submit" class="btn btn-accent w-100" id="extractBtn" disabled>
-                <i class="bi bi-lightning-charge me-1"></i> Extract Timetables
+                Extract Timetables
             </button>
         </form>
 
@@ -76,9 +76,7 @@
     function renderAlert(type, message) {
         const alertClass = type === 'error' ? 'alert-danger' : 
                           type === 'success' ? 'alert-success' : 'alert-warning';
-        const icon = type === 'error' ? 'exclamation-triangle' : 
-                     type === 'success' ? 'check-circle' : 'exclamation-circle';
-        return `<div class="result-alert alert ${alertClass} mb-3"><i class="bi bi-${icon} me-2"></i>${escapeHtml(message)}</div>`;
+        return `<div class="result-alert alert ${alertClass} mb-3">${escapeHtml(message)}</div>`;
     }
 
     // Render extraction results
@@ -105,7 +103,7 @@
                 
                 html += `<div class="mb-3">`;
                 html += `<div class="d-flex align-items-center mb-2" style="font-size: 0.85rem; font-weight: 600;">`;
-                html += `<i class="bi bi-file-earmark-text me-2" style="color: var(--accent-cyan);"></i>${escapeHtml(filename)}`;
+                html += `${escapeHtml(filename)}`;
                 if (result.semester) {
                     html += `<span class="badge ms-2" style="background: var(--accent-cyan-dim); color: var(--accent-cyan); font-size: 0.7rem;">${escapeHtml(result.semester)}</span>`;
                 }
@@ -172,8 +170,8 @@
         
         let html = '<div style="color: var(--text-secondary); margin-bottom: 0.5rem;">Selected files:</div>';
         selectedFiles.forEach((file, index) => {
-            html += `<div class="d-flex align-items-center justify-content-between p-2 mb-1" style="background: var(--bg-deep); border-radius: 6px;">
-                <span><i class="bi bi-file-earmark-pdf me-2" style="color: var(--accent-red);"></i>${escapeHtml(file.name)}</span>
+            html += `<div class="d-flex align-items-center justify-content-between p-2 mb-1" style="background: var(--bg-deep); border-radius: var(--r-md);">
+                <span>${escapeHtml(file.name)}</span>
                 <button type="button" class="btn btn-sm" style="color: var(--text-tertiary); padding: 0;" onclick="window.removeFile(${index})">
                     <i class="bi bi-x-lg"></i>
                 </button>

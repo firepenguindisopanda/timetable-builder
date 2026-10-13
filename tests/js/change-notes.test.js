@@ -85,7 +85,7 @@ test('a course that lost a whole class type is told to ask the department', () =
   }));
   assert.equal(
     line.text,
-    'no longer has a published Lecture — check with your department'
+    'no longer has a published Lecture; check with your department'
   );
   assert.equal(line.severity, 'act');
 });
@@ -104,7 +104,7 @@ test('an extra sitting is not called a move', () => {
   const line = describeChange(change({
     displayKind: 'sitting_added', before: [], after: [slot({ day: 'Tuesday' })],
   }));
-  assert.equal(line.text, 'extra Lecture — Tue 9am');
+  assert.equal(line.text, 'extra Lecture on Tue 9am');
   assert.equal(line.severity, 'info');
 });
 
@@ -112,7 +112,7 @@ test('a dropped sitting says which one it was', () => {
   const line = describeChange(change({
     displayKind: 'sitting_removed', before: [slot({ day: 'Tuesday' })], after: [],
   }));
-  assert.equal(line.text, 'one Lecture time dropped — was Tue 9am');
+  assert.equal(line.text, 'one Lecture time dropped: Tue 9am');
   assert.equal(line.severity, 'act');
 });
 

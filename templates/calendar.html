@@ -52,7 +52,7 @@
     display: flex;
     gap: 0;
     background: var(--bg-surface);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     border: 1px solid var(--border-subtle);
     overflow: hidden;
     min-height: 280px;
@@ -101,7 +101,7 @@
 
 .events-list-scroll::-webkit-scrollbar-thumb {
     background: var(--border-subtle);
-    border-radius: 3px;
+    border-radius: var(--r-sm);
 }
 
 .event-list-item {
@@ -143,7 +143,7 @@
 .event-dot {
     width: 8px;
     height: 8px;
-    border-radius: 2px;
+    border-radius: var(--r-sm);
     flex-shrink: 0;
 }
 
@@ -193,12 +193,6 @@
     padding: 2rem;
 }
 
-.detail-placeholder i {
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
-    opacity: 0.5;
-}
-
 .detail-placeholder p {
     font-size: 0.8rem;
     margin: 0;
@@ -228,7 +222,7 @@
 
 .detail-content::-webkit-scrollbar-thumb {
     background: var(--border-subtle);
-    border-radius: 3px;
+    border-radius: var(--r-sm);
 }
 
 /* Detail header */
@@ -257,7 +251,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--r-md);
 }
 
 .detail-type-badge.lecture { background: color-mix(in srgb, var(--type-lecture) 15%, transparent); color: var(--type-lecture); }
@@ -285,10 +279,6 @@
     display: flex;
     align-items: center;
     gap: 6px;
-}
-
-.detail-section-title i {
-    font-size: 0.75rem;
 }
 
 .detail-field {
@@ -372,7 +362,7 @@
 .detail-raw-inner pre {
     background: var(--bg-deep);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     padding: 10px 12px;
     font-size: 0.65rem;
     color: var(--text-secondary);
@@ -390,7 +380,7 @@
 .conflicts-panel {
     background: color-mix(in srgb, var(--accent-red) 10%, transparent);
     border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     margin-bottom: 12px;
 }
 
@@ -406,7 +396,7 @@
     color: var(--accent-red);
     background: none;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     text-align: left;
     display: flex;
     align-items: center;
@@ -431,7 +421,7 @@
 .changes-panel {
     background: var(--bg-surface);
     border: 1px solid var(--accent-amber);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     margin-bottom: 12px;
     padding: 10px 12px 12px;
     font-size: 0.85rem;
@@ -444,7 +434,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 0 4px;
-    border-radius: 3px;
+    border-radius: var(--r-sm);
     background: var(--accent-amber-dim);
     color: var(--accent-amber-ink);
 }
@@ -454,7 +444,7 @@
 .ics-panel {
     background: var(--bg-surface);
     border: 1px solid var(--border-medium);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     margin-bottom: 12px;
     padding: 10px 12px 12px;
     font-size: 0.85rem;
@@ -472,7 +462,7 @@
 .sub-stale-line {
     margin: 0 0 8px;
     padding: 6px 8px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: var(--accent-amber-dim);
     color: var(--accent-amber-ink);
 }
@@ -480,7 +470,7 @@
 .coming-up-panel {
     background: var(--bg-surface);
     border: 1px solid var(--border-medium);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     margin-bottom: 12px;
     padding: 10px 12px 12px;
 }
@@ -515,7 +505,7 @@
     align-items: baseline;
     font-size: 0.82rem;
     padding: 6px 8px;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     background: var(--bg-elevated);
 }
 
@@ -556,7 +546,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     border: 1px solid var(--border-medium);
     background: var(--bg-surface);
     color: var(--text-primary);
@@ -593,7 +583,7 @@
 .my-week summary:focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: var(--r-md);
 }
 
 .my-week-label { font-weight: 600; }
@@ -645,7 +635,7 @@
 .conflict-item {
     padding: 8px 10px;
     background: color-mix(in srgb, var(--accent-red) 12%, transparent);
-    border-radius: 5px;
+    border-radius: var(--r-md);
     margin-bottom: 5px;
     font-size: 0.72rem;
     color: var(--text-primary);
@@ -691,7 +681,7 @@
 
 /* The grid used to sit in a 1000px card inside a page measure half again as
    wide, which read as the calendar being inset from everything above it and
-   left seven columns about 138px each — narrow enough that the room name
+   left seven columns about 138px each, narrow enough that the room name
    truncated on almost every block. It now takes the full page measure, the
    same width as the events panel it sits under. */
 .calendar-card {
@@ -821,7 +811,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 
 .calendar-scroll-wrapper::-webkit-scrollbar-thumb {
     background: var(--border-subtle);
-    border-radius: 3px;
+    border-radius: var(--r-sm);
 }
 
 /* Blocks used to be 20% washes of their accent with accent-coloured text,
@@ -984,7 +974,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
     width: 8px;
     height: 8px;
     display: inline-block;
-    border-radius: 2px;
+    border-radius: var(--r-sm);
     margin-right: 3px;
 }
 
@@ -1030,7 +1020,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 .resolve-dialog {
     background: var(--bg-surface);
     border: 1px solid var(--border-medium);
-    border-radius: 14px;
+    border-radius: var(--r-lg);
     width: 100%;
     max-width: 700px;
     max-height: min(85vh, 640px);
@@ -1058,7 +1048,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
 .detail-dialog {
     background: var(--bg-surface);
     border: 1px solid var(--border-medium);
-    border-radius: 14px;
+    border-radius: var(--r-lg);
     width: 100%;
     max-width: 480px;
     max-height: min(85vh, 640px);
@@ -1115,7 +1105,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
     color: var(--text-secondary);
     font-size: 0.85rem;
     padding: 6px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     cursor: pointer;
     line-height: 1;
 }
@@ -1205,7 +1195,7 @@ body.calendar-fullscreen .calendar-scroll-wrapper {
     padding: 8px 10px;
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     color: var(--text-primary);
     font-size: 0.72rem;
     flex-shrink: 0;
@@ -1278,7 +1268,7 @@ button.resolve-option:focus-visible {
     }
     .resolve-dialog,
     .detail-dialog {
-        border-radius: 14px 14px 0 0;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
         border-bottom: none;
         max-height: 88vh;
         max-width: none;
@@ -1307,7 +1297,7 @@ button.resolve-option:focus-visible {
     padding: 6px 8px;
     background: var(--bg-elevated);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     font-size: 0.8rem;
     flex-shrink: 0;
 }
@@ -1379,7 +1369,7 @@ button.resolve-option:focus-visible {
     text-align: left;
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 10px;
+    border-radius: var(--r-lg);
     padding: 18px;
     color: inherit;
     text-decoration: none;
@@ -1415,7 +1405,7 @@ button.resolve-option:focus-visible {
 .picker-panel {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 10px;
+    border-radius: var(--r-lg);
     margin-bottom: 12px;
     overflow: hidden;
 }
@@ -1437,7 +1427,7 @@ button.resolve-option:focus-visible {
     border: 1px solid var(--border-subtle);
     color: var(--text-primary);
     padding: 7px 10px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     font-size: 0.85rem;
 }
 
@@ -1465,7 +1455,7 @@ button.resolve-option:focus-visible {
 
 .picker-results::-webkit-scrollbar { width: 6px; }
 .picker-results::-webkit-scrollbar-track { background: transparent; }
-.picker-results::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+.picker-results::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: var(--r-sm); }
 
 .picker-item {
     display: grid;
@@ -1531,7 +1521,7 @@ button.resolve-option:focus-visible {
     background: var(--bg-deep);
     border: 1px solid var(--border-subtle);
     color: var(--text-primary);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     padding: 8px 10px;
     font-size: 0.8rem;
     font-family: var(--font-data);
@@ -1555,7 +1545,7 @@ button.resolve-option:focus-visible {
     display: inline-block;
     padding: 1px 7px;
     margin: 2px 3px 2px 0;
-    border-radius: 4px;
+    border-radius: var(--r-md);
     font-size: 0.7rem;
     background: var(--accent-cyan-dim);
     color: var(--accent-cyan);
@@ -1663,7 +1653,7 @@ button.resolve-option:focus-visible {
 .toast-note {
     background: var(--bg-elevated);
     border: 1px solid var(--border-medium);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     padding: 10px 12px;
     font-size: 0.78rem;
     color: var(--text-primary);
@@ -1671,7 +1661,7 @@ button.resolve-option:focus-visible {
     animation: toast-in 0.18s ease;
 }
 
-/* What happened is carried by the icon and the headline, not by a stripe
+/* What happened is carried by the headline and its colour, not by a stripe
    down the side, which is easier to read at a glance and survives the note
    being narrow on a phone. */
 .toast-line {
@@ -1707,7 +1697,7 @@ button.resolve-option:focus-visible {
     width: 32px;
     height: 32px;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: none;
     color: var(--text-secondary);
 }
@@ -1754,7 +1744,7 @@ button.resolve-option:focus-visible {
     justify-content: center;
     gap: 1px;
     border: 1px solid var(--border-medium);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: var(--bg-surface);
     color: var(--text-primary);
     font-size: 0.75rem;
@@ -1836,7 +1826,7 @@ button.resolve-option:focus-visible {
 .stale-changes {
     list-style: none;
     margin: 0.5rem 0 0;
-    padding: 0 0 0 1.6rem;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -1872,7 +1862,7 @@ button.resolve-option:focus-visible {
 
 .stale-see-all {
     display: inline-block;
-    margin: 0.55rem 0 0 1.6rem;
+    margin: 0.55rem 0 0;
     font-size: 0.76rem;
     color: var(--accent-cyan);
     text-decoration: none;
@@ -1902,7 +1892,6 @@ button.resolve-option:focus-visible {
     <!-- Storage failure, which used to be logged and never shown (E14) -->
     <div id="storageWarning" class="alert alert-warning py-2 px-3 mb-3" role="alert"
          style="display: none; font-size: 0.8rem;">
-        <i class="bi bi-exclamation-triangle me-1"></i>
         <span id="storageWarningText"></span>
     </div>
 
@@ -1910,7 +1899,6 @@ button.resolve-option:focus-visible {
     <div id="staleWarning" class="alert alert-info py-2 px-3 mb-3"
          role="status" style="display: none; font-size: 0.8rem;">
         <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-arrow-repeat"></i>
             <span class="flex-grow-1" id="staleWarningText"></span>
             <button type="button" class="btn btn-sm btn-outline-info" id="staleRefresh">
                 Update my courses
@@ -1924,8 +1912,7 @@ button.resolve-option:focus-visible {
              hidden rather than blocking on the request. -->
         <ul id="staleChanges" class="stale-changes" hidden></ul>
         <a id="staleSeeAll" class="stale-see-all"
-           href="/explore/changes?from=calendar" hidden>See everything that changed<i
-               class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+           href="/explore/changes?from=calendar" hidden>See everything that changed</a>
     </div>
 
     <!-- What the last republish changed for this student, kept after they
@@ -1933,21 +1920,19 @@ button.resolve-option:focus-visible {
     <section id="changesPanel" class="changes-panel" aria-labelledby="changesTitle" hidden>
         <div class="ics-head">
             <h2 id="changesTitle" class="ics-title">
-                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> What changed for you
+                What changed for you
             </h2>
             <button type="button" class="btn btn-outline-info btn-sm" id="changesSeen">Got it</button>
         </div>
         <p class="ics-summary" id="changesWhen"></p>
         <ul id="changesList" class="stale-changes"></ul>
-        <a class="stale-see-all" href="/explore/changes?from=calendar">See everything that changed<i
-               class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+        <a class="stale-see-all" href="/explore/changes?from=calendar">See everything that changed</a>
     </section>
 
     <!-- The calendar the student subscribed to shows an older timetable -->
     <div id="subStale" class="alert alert-info py-2 px-3 mb-3" role="status"
          style="display: none; font-size: 0.8rem;">
         <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-calendar-x" aria-hidden="true"></i>
             <span class="flex-grow-1">Your subscribed calendar still shows your timetable as it
                 was before your changes.</span>
             <button type="button" class="btn btn-sm btn-outline-info" id="subStaleOpen">
@@ -1963,12 +1948,12 @@ button.resolve-option:focus-visible {
         </h2>
         <div class="mode-chooser">
             <button type="button" class="mode-card" id="choosePicker">
-                <h3><i class="bi bi-search me-1"></i> Pick your courses</h3>
+                <h3>Pick your courses</h3>
                 <p>Search every published course and we will fill in the days,
                    times and rooms.</p>
             </button>
             <a class="mode-card upload" href="/extract">
-                <h3><i class="bi bi-upload me-1"></i> Upload timetable PDFs</h3>
+                <h3>Upload timetable PDFs</h3>
                 <p>For a course the university has not published, or a draft
                    you were sent.</p>
             </a>
@@ -1983,10 +1968,10 @@ button.resolve-option:focus-visible {
                    aria-label="Search courses to add">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="pasteToggle"
                     aria-expanded="false" aria-controls="pickerPaste" style="white-space: nowrap;">
-                <i class="bi bi-clipboard me-1"></i> Paste a list
+                Paste a list
             </button>
             <a href="/extract" class="btn btn-outline-secondary btn-sm" style="white-space: nowrap;">
-                <i class="bi bi-upload me-1"></i> Add a PDF
+                Add a PDF
             </a>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="pickerClose"
                     title="Close the course picker">Done</button>
@@ -2020,29 +2005,29 @@ button.resolve-option:focus-visible {
     <div class="container mt-3">
         <div class="row align-items-center mb-2">
             <div class="col-auto">
-                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Undo</button>
-                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Redo</button>
+                <button id="undoBtn" class="btn btn-outline-info btn-sm" disabled title="Undo (Ctrl+Z)">Undo</button>
+                <button id="redoBtn" class="btn btn-outline-info btn-sm" disabled title="Redo (Ctrl+Shift+Z)">Redo</button>
                 <button id="addCoursesBtn" class="btn btn-accent btn-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Add courses
+                    Add courses
                 </button>
                 <button id="clearBtn" class="btn btn-outline-warning btn-sm"
-                        title="May move classes you did not place yourself">&crarr; Re-arrange</button>
+                        title="May move classes you did not place yourself">Re-arrange</button>
                 <button id="shareBtn" class="btn btn-outline-info btn-sm"
                         title="Copy a link that rebuilds this timetable">
-                    <i class="bi bi-link-45deg"></i> Share
+                    Share
                 </button>
                 <button id="printBtn" class="btn btn-outline-info btn-sm" disabled
                         title="Print, or save as a PDF from the print dialog">
-                    <i class="bi bi-printer"></i> Print
+                    Print
                 </button>
                 <button id="icsBtn" class="btn btn-outline-info btn-sm" disabled
                         aria-expanded="false" aria-controls="icsPanel"
                         title="Subscribe in Google, Apple or Outlook calendar, or download a file">
-                    <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to calendar
+                    Add to calendar
                 </button>
                 <button id="fullscreenBtn" class="btn btn-outline-info btn-sm" disabled
                         title="Show the timetable on its own, filling the screen">
-                    <i class="bi bi-arrows-fullscreen"></i> Full screen
+                    Full screen
                 </button>
                 <!--
                   Last in the row and the only destructive one here, so a
@@ -2050,7 +2035,7 @@ button.resolve-option:focus-visible {
                 -->
                 <button id="clearAllBtn" class="btn btn-outline-danger btn-sm" disabled
                         title="Remove every course and start again">
-                    <i class="bi bi-trash3"></i> Clear all
+                    Clear all
                 </button>
             </div>
             <div class="col">
@@ -2063,7 +2048,7 @@ button.resolve-option:focus-visible {
     <section id="icsPanel" class="ics-panel" aria-labelledby="icsTitle" hidden>
         <div class="ics-head">
             <h2 id="icsTitle" class="ics-title">
-                <i class="bi bi-calendar-plus" aria-hidden="true"></i> Add to your calendar app
+                Add to your calendar app
             </h2>
             <button type="button" class="toast-close" id="icsClose" aria-label="Close">
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -2075,25 +2060,24 @@ button.resolve-option:focus-visible {
             <p class="ics-summary" id="subSummary">When UWI changes the timetable, your calendar
                 changes too. Calendar apps check every few hours; Google can take up to a day.</p>
             <p class="sub-stale-line" id="subPanelStale" hidden>
-                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
                 You changed your timetable since you subscribed. Subscribe again with this new
                 link, then remove the old "UWI timetable" calendar.</p>
             <div class="sub-link">
                 <label for="subUrl" class="visually-hidden">Calendar subscription link</label>
                 <input type="text" id="subUrl" class="form-control form-control-sm" readonly>
                 <button type="button" class="btn btn-accent btn-sm" id="subCopy">
-                    <i class="bi bi-clipboard" aria-hidden="true"></i> Copy link
+                    Copy link
                 </button>
             </div>
             <div class="sub-apps">
                 <a class="btn btn-outline-info btn-sm sub-app" id="subApple" href="#">
-                    <i class="bi bi-apple" aria-hidden="true"></i> Apple Calendar</a>
+                    Apple Calendar</a>
                 <a class="btn btn-outline-info btn-sm sub-app" id="subGoogle" href="#"
                    target="_blank" rel="noopener">
-                    <i class="bi bi-google" aria-hidden="true"></i> Google Calendar</a>
+                    Google Calendar</a>
                 <a class="btn btn-outline-info btn-sm sub-app" id="subOutlook" href="#"
                    target="_blank" rel="noopener">
-                    <i class="bi bi-microsoft" aria-hidden="true"></i> Outlook</a>
+                    Outlook</a>
             </div>
             <p class="ics-note">For Google, copy the link first: Google opens its "From URL" page,
                 and you paste it there.</p>
@@ -2107,7 +2091,7 @@ button.resolve-option:focus-visible {
         <h3 class="ics-subtitle">Or download a file</h3>
         <p class="ics-summary" id="icsSummary"></p>
         <button type="button" class="btn btn-outline-info btn-sm" id="icsDownload">
-            <i class="bi bi-download" aria-hidden="true"></i> Download calendar file (.ics)
+            Download calendar file (.ics)
         </button>
         <ol class="ics-steps">
             <li><b>Google Calendar</b>, on a computer (the phone app cannot import):
@@ -2125,7 +2109,6 @@ button.resolve-option:focus-visible {
         <button type="button" id="conflictsToggle" class="conflicts-header"
                 aria-expanded="true" aria-controls="conflictsContent"
                 onclick="toggleConflicts()">
-            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
             <span id="conflictsSummary"><span id="conflictsCount">0</span> clashes</span>
             <i class="bi bi-chevron-down ms-auto" aria-hidden="true"></i>
         </button>
@@ -2140,7 +2123,7 @@ button.resolve-option:focus-visible {
             <span class="calendar-fullscreen-title">Your timetable</span>
             <button type="button" id="exitFullscreenBtn" class="btn btn-outline-info btn-sm"
                     title="Back to the page (Esc)">
-                <i class="bi bi-fullscreen-exit"></i> Exit full screen
+                Exit full screen
             </button>
         </div>
         <!-- Which teaching week the grid shows. Hidden when the semester's
@@ -2181,7 +2164,6 @@ button.resolve-option:focus-visible {
 
     <!-- Empty -->
     <div id="emptyState" class="text-center py-4" style="display: none; max-width: 420px; margin: 0 auto;">
-        <i class="bi bi-calendar-x" style="font-size: 2rem; color: var(--text-tertiary);"></i>
         <p class="mt-3" style="color: var(--text-secondary); font-size: 0.9rem;">
             Nothing on your timetable yet.
         </p>
@@ -2190,7 +2172,6 @@ button.resolve-option:focus-visible {
     <!-- Exams and other one-offs, by date -->
     <section id="comingUpPanel" class="coming-up-panel" aria-labelledby="comingUpTitle" hidden>
         <h2 id="comingUpTitle" class="coming-up-title">
-            <i class="bi bi-calendar-event" aria-hidden="true"></i>
             Coming up: exams and one-off classes
         </h2>
         <p class="coming-up-hint" id="comingUpHint">These run in particular weeks, so they are listed here rather than drawn on the weekly grid.</p>
@@ -2203,8 +2184,8 @@ button.resolve-option:focus-visible {
             <!-- Left: Event List -->
             <div class="events-list-column">
                 <div class="events-list-header">
-                    <span><i class="bi bi-list me-1"></i> My classes (<span id="eventCount">0</span>)</span>
-                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; width: min(100%, 11rem); min-height: 28px;">
+                    <span>My classes (<span id="eventCount">0</span>)</span>
+                    <input type="search" id="searchBox" placeholder="Search my classes" aria-label="Search my classes" style="background: var(--bg-deep); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 4px 8px; border-radius: var(--r-md); font-size: 0.8rem; width: min(100%, 11rem); min-height: 28px;">
                 </div>
                 <div id="eventsList" class="events-list-scroll" role="listbox" aria-label="My classes">
                     <!-- Event list items rendered by JS -->
@@ -2214,7 +2195,6 @@ button.resolve-option:focus-visible {
             <!-- Right: Detail Panel -->
             <div class="events-detail-column">
                 <div id="detailPlaceholder" class="detail-placeholder">
-                    <i class="bi bi-hand-index"></i>
                     <p>No event selected</p>
                     <p class="hint">Select a class here or tap one on the grid</p>
                 </div>
@@ -3385,10 +3365,8 @@ button.resolve-option:focus-visible {
         // No role of its own: the stack is the one live region. A role=status
         // inside an aria-live stack was two regions announcing one note.
         note.className = 'toast-note' + (tone ? ' ' + tone : '');
-        const icon = { warn: 'bi-exclamation-triangle', bad: 'bi-x-circle' }[tone]
-            || 'bi-check-circle';
         note.innerHTML =
-            `<div class="toast-line"><i class="bi ${icon}" aria-hidden="true"></i>` +
+            `<div class="toast-line">` +
             `<span>${escapeHtml(message)}</span></div>` +
             (detail ? `<small>${escapeHtml(detail)}</small>` : '') +
             `<div class="toast-actions">` +
@@ -3878,7 +3856,7 @@ button.resolve-option:focus-visible {
             if (!current || current === state.publicationId) return;
 
             document.getElementById('staleWarningText').textContent = GENERIC_STALE_TEXT;
-            $stale.style.display = 'flex';
+            $stale.style.display = 'block';
             $stale.dataset.publicationId = current;
 
             // Then replace "may have moved" with what actually moved. Second,

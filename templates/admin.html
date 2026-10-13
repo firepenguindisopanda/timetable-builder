@@ -17,7 +17,7 @@
         font-family: var(--font-data);
         font-size: 0.65rem;
         padding: 3px 8px;
-        border-radius: 4px;
+        border-radius: var(--r-md);
         background: var(--accent-cyan-dim);
         color: var(--accent-cyan);
         font-weight: 500;
@@ -49,7 +49,7 @@
     .session-status {
         font-size: 0.72rem;
         padding: 2px 8px;
-        border-radius: 4px;
+        border-radius: var(--r-md);
         font-weight: 500;
     }
 
@@ -83,7 +83,7 @@
         font-family: var(--font-data);
         font-size: 0.65rem;
         padding: 2px 6px;
-        border-radius: 3px;
+        border-radius: var(--r-sm);
         background: var(--bg-deep);
         color: var(--text-secondary);
     }
@@ -91,14 +91,14 @@
     .confidence-bar {
         height: 4px;
         background: var(--bg-deep);
-        border-radius: 2px;
+        border-radius: var(--r-sm);
         overflow: hidden;
         margin-top: 4px;
     }
 
     .confidence-fill {
         height: 100%;
-        border-radius: 2px;
+        border-radius: var(--r-sm);
         transition: width 0.5s ease;
     }
 
@@ -136,7 +136,7 @@
             </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="admin-tag" id="adminKeyStatus">Key loaded</span>
-                <button class="btn btn-sm" onclick="logout()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                <button class="btn btn-sm" onclick="logout()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: var(--r-md); font-size: 0.72rem; padding: 0.35rem 0.75rem;">
                     <i class="bi bi-box-arrow-right me-1"></i> Logout
                 </button>
             </div>
@@ -171,7 +171,7 @@
                     <i class="bi bi-clock-history me-2" style="color: var(--accent-cyan);"></i>
                     Calibration Sessions
                 </h2>
-                <button class="btn btn-sm" onclick="refreshSessions()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                <button class="btn btn-sm" onclick="refreshSessions()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: var(--r-md); font-size: 0.72rem; padding: 0.35rem 0.75rem;">
                     <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                 </button>
             </div>
@@ -188,7 +188,7 @@
                     <i class="bi bi-gear me-2" style="color: var(--accent-amber);"></i>
                     Course Configs
                 </h2>
-                <button class="btn btn-sm" onclick="refreshConfigs()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                <button class="btn btn-sm" onclick="refreshConfigs()" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: var(--r-md); font-size: 0.72rem; padding: 0.35rem 0.75rem;">
                     <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                 </button>
             </div>
@@ -202,13 +202,13 @@
         <div class="text-center" style="padding-top: 1rem;">
             <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem;">Quick Links</p>
             <div class="d-flex justify-content-center gap-2 flex-wrap">
-                <a href="/docs" target="_blank" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
+                <a href="/docs" target="_blank" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: var(--r-md); font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
                     <i class="bi bi-braces me-1"></i> API Docs
                 </a>
-                <a href="/extract" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
+                <a href="/extract" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: var(--r-md); font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
                     <i class="bi bi-upload me-1"></i> Extract Page
                 </a>
-                <a href="/download" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
+                <a href="/download" class="btn btn-sm" style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-secondary); border-radius: var(--r-md); font-size: 0.75rem; padding: 0.4rem 0.9rem; text-decoration: none;">
                     <i class="bi bi-cloud-download me-1"></i> Download PDFs
                 </a>
             </div>

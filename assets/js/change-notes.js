@@ -106,20 +106,20 @@ function describeChange(change) {
         ? {
             severity: ACT,
             text: 'no longer has a published ' + type
-                + ' — check with your department',
+                + '; check with your department',
           }
         : { severity: ACT, text: type + ' removed' };
       break;
     case 'class_added':
-      described = { severity: INFO, text: 'new ' + type + ' — ' + _at(after[0]) };
+      described = { severity: INFO, text: 'new ' + type + ' on ' + _at(after[0]) };
       break;
     case 'sitting_added':
-      described = { severity: INFO, text: 'extra ' + type + ' — ' + _at(after[0]) };
+      described = { severity: INFO, text: 'extra ' + type + ' on ' + _at(after[0]) };
       break;
     case 'sitting_removed':
       described = {
         severity: ACT,
-        text: 'one ' + type + ' time dropped — was ' + _at(before[0]),
+        text: 'one ' + type + ' time dropped: ' + _at(before[0]),
       };
       break;
     case 'class_moved':

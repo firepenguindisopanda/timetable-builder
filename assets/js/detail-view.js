@@ -31,17 +31,6 @@ function _detailTypeClass(type) {
   return known.includes(lower) ? lower : 'other';
 }
 
-function _detailTypeIcon(type) {
-  const icons = {
-    'Lecture': 'bi-easel',
-    'Lab': 'bi-cpu',
-    'Tutorial': 'bi-chat-dots',
-    'Seminar': 'bi-people',
-    'Workshop': 'bi-tools',
-  };
-  return icons[type] || 'bi-calendar-event';
-}
-
 function _detailTime12(time24) {
   return displayTime(time24);
 }
@@ -213,8 +202,7 @@ function _sittingsSectionHtml(details, sessions, attendedIds, effects) {
     : 'Only one time is published for this.';
 
   return `<div class="detail-section">
-      <h4 class="detail-section-title"><i class="bi bi-collection"></i>
-          All times (${sessions.length})</h4>
+      <h4 class="detail-section-title">All times (${sessions.length})</h4>
       <div class="sittings-list">${rows.join('')}</div>
       <div class="detail-field" style="padding-top: 8px;">
           <span class="detail-field-value empty">${escapeDetail(hint)}</span>
@@ -271,7 +259,6 @@ function _rawDataText(details) {
 function renderEventDetail(model) {
   const details = model.details;
   const typeClass = _detailTypeClass(details.type);
-  const typeIcon = _detailTypeIcon(details.type);
   const rawId = 'rawDataContent' + (model.idSuffix || '');
 
   let html = '';
@@ -279,13 +266,12 @@ function renderEventDetail(model) {
   html += `<div class="detail-header">
       <h3 class="detail-course-title">${escapeDetail(details.courseTitle)}</h3>
       <span class="detail-type-badge ${typeClass}">
-          <i class="bi ${typeIcon}"></i>
           ${escapeDetail(details.type || 'Class')}${details.streamLabel ? ' ' + escapeDetail(details.streamLabel) : ''}
       </span>
     </div>`;
 
   html += `<div class="detail-section">
-      <h4 class="detail-section-title"><i class="bi bi-clock"></i> Schedule</h4>
+      <h4 class="detail-section-title">Schedule</h4>
       ${_detailField('Day', details.day)}
       ${_detailField('Start Time', _detailTime12(details.startTime))}
       ${_detailField('End Time', _detailTime12(details.endTime))}
@@ -299,14 +285,14 @@ function renderEventDetail(model) {
   const staff = details.staff || [];
 
   html += `<div class="detail-section">
-      <h4 class="detail-section-title"><i class="bi bi-geo-alt"></i> Location</h4>
+      <h4 class="detail-section-title">Location</h4>
       ${linkable
         ? _detailHtmlField(rooms.length > 1 ? 'Rooms' : 'Room', _detailLinks('room', rooms))
         : _detailField('Room', details.room)}
     </div>`;
 
   html += `<div class="detail-section">
-      <h4 class="detail-section-title"><i class="bi bi-person"></i> People</h4>
+      <h4 class="detail-section-title">People</h4>
       ${linkable
         ? _detailHtmlField('Staff', _detailLinks('staff', staff))
         : _detailField('Staff', staff.join(', '))}
@@ -314,13 +300,13 @@ function renderEventDetail(model) {
 
   if (details.notes) {
     html += `<div class="detail-section">
-        <h4 class="detail-section-title"><i class="bi bi-sticky"></i> Note from the timetable</h4>
+        <h4 class="detail-section-title">Note from the timetable</h4>
         <p class="detail-note">${escapeDetail(details.notes)}</p>
       </div>`;
   }
 
   html += `<div class="detail-section">
-      <h4 class="detail-section-title"><i class="bi bi-info-circle"></i> This class</h4>
+      <h4 class="detail-section-title">This class</h4>
       ${_detailField('Course', details.courseKey)}
       ${_detailField('Placed', details.pinned ? 'You picked this time' : 'Picked for you')}
       ${_detailField('Source', describeSources(details))}
@@ -337,7 +323,7 @@ function renderEventDetail(model) {
     ? `<button type="button" class="btn btn-outline-info btn-sm detail-resolve-clash"
           data-group-id="${escapeDetail(details.groupId)}"
           data-session-id="${escapeDetail(String(details.sessionId))}">
-          <i class="bi bi-exclamation-triangle me-1"></i> Resolve the clash
+          Resolve the clash
        </button>`
     : '';
 
@@ -349,11 +335,11 @@ function renderEventDetail(model) {
       <button type="button" class="btn btn-outline-secondary btn-sm detail-remove-class"
           data-group-id="${escapeDetail(details.groupId)}"
           data-session-id="${escapeDetail(String(details.sessionId))}">
-          <i class="bi bi-x-lg me-1"></i> Remove this class
+          Remove this class
       </button>
       <button type="button" class="btn btn-outline-danger btn-sm detail-remove-course"
           data-course-key="${escapeDetail(details.courseKey)}">
-          <i class="bi bi-trash me-1"></i> Remove ${escapeDetail(details.courseKey)}
+          Remove ${escapeDetail(details.courseKey)}
       </button>
     </div>`;
 
