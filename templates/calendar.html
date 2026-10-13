@@ -470,6 +470,61 @@
 .up-what { min-width: 0; overflow-wrap: anywhere; }
 .up-where { display: block; color: var(--text-secondary); font-size: 0.78rem; }
 
+/* The week the grid shows: back, the week and its dates, forward, today. */
+.week-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 4px 10px;
+}
+
+.week-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    min-width: 11rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.week-title .week-dates {
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.week-step {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border-medium);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+.week-step:disabled { opacity: 0.4; }
+
+.week-step:focus-visible,
+.week-today:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+
+.week-absent {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0 4px 10px;
+}
+
+/* An exam or other one-off on the grid: dashed, so it reads as a dated event
+   rather than a weekly class, and not draggable. */
+.calendar-event.dated {
+    border-style: dashed !important;
+}
+
 .conflicts-content {
     padding: 0 12px 12px;
     display: none;
@@ -1741,7 +1796,7 @@ button.resolve-option:focus-visible {
             <i class="bi bi-calendar-event" aria-hidden="true"></i>
             Coming up: exams and one-off classes
         </h2>
-        <p class="coming-up-hint">These run in particular weeks, so they are listed here rather than drawn on the weekly grid.</p>
+        <p class="coming-up-hint" id="comingUpHint">These run in particular weeks, so they are listed here rather than drawn on the weekly grid.</p>
         <ul id="comingUpList" class="coming-up-list"></ul>
     </section>
 
@@ -1820,6 +1875,19 @@ button.resolve-option:focus-visible {
                 <i class="bi bi-fullscreen-exit"></i> Exit full screen
             </button>
         </div>
+        <!-- Which teaching week the grid shows. Hidden when the semester's
+             dates are unknown, and the grid falls back to an undated week. -->
+        <nav class="week-bar" id="weekBar" aria-label="Teaching week" hidden>
+            <button type="button" class="week-step" id="weekPrev" aria-label="Previous week">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </button>
+            <h2 class="week-title" id="weekTitle" aria-live="polite"></h2>
+            <button type="button" class="week-step" id="weekNext" aria-label="Next week">
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn btn-outline-info btn-sm week-today" id="weekToday">This week</button>
+        </nav>
+        <p class="week-absent" id="weekAbsent" hidden></p>
         <div class="calendar-scroll-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <div id="calendarWrapper" class="calendar-wrapper" style="min-width: 700px;">
                 <!-- 7 day columns -->
@@ -1912,6 +1980,20 @@ button.resolve-option:focus-visible {
     let calendar = null;
     let calendarUnavailable = false;
 
+    // Dates for the teaching weeks, from the server: week 1's Monday and how
+    // many weeks there are. Null when the semester is not known, and then the
+    // grid is the undated week it was before dates existed.
+    const teaching = {{ teaching_calendar | tojson }};
+    const weekOne = teaching ? teaching.weekOne : null;
+    const totalWeeks = teaching ? teaching.totalWeeks : null;
+    //: The week the grid shows. It opens on the current teaching week.
+    let shownWeek = teaching ? teachingWeekOf(todayIso(), weekOne, totalWeeks) : null;
+
+    /** Monday of the week shown, which is where the grid draws classes. */
+    function shownMonday() {
+        return teaching ? dateOfTeachingDay(shownWeek, 'Monday', weekOne) : ANCHOR_MONDAY;
+    }
+
     function ensureCalendar() {
         if (calendar || calendarUnavailable) return calendar;
         if (typeof FullCalendar === 'undefined') {
@@ -1927,16 +2009,22 @@ button.resolve-option:focus-visible {
 
         calendar = new FullCalendar.Calendar(calendarWrapper, {
             initialView: 'timeGridWeek',
-            // The week is dated internally and the dates are never shown.
-            initialDate: ANCHOR_MONDAY,
+            // The week shown. Without semester dates it is the anchor week,
+            // dated internally and never shown.
+            initialDate: shownMonday(),
             firstDay: 1,
+            // The week bar above the grid does the navigating.
             headerToolbar: false,
-            dayHeaderFormat: { weekday: 'long' },
-            // The heading shows the weekday alone, but its aria-label still
-            // carries the internal date, so a screen reader would announce
+            dayHeaderFormat: teaching
+                ? { weekday: 'short', day: 'numeric', month: 'short' }
+                : { weekday: 'long' },
+            // Undated, the heading shows the weekday alone but its aria-label
+            // still carried the internal date, so a screen reader announced
             // "August 31, 2026" over a week that has no date.
             dayHeaderDidMount: arg => {
-                arg.el.setAttribute('aria-label', DAYS[(arg.dow + 6) % 7]);
+                arg.el.setAttribute('aria-label', teaching
+                    ? arg.date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+                    : DAYS[(arg.dow + 6) % 7]);
             },
             allDaySlot: false,
             slotDuration: '00:30',
@@ -1964,14 +2052,18 @@ button.resolve-option:focus-visible {
             // fires eventClick on Enter and Space as well as a tap.
             eventInteractive: true,
             height: 'auto',
-            // The date is not real, so a "now" line would lie.
-            nowIndicator: false,
+            // Only a real date can have a "now" line; on the undated week it
+            // would lie.
+            nowIndicator: Boolean(teaching),
             eventContent: blockContent,
             eventClick: onBlockClick,
             eventDidMount: arg => {
                 const p = arg.event.extendedProps;
-                arg.el.setAttribute('aria-label',
-                    `${p.label} ${p.type || ''} ${p.day} ${p.startTime}`);
+                const bits = [p.label, p.type || '', `${p.day} ${p.startTime} to ${p.endTime}`];
+                if (p.room) bits.push(p.room);
+                if (p.clash) bits.push('clash');
+                if (p.pinned) bits.push('placed by you');
+                arg.el.setAttribute('aria-label', bits.filter(Boolean).join(', '));
             },
         });
         calendar.render();
@@ -1989,7 +2081,7 @@ button.resolve-option:focus-visible {
      * inside the block, so its click arrives here too.
      */
     function onBlockClick(info) {
-        if (!state) return;
+        if (!state || info.event.extendedProps.dated) return;
         const { groupId, sessionId } = info.event.extendedProps;
         const target = info.jsEvent && info.jsEvent.target;
         if (target && target.closest && target.closest('.clash-badge')) {
@@ -2013,7 +2105,7 @@ button.resolve-option:focus-visible {
         if (!state) return;
         const { groupId, sessionId } = info.event.extendedProps;
         dragTargets = dropTargets(state.getOptions(groupId), state.placements, groupId, sessionId);
-        dragZones = toDropZones(dragTargets).map(zone => calendar.addEvent(zone));
+        dragZones = toDropZones(dragTargets, shownMonday()).map(zone => calendar.addEvent(zone));
     }
 
     function onDragStop() {
@@ -2478,6 +2570,45 @@ button.resolve-option:focus-visible {
         setConflictsOpen(!conflictsCollapsed);
     };
 
+    /**
+     * The week bar: which week the grid shows, and the classes missing from it.
+     *
+     * A class that is not on this week used to have no way of being missing:
+     * the grid was one undated week. Now one can vanish from week 8 because
+     * that week was cancelled, so the bar says so rather than leaving a gap.
+     */
+    function renderWeekBar(events) {
+        const bar = document.getElementById('weekBar');
+        const absent = document.getElementById('weekAbsent');
+        if (!teaching) {
+            bar.hidden = true;
+            absent.hidden = true;
+            return;
+        }
+        bar.hidden = false;
+        const current = teachingWeekOf(todayIso(), weekOne, totalWeeks);
+        document.getElementById('weekTitle').innerHTML =
+            `Week ${shownWeek} <span class="week-dates">· ${escapeHtml(weekRangeLabel(shownWeek, weekOne))}</span>`;
+        document.getElementById('weekPrev').disabled = shownWeek <= 1;
+        document.getElementById('weekNext').disabled = shownWeek >= totalWeeks;
+        document.getElementById('weekToday').disabled = shownWeek === current;
+
+        const text = weekAbsenceText(weekAbsences(events, shownWeek));
+        absent.hidden = !text;
+        absent.textContent = text;
+    }
+
+    function showWeek(week) {
+        if (!teaching) return;
+        shownWeek = Math.min(Math.max(week, 1), totalWeeks);
+        renderEvents();
+    }
+
+    document.getElementById('weekPrev').addEventListener('click', () => showWeek(shownWeek - 1));
+    document.getElementById('weekNext').addEventListener('click', () => showWeek(shownWeek + 1));
+    document.getElementById('weekToday').addEventListener('click',
+        () => showWeek(teachingWeekOf(todayIso(), weekOne, totalWeeks)));
+
     /** Today as YYYY-MM-DD in the student's own zone, which is the campus's. */
     function todayIso() {
         const d = new Date();
@@ -2487,8 +2618,15 @@ button.resolve-option:focus-visible {
 
     function renderComingUp() {
         const panel = document.getElementById('comingUpPanel');
-        const html = state ? comingUpHtml(comingUpItems(state.datedSessions, todayIso())) : '';
+        const html = state
+            ? comingUpHtml(comingUpItems(state.datedSessions, todayIso(), weekOne || undefined))
+            : '';
         document.getElementById('comingUpList').innerHTML = html;
+        // On dated weeks each one is on the grid too, in its own week.
+        if (teaching) {
+            document.getElementById('comingUpHint').textContent =
+                'These run in particular weeks. Each is also on the grid, dashed, in its own week.';
+        }
         panel.hidden = !html;
     }
 
@@ -2649,6 +2787,8 @@ button.resolve-option:focus-visible {
 
         if (!events || events.length === 0) {
             if (isCalendarFullscreen()) exitCalendarFullscreen();
+            document.getElementById('weekBar').hidden = true;
+            document.getElementById('weekAbsent').hidden = true;
             if ($emptyState) $emptyState.style.display = 'block';
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
@@ -2666,23 +2806,34 @@ button.resolve-option:focus-visible {
         if (calendarWrapper) calendarWrapper.style.display = '';
 
         // Which placements are in a genuine clash, so their blocks can say so
-        // and offer the way in to resolving it.
+        // and offer the way in to resolving it. On a dated week, only a clash
+        // that happens that week: a week-10 clash is not marked in week 7.
         const clashKeys = new Set();
         state.getConflicts().forEach(c => {
+            if (teaching && Array.isArray(c.weeks) && !c.weeks.includes(shownWeek)) return;
             clashKeys.add(eventKeyOf(c.a.groupId, c.a.sessionId));
             clashKeys.add(eventKeyOf(c.b.groupId, c.b.sessionId));
         });
 
+        // A dated week shows the classes on that week, and its exams and
+        // other one-offs beside them. Undated, every class, as before.
+        const weekEvents = teaching ? eventsInWeek(events, shownWeek) : events;
+        const datedEvents = teaching ? toDatedEvents(state.datedSessions, shownWeek, weekOne) : [];
+
         const cal = ensureCalendar();
         if (cal) {
-            const range = visibleRange(events);
+            // The axis fits the whole timetable, not just this week, so it
+            // does not jump about as the student steps through the weeks.
+            const range = visibleRange(events.concat(datedEvents.map(e => e.extendedProps)));
             cal.batchRendering(() => {
                 cal.setOption('slotMinTime', range.slotMinTime);
                 cal.setOption('slotMaxTime', range.slotMaxTime);
+                cal.gotoDate(shownMonday());
                 cal.removeAllEventSources();
-                cal.addEventSource(toCalendarEvents(events, clashKeys));
+                cal.addEventSource(toCalendarEvents(weekEvents, clashKeys, shownMonday()).concat(datedEvents));
             });
         }
+        renderWeekBar(events);
 
         renderEventsList(events, filter);
         renderConflicts();

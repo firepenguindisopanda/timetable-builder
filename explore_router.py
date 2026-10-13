@@ -30,6 +30,7 @@ import static_version
 from timetable_extractor.database import changes as cq
 from timetable_extractor.database import explore_queries as eq
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
+from timetable_extractor.database.weeks import teaching_start
 from timetable_extractor.observability import correlation_id, get_logger
 
 router = APIRouter(prefix="/explore", tags=["explore"])
@@ -386,6 +387,25 @@ def changes_banner_context() -> dict[str, Any] | None:
         "courses_dropped": len(data["courses_dropped"]),
         "total": data["total"],
     }
+
+
+def teaching_calendar_context() -> dict[str, Any] | None:
+    """
+    What the timetable builder needs to put dates on teaching weeks.
+
+    Week 1's Monday for the current publication's semester, and how many
+    weeks there are. None when the warehouse is unreachable or the semester
+    is not in `SEMESTER_TEACHING_START`: the builder then shows an undated
+    week, as it did before dates existed, rather than guessing one.
+    """
+    try:
+        label = cached("semester", lambda: query(eq.current_semester))
+    except ExplorerUnavailable:
+        return None
+    start = teaching_start(label)
+    if start is None:
+        return None
+    return {"weekOne": start.isoformat(), "totalWeeks": eq.TOTAL_WEEKS}
 
 
 def page_context(request: Request, active: str, **extra: Any) -> dict[str, Any]:

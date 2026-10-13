@@ -9,6 +9,7 @@ classes that clash on the calendar actually collide in the same weeks.
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Iterable
 
 # "W1", "S2W7" (semester-prefixed) and "SUM W1" (summer session) all appear.
@@ -119,3 +120,42 @@ def render_weeks(weeks: Iterable[int]) -> str | None:
     if not runs:
         return None
     return ", ".join(f"W{a}" if a == b else f"W{a}-W{b}" for a, b in runs)
+
+
+#: Monday of teaching week 1, by academic year and semester number. CELCAT
+#: publishes week numbers and never dates, so these come from UWI's academic
+#: calendar: Semester 1 2026/27 settled on 22 Sep 2026 (ICS-EXPORT-SPEC 3.3)
+#: and confirmed by the Inspection Copy title "31-Aug-26 - 16-Nov-26".
+#: A semester missing here is not guessed at; the calendar falls back to an
+#: undated week.
+SEMESTER_TEACHING_START: dict[tuple[str, int], date] = {
+    ("2026/2027", 1): date(2026, 8, 31),
+    ("2026/2027", 2): date(2027, 1, 18),
+}
+
+#: "Semester_1_TT2026_2027", "Semester_I_2026_2027" and "Semester_I_2026_2027_"
+#: are the three spellings of one semester CELCAT used in four publications.
+_SEMESTER = re.compile(r"Semester[_\s]*(III|II|I|\d)[_\s]*(?:TT)?[_\s]*(\d{4})[_\s]*(\d{4})", re.I)
+_ROMAN = {"I": 1, "II": 2, "III": 3}
+
+
+def semester_key(label: str | None) -> tuple[str, int] | None:
+    """
+    A semester label reduced to (academic year, semester number).
+
+    Keyed this way rather than on the label itself because the label drifts:
+    a table keyed on "Semester_I_2026_2027" would have stopped dating the
+    timetable the week CELCAT went back to "Semester_1_TT2026_2027".
+    """
+    match = _SEMESTER.search(label or "")
+    if not match:
+        return None
+    number, first, second = match.groups()
+    semester = _ROMAN.get(number.upper()) or int(number)
+    return f"{first}/{second}", semester
+
+
+def teaching_start(label: str | None) -> date | None:
+    """Monday of teaching week 1 for a semester label, or None when unknown."""
+    key = semester_key(label)
+    return SEMESTER_TEACHING_START.get(key) if key else None

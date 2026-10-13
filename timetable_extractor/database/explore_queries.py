@@ -500,6 +500,29 @@ def course_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
     return course
 
 
+def current_semester(conn: psycopg.Connection) -> str | None:
+    """
+    The semester label the current publication is filed under.
+
+    The most common one, not the first: one PDF in a corpus of 1,631 has
+    carried no label (PHPP 0301's Inspection Copy, 30 Sep 2026), and a
+    stray must not decide which semester's dates the calendar shows.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT semester
+              FROM current_sessions
+             WHERE semester IS NOT NULL
+             GROUP BY semester
+             ORDER BY count(*) DESC, semester
+             LIMIT 1
+            """
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
 def sessions_for_courses(
     conn: psycopg.Connection, codes: list[str]
 ) -> list[dict[str, Any]]:
