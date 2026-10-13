@@ -428,6 +428,29 @@
 }
 
 /* Exams, relocations and make-ups: listed by date, never placed weekly. */
+.changes-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--accent-amber);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 10px 12px 12px;
+    font-size: 0.85rem;
+}
+
+/* A class whose time or room changed in the last republish, until seen. */
+.calendar-event .event-changed {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--accent-amber-dim);
+    color: var(--accent-amber-ink);
+}
+
+.calendar-event.changed { outline: 2px dashed var(--accent-amber); outline-offset: -2px; }
+
 .ics-panel {
     background: var(--bg-surface);
     border: 1px solid var(--border-medium);
@@ -490,6 +513,9 @@
 .up-what { min-width: 0; overflow-wrap: anywhere; }
 .up-where { display: block; color: var(--text-secondary); font-size: 0.78rem; }
 
+.detail-link { color: var(--accent-cyan); text-underline-offset: 2px; }
+.detail-note { margin: 0; font-size: 0.85rem; white-space: pre-line; overflow-wrap: anywhere; }
+
 /* The week the grid shows: back, the week and its dates, forward, today. */
 .week-bar {
     display: flex;
@@ -537,6 +563,37 @@
     font-size: 0.78rem;
     color: var(--text-secondary);
     margin: 0 4px 10px;
+}
+
+.my-week {
+    margin: 0 4px 10px;
+    font-size: 0.85rem;
+}
+
+.my-week summary {
+    cursor: pointer;
+    min-height: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.my-week summary:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.my-week-label { font-weight: 600; }
+#myWeekLine { color: var(--text-secondary); }
+
+.my-week ul {
+    margin: 6px 0 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 3px;
+    color: var(--text-secondary);
 }
 
 .week-absent {
@@ -1269,6 +1326,15 @@ button.resolve-option:focus-visible {
     white-space: nowrap;
 }
 
+/* What choosing this time would do, on its own line under the row. */
+.sitting-effect {
+    flex-basis: 100%;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.sitting-effect.clashes { color: var(--accent-red); }
+
 .sitting-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1851,6 +1917,21 @@ button.resolve-option:focus-visible {
                class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
     </div>
 
+    <!-- What the last republish changed for this student, kept after they
+         updated, until they say they have seen it. -->
+    <section id="changesPanel" class="changes-panel" aria-labelledby="changesTitle" hidden>
+        <div class="ics-head">
+            <h2 id="changesTitle" class="ics-title">
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> What changed for you
+            </h2>
+            <button type="button" class="btn btn-outline-info btn-sm" id="changesSeen">Got it</button>
+        </div>
+        <p class="ics-summary" id="changesWhen"></p>
+        <ul id="changesList" class="stale-changes"></ul>
+        <a class="stale-see-all" href="/explore/changes?from=calendar">See everything that changed<i
+               class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+    </section>
+
     <!-- Two ways in, offered only while the calendar is empty (9.1) -->
     <div id="modeChooser" style="display: none; margin-bottom: 16px;">
         <h2 style="font-size: 1rem; font-weight: 700; text-align: center; margin-bottom: 12px;">
@@ -2014,6 +2095,11 @@ button.resolve-option:focus-visible {
             </button>
             <button type="button" class="btn btn-outline-info btn-sm week-today" id="weekToday">This week</button>
         </nav>
+        <!-- How heavy this week is: the answer, then the day-by-day behind it. -->
+        <details class="my-week" id="myWeek" hidden>
+            <summary><span class="my-week-label">My week</span> <span id="myWeekLine"></span></summary>
+            <ul id="myWeekDetails"></ul>
+        </details>
         <p class="week-absent" id="weekAbsent" hidden></p>
         <!-- Legend, beside the grid it explains -->
         <p class="calendar-legend">
@@ -2111,6 +2197,7 @@ button.resolve-option:focus-visible {
 <script src="/assets/js/detail-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/timetable-state.js?v={{ asset_version }}"></script>
 <script src="/assets/js/ics-export.js?v={{ asset_version }}"></script>
+<script src="/assets/js/my-week.js?v={{ asset_version }}"></script>
 <script>
 (function() {
     'use strict';
@@ -2253,6 +2340,7 @@ button.resolve-option:focus-visible {
                 if (p.room) bits.push(p.room);
                 if (p.clash) bits.push('clash');
                 if (p.pinned) bits.push('locked, you chose this');
+                if (p.changed) bits.push('changed in the last update');
                 arg.el.setAttribute('aria-label', bits.filter(Boolean).join(', '));
             },
         });
@@ -2329,7 +2417,7 @@ button.resolve-option:focus-visible {
         const course = state && state.getCourse(p.courseKey);
         const stale = course && course.stale;
         return { html: `
-            <div class="event-course">${escapeHtml(p.label)}${p.pinned ? '<i class="bi bi-pin-angle-fill event-pin" title="Locked: you chose this time"></i>' : ''}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}</div>
+            <div class="event-course">${escapeHtml(p.label)}${p.pinned ? '<i class="bi bi-pin-angle-fill event-pin" title="Locked: you chose this time"></i>' : ''}${stale ? ' <i class="bi bi-exclamation-circle" title="No longer published"></i>' : ''}${p.changed ? ' <span class="event-changed">Changed</span>' : ''}</div>
             <div class="event-meta"><span class="event-time">${escapeHtml(displayTimeRange(p.startTime, p.endTime))}</span> · <span class="event-type">${escapeHtml(p.type || 'Event')}</span></div>
             ${p.room ? `<div class="event-room">${escapeHtml(p.room)}</div>` : ''}
             ${p.clash ? `<span class="clash-badge" aria-hidden="true"
@@ -2445,8 +2533,19 @@ button.resolve-option:focus-visible {
         const clashing = state.getConflicts().some(c =>
             (c.a.groupId === groupId && c.a.sessionId === details.sessionId) ||
             (c.b.groupId === groupId && c.b.sessionId === details.sessionId));
+        // The rest of the timetable as it would stand with this class moved:
+        // every other placement, labelled as the effect text names them.
+        const others = state.getPlacedEvents()
+            .filter(e => !(e.groupId === groupId && e.sessionId === details.sessionId))
+            .map(e => ({ ...e, label: `${e.courseKey} ${e.type || ''}`.trim() }));
+        const optionEffects = {};
+        for (const option of state.getOptions(groupId)) {
+            if (option.sessionId === details.sessionId) continue;
+            optionEffects[String(option.sessionId)] = optionEffectText(optionEffect(option, others));
+        }
         return {
             details,
+            optionEffects,
             sessions: state.getOptions(groupId),
             attendedSessionIds: state.placements
                 .filter(p => p.groupId === groupId)
@@ -2883,6 +2982,21 @@ button.resolve-option:focus-visible {
         absent.textContent = text;
     }
 
+    /**
+     * "My week": contact hours, long days, the earliest start, free days, and
+     * the detail behind them. Only the text changes on a render, so a student
+     * who opened the details keeps them open while stepping through weeks.
+     */
+    function renderMyWeek(events) {
+        const panel = document.getElementById('myWeek');
+        const summary = weekSummary(events);
+        const line = weekSummaryLine(summary);
+        panel.hidden = !line;
+        document.getElementById('myWeekLine').textContent = line;
+        document.getElementById('myWeekDetails').innerHTML = weekSummaryDetails(summary)
+            .map(text => `<li>${escapeHtml(text)}</li>`).join('');
+    }
+
     /** The phone's day buttons. Hidden by CSS on wider screens. */
     function renderDayStrip(weekEvents) {
         const strip = document.getElementById('dayStrip');
@@ -3098,6 +3212,7 @@ button.resolve-option:focus-visible {
         // Before the early return too: a course can have exams and nothing
         // left on the grid.
         renderComingUp();
+        renderChangesPanel();
 
         if (!events || events.length === 0) {
             if (isCalendarFullscreen()) exitCalendarFullscreen();
@@ -3107,6 +3222,7 @@ button.resolve-option:focus-visible {
             // state does not, so they wait until there is a class to show.
             document.getElementById('eventsPanel').hidden = true;
             document.getElementById('dayStrip').innerHTML = '';
+            document.getElementById('myWeek').hidden = true;
             if ($emptyState) $emptyState.style.display = 'block';
             if (calendarWrapper) calendarWrapper.style.display = 'none';
             const countEl = document.getElementById('eventCount');
@@ -3152,11 +3268,18 @@ button.resolve-option:focus-visible {
                 if (cal.view.type !== view) cal.changeView(view, date);
                 else cal.gotoDate(date);
                 cal.removeAllEventSources();
-                cal.addEventSource(toCalendarEvents(weekEvents, clashKeys, shownMonday()).concat(datedEvents));
+                // Classes the last republish changed carry a tag until the
+                // student says they have seen the changes.
+                const changedKeys = state.changedClassKeys;
+                const marked = weekEvents.map(e => changedKeys.has(`${e.courseKey}|${e.type}`)
+                    ? { ...e, changed: true } : e);
+                cal.addEventSource(toCalendarEvents(marked, clashKeys, shownMonday()).concat(datedEvents));
             });
         }
         renderWeekBar(events);
         renderDayStrip(weekEvents.concat(datedEvents.map(e => e.extendedProps)));
+        renderMyWeek(weekEvents.map(e => ({ ...e, label: e.code || e.courseKey }))
+            .concat(datedEvents.map(e => e.extendedProps)));
 
         renderEventsList(events, filter);
         renderConflicts();
@@ -3743,6 +3866,13 @@ button.resolve-option:focus-visible {
             return;
         }
 
+        // Kept for after the update: the notice goes, this list should not.
+        pendingChanges = {
+            fromPublication: state.publicationId,
+            toPublication: Number($stale.dataset.publicationId) || null,
+            lines: summary.lines,
+        };
+
         $text.textContent = summary.headline
             + ' since you built this timetable.';
         $list.innerHTML = summary.lines.map(line =>
@@ -3752,6 +3882,30 @@ button.resolve-option:focus-visible {
         $list.hidden = false;
         $link.hidden = false;
     }
+
+    //: What the republish changed, from the notice, waiting for the update.
+    let pendingChanges = null;
+
+    function renderChangesPanel() {
+        const panel = document.getElementById('changesPanel');
+        const log = state && state.unseenChanges;
+        panel.hidden = !log;
+        if (!log) return;
+        const when = log.publishedAt ? new Date(log.publishedAt) : null;
+        // Only promise markers when a class is actually marked: a new exam or a
+        // confirmed venue changes no block.
+        const marked = state.changedClassKeys.size ? ' Changed classes are marked on the grid.' : '';
+        document.getElementById('changesWhen').textContent = (when && !isNaN(when)
+            ? `In UWI's timetable of ${when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`
+            : `In UWI's latest timetable.`) + marked;
+        document.getElementById('changesList').innerHTML = log.lines.map(line =>
+            '<li class="' + (line.severity === 'act' ? 'chg-act' : 'chg-info') + '">'
+            + '<b>' + escapeHtml(line.code) + '</b> ' + escapeHtml(line.text) + '</li>').join('');
+    }
+
+    document.getElementById('changesSeen').addEventListener('click', () => {
+        if (state) state.markChangesSeen();
+    });
 
     async function refreshFromWarehouse() {
         const codes = state.warehouseCourseKeys;
@@ -3766,6 +3920,10 @@ button.resolve-option:focus-visible {
                 incoming.courses, notFound, incoming.publicationId,
                 incoming.publishedAt);
             $stale.style.display = 'none';
+            if (pendingChanges && pendingChanges.toPublication === incoming.publicationId) {
+                state.recordChanges({ ...pendingChanges, publishedAt: incoming.publishedAt });
+            }
+            pendingChanges = null;
 
             const detail = [];
             if (result.moved) detail.push(`${result.moved} class${result.moved === 1 ? '' : 'es'} had moved`);

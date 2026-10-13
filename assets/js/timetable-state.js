@@ -89,6 +89,7 @@ function _session(fields) {
     weeks: Array.isArray(fields.weeks) ? fields.weeks : null,
     weeksRaw: fields.weeksRaw || null,
     sourceCount: fields.sourceCount || null,
+    notes: fields.notes || null,
   };
 }
 
@@ -116,6 +117,11 @@ class TimetableState {
     // every load, so without this record a deliberately removed class would
     // quietly come back tomorrow morning.
     this.dismissedGroups = (savedState && savedState.dismissedGroups) || [];
+    // What the last republish changed for this student, kept after they
+    // updated so it can still be read, and the publication they have
+    // acknowledged it for. Until they do, the changed classes say so.
+    this.changeLog = (savedState && savedState.changeLog) || null;
+    this.seenPublicationId = (savedState && savedState.seenPublicationId) || null;
     this.history = (savedState && savedState.history) || [];
     this.future = (savedState && savedState.future) || [];
     this._listeners = [];
@@ -330,6 +336,7 @@ class TimetableState {
       weeks: session.weeks,
       weeksRaw: session.weeksRaw,
       sourceCount: session.sourceCount,
+      notes: session.notes || null,
     };
   }
 
@@ -753,6 +760,51 @@ class TimetableState {
     return true;
   }
 
+  // What changed
+
+  /**
+   * Keep what a republish changed for this student.
+   *
+   * Before this, the list of their moved classes was shown on the update
+   * notice and thrown away the moment they pressed "Update my courses", so
+   * the one time it mattered was the one time it vanished. Not part of undo:
+   * undoing a placement should not bring back an old notice.
+   */
+  recordChanges(entry) {
+    if (!entry || !entry.lines || !entry.lines.length) return;
+    this.changeLog = {
+      fromPublication: entry.fromPublication || null,
+      toPublication: entry.toPublication || null,
+      publishedAt: entry.publishedAt || null,
+      lines: entry.lines.map(l => ({ code: l.code, type: l.type || null, text: l.text, severity: l.severity })),
+    };
+    this._notify();
+  }
+
+  /** The changes the student has not said they have seen, or null. */
+  get unseenChanges() {
+    if (!this.changeLog) return null;
+    return this.changeLog.toPublication === this.seenPublicationId ? null : this.changeLog;
+  }
+
+  markChangesSeen() {
+    if (!this.changeLog) return;
+    this.seenPublicationId = this.changeLog.toPublication;
+    this._notify();
+  }
+
+  /**
+   * "COURSE|Type" for each class an unseen change asked the student to act
+   * on, so its block can say it changed.
+   */
+  get changedClassKeys() {
+    const log = this.unseenChanges;
+    if (!log) return new Set();
+    return new Set(log.lines
+      .filter(l => l.severity === 'act' && l.type)
+      .map(l => `${l.code}|${l.type}`));
+  }
+
   // History
 
   _snapshot() {
@@ -828,6 +880,8 @@ class TimetableState {
       optionGroupOverrides: this.overrides,
       placements: this.placements,
       dismissedGroups: this.dismissedGroups,
+      changeLog: this.changeLog,
+      seenPublicationId: this.seenPublicationId,
       history: this.history.slice(-MAX_HISTORY),
       future: this.future.slice(-MAX_HISTORY),
       savedAt: new Date().toISOString(),

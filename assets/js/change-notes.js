@@ -119,7 +119,7 @@ function describeChange(change) {
     case 'sitting_removed':
       described = {
         severity: ACT,
-        text: 'one ' + type + ' sitting dropped — was ' + _at(before[0]),
+        text: 'one ' + type + ' time dropped — was ' + _at(before[0]),
       };
       break;
     case 'class_moved':
@@ -129,7 +129,14 @@ function describeChange(change) {
       described = { severity: ACT, text: type + ' changed' };
   }
 
-  return { code: code, text: described.text, severity: described.severity };
+  // The type travels with the line so the calendar can mark the very block
+  // that changed, not every class of the course.
+  return {
+    code: code,
+    type: change.activityType || null,
+    text: described.text,
+    severity: described.severity,
+  };
 }
 
 /**

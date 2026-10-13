@@ -764,3 +764,61 @@ test('asking about a class that is not placed returns nothing, not a crash', () 
   const state = stateOf('COMP 1601');
   assert.equal(state.getPlacedEventDetails('NOPE|Lecture|all'), null);
 });
+
+// What changed for this student
+
+const LINES = [
+  { code: 'COMP 1601', type: 'Lab', text: 'Lab moved from Mon 9am to Fri 9am', severity: 'act' },
+  { code: 'COMP 1601', type: 'Lecture', text: 'venue confirmed', severity: 'info' },
+];
+
+test('the changes a republish made are kept after updating, until seen', () => {
+  /**
+   * The update notice listed a student's moved classes and threw the list
+   * away the moment they pressed "Update my courses".
+   */
+  const state = stateOf('COMP 1601');
+  assert.equal(state.unseenChanges, null);
+
+  state.recordChanges({ fromPublication: 10, toPublication: 11, publishedAt: '2026-10-09T13:22:49Z', lines: LINES });
+  assert.equal(state.unseenChanges.lines.length, 2);
+
+  state.markChangesSeen();
+  assert.equal(state.unseenChanges, null);
+  assert.equal(state.seenPublicationId, 11);
+});
+
+test('only the classes to act on are marked changed, by course and type', () => {
+  const state = stateOf('COMP 1601');
+  state.recordChanges({ toPublication: 11, lines: LINES });
+  assert.deepEqual([...state.changedClassKeys], ['COMP 1601|Lab']);
+  state.markChangesSeen();
+  assert.deepEqual([...state.changedClassKeys], []);
+});
+
+test('the change log and what was seen survive a reload', () => {
+  const state = stateOf('COMP 1601');
+  state.recordChanges({ toPublication: 11, lines: LINES });
+  const saved = JSON.parse(JSON.stringify(state.toSaved()));
+  const reloaded = new TimetableState({ courses: saved.courses }, saved);
+  assert.equal(reloaded.unseenChanges.lines[0].text, LINES[0].text);
+
+  reloaded.markChangesSeen();
+  const again = new TimetableState({ courses: saved.courses }, JSON.parse(JSON.stringify(reloaded.toSaved())));
+  assert.equal(again.unseenChanges, null);
+});
+
+test('a republish that changed nothing for the student records nothing', () => {
+  const state = stateOf('COMP 1601');
+  state.recordChanges({ toPublication: 11, lines: [] });
+  assert.equal(state.changeLog, null);
+});
+
+test('undo does not bring back an old change notice', () => {
+  const state = stateOf('COMP 1601');
+  state.recordChanges({ toPublication: 11, lines: LINES });
+  state.markChangesSeen();
+  state.removeCourse('COMP 1601');
+  state.undo();
+  assert.equal(state.unseenChanges, null);
+});

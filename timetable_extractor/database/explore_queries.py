@@ -573,6 +573,10 @@ def sessions_for_courses(
                    cs.weeks,
                    cs.weeks_raw     AS "weeksRaw",
                    cs.source_count  AS "sourceCount",
+                   -- What the PDF printed beside the class: "Bring a laptop",
+                   -- a venue warning. 517 of 3,794 sessions carry one, and
+                   -- the explorer showed them while the builder did not.
+                   cs.notes,
                    -- Only to tell one block's rooms apart from parallel
                    -- classes; merge_block_rooms drops it before returning.
                    s.raw_text       AS "rawText"
