@@ -65,6 +65,9 @@ function eventForPlacement(placement, index) {
     staff: session.staff,
     streamLabel: session.streamLabel,
     weeks: session.weeks,
+    // The printed text, which is all an uploaded PDF has: the calendar export
+    // reads its weeks from it.
+    weeksRaw: session.weeksRaw || null,
     pinned: Boolean(placement.pinned),
   };
 }
