@@ -379,3 +379,25 @@ test('a dated block is not a button', () => {
   const [event] = toDatedEvents([datedSession({})], 7, WEEK_ONE);
   assert.equal(event.interactive, false);
 });
+
+// One day at a time, on a phone
+
+test('a phone opens on today in the current week, Monday in any other', () => {
+  const defaultDayIndex = api.get('defaultDayIndex');
+  assert.equal(defaultDayIndex('2026-10-15', 7, WEEK_ONE), 3, 'Thursday of week 7');
+  assert.equal(defaultDayIndex('2026-10-15', 8, WEEK_ONE), 0, 'another week opens on Monday');
+  assert.equal(defaultDayIndex('2026-10-15', null, null), 0, 'an undated week opens on Monday');
+});
+
+test('the day strip names each day, its date, and how many classes it holds', () => {
+  const dayStrip = api.get('dayStrip');
+  const strip = dayStrip([
+    placed({ day: 'Monday' }), placed({ day: 'Monday', sessionId: 2 }), placed({ day: 'Friday' }),
+  ], 7, WEEK_ONE);
+
+  assert.equal(strip.length, 7);
+  assert.deepEqual(strip[0], { index: 0, day: 'Monday', short: 'Mon', dayOfMonth: 12, count: 2 });
+  assert.equal(strip[4].count, 1);
+  assert.equal(strip[5].count, 0, 'an empty Saturday says so');
+  assert.equal(dayStrip([], null, null)[0].dayOfMonth, null, 'undated, no dates');
+});

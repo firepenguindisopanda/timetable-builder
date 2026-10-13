@@ -94,7 +94,7 @@ function describeDetailWeeks(details, weekOne) {
  */
 const DETAIL_GROUP_REASON = {
   sittings: 'This is published at several times a week and you go to one. ' +
-            'Drag it to pick a different time.',
+            'Pick a different time below, or drag it on the grid.',
   single: 'Only one time is published for this.',
   overlap: 'These run at the same time, so you can only be at one.',
   split: 'You said this course runs more than one of these a week.',
@@ -153,9 +153,16 @@ function _sittingsSectionHtml(details, sessions, attendedIds) {
           data-group-id="${escapeDetail(details.groupId)}"
           data-session-id="${escapeDetail(String(session.sessionId))}">Remove</button>`;
     } else {
-      tail = `<button type="button" class="btn btn-outline-secondary btn-sm sitting-add"
-          data-group-id="${escapeDetail(details.groupId)}"
-          data-session-id="${escapeDetail(String(session.sessionId))}">Add this time too</button>`;
+      // Moving is the everyday change and comes first. It was drag-only,
+      // which a keyboard cannot do and a phone needed a one-second press
+      // for (WCAG 2.5.7).
+      const ids = `data-group-id="${escapeDetail(details.groupId)}"
+          data-session-id="${escapeDetail(String(session.sessionId))}"`;
+      tail = `<span class="sitting-actions">
+          <button type="button" class="btn btn-outline-info btn-sm sitting-use" ${ids}
+              data-from-session-id="${escapeDetail(String(details.sessionId))}">Use this time</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm sitting-add" ${ids}>Add this time too</button>
+        </span>`;
     }
 
     return `<div class="sitting-row${isViewing ? ' viewing' : ''}">
@@ -166,7 +173,7 @@ function _sittingsSectionHtml(details, sessions, attendedIds) {
   });
 
   const hint = sessions.length > 1
-    ? 'Drag the block on the grid to move it to another time.'
+    ? 'Use another time above, or drag the block on the grid.'
     : 'Only one time is published for this.';
 
   return `<div class="detail-section">
