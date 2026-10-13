@@ -56,11 +56,24 @@ def split_courses(raw: str | None) -> list[str]:
     return [c for c in codes if c]
 
 
+def normalise_room_code(raw: str | None) -> str:
+    """
+    'FHE CLL  Room  9' -> 'FHE CLL Room 9'. Case is kept; rooms are mixed case.
+
+    finder.xml pads some room codes with doubled spaces and the PDFs print them
+    single, so taken as given one room became two `rooms` rows: the registry's,
+    holding the resource, and the bookings', holding every class. 22 registry
+    rooms had no bookings under their own row.
+    """
+    return " ".join((raw or "").split())
+
+
 def split_rooms(raw: str | None) -> list[str]:
     """A class can occupy more than one room at once (overflow venues)."""
     if not raw:
         return []
-    return [part.strip() for part in _LIST_SEPARATOR.split(raw) if part.strip()]
+    codes = (normalise_room_code(part) for part in _LIST_SEPARATOR.split(raw))
+    return [c for c in codes if c]
 
 
 def split_staff(raw: str | None) -> list[str]:

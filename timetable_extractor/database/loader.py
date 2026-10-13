@@ -25,6 +25,7 @@ from timetable_extractor.database.people import build_name_index, resolve_name
 from timetable_extractor.database.records import (
     SessionRecord,
     merge_records,
+    normalise_room_code,
     records_from_extraction,
 )
 from timetable_extractor.database.weeks import export_horizon
@@ -252,12 +253,86 @@ def load_index(
                         name = COALESCE(EXCLUDED.name, rooms.name),
                         resource_id = COALESCE(EXCLUDED.resource_id, rooms.resource_id)
                     """,
-                    (code.strip(), full.strip() or None, resource_id),
+                    (normalise_room_code(code), full.strip() or None, resource_id),
                 )
                 counts["rooms"] += 1
 
+    merge_room_spellings(conn)
     conn.commit()
     return counts
+
+
+def plan_room_merges(rooms: Iterable[tuple[int, str]]) -> list[tuple[int, list[int], str]]:
+    """
+    (keep, drop, code) for each room stored under more than one spelling.
+
+    Pure, so the choice of survivor is tested without a database. The row
+    already spelt the normalised way is kept, since the bookings point at it;
+    failing that, the oldest. A lone row whose code only needs its spaces
+    collapsed comes back with nothing to drop, to be renamed.
+    """
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for room_id, code in rooms:
+        groups.setdefault(normalise_room_code(code), []).append((room_id, code))
+
+    plan = []
+    for code, members in sorted(groups.items()):
+        if not code or (len(members) == 1 and members[0][1] == code):
+            continue
+        members.sort(key=lambda m: (m[1] != code, m[0]))
+        (keep, _), *drop = members
+        plan.append((keep, [room_id for room_id, _ in drop], code))
+    return plan
+
+
+def merge_room_spellings(conn: psycopg.Connection) -> int:
+    """
+    Fold rooms stored under a doubled-space spelling into the single-spaced row.
+
+    Before `normalise_room_code`, every load wrote the registry's spelling and
+    the bookings' as separate rows, and the warehouse still holds both. This
+    runs on every load so the copy the deployment reads heals on its next load
+    without a one-off script; once merged it finds nothing to do.
+
+    A drop row's sessions move to the survivor. If one would collide with a
+    session already there, the pair is left alone and logged rather than a
+    class deleted: the free rooms page compares collapsed codes either way.
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, code FROM rooms")
+        plan = plan_room_merges(cur.fetchall())
+
+    merged = 0
+    for keep, drop, code in plan:
+        try:
+            with conn.transaction(), conn.cursor() as cur:
+                for room_id in drop:
+                    cur.execute(
+                        "UPDATE sessions SET room_id = %s WHERE room_id = %s", (keep, room_id)
+                    )
+                    cur.execute(
+                        """
+                        UPDATE rooms keep SET
+                            name = COALESCE(keep.name, old.name),
+                            resource_id = COALESCE(keep.resource_id, old.resource_id)
+                          FROM rooms old
+                         WHERE keep.id = %s AND old.id = %s
+                        """,
+                        (keep, room_id),
+                    )
+                    cur.execute("DELETE FROM rooms WHERE id = %s", (room_id,))
+                cur.execute("UPDATE rooms SET code = %s WHERE id = %s", (code, keep))
+        except psycopg.errors.UniqueViolation:
+            logger.warning(
+                "room_merge_collided",
+                extra={"event": "load.room_merge_collided", "room": code},
+            )
+            continue
+        merged += len(drop)
+
+    if plan:
+        logger.info("room_spellings_merged", extra={"event": "load.room_spellings_merged", "rows": merged})
+    return merged
 
 
 def register_pdfs(conn: psycopg.Connection, paths: list[Path]) -> dict[str, int]:
