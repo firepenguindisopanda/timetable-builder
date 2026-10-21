@@ -19,7 +19,11 @@ from typing import Any, Callable, Iterable
 import psycopg
 
 from timetable_extractor.database.changes import previous_publication, store_diff
-from timetable_extractor.database.courses import build_code_index, resolve_course_code
+from timetable_extractor.database.courses import (
+    build_code_index,
+    is_test_course,
+    resolve_course_code,
+)
 from timetable_extractor.database.horizon import carry_past_weeks, earlier_sittings
 from timetable_extractor.database.people import build_name_index, resolve_name
 from timetable_extractor.database.records import (
@@ -220,6 +224,10 @@ def load_index(
                 # "ACCT 1002, Intro. to Financial Accounting"
                 code, _, title = name.partition(",")
                 code = " ".join(code.upper().split())
+                if is_test_course(code):
+                    # A Timetable Unit test entry is not a course: no row for
+                    # students to search. `load_all` drops its sessions too.
+                    continue
                 cur.execute(
                     """
                     INSERT INTO courses (code, title, department_id, faculty_id, resource_id)
@@ -333,6 +341,46 @@ def merge_room_spellings(conn: psycopg.Connection) -> int:
     if plan:
         logger.info("room_spellings_merged", extra={"event": "load.room_spellings_merged", "rows": merged})
     return merged
+
+
+def drop_test_records(
+    records: list[SessionRecord], diagnostics: Diagnostics
+) -> list[SessionRecord]:
+    """
+    Leave out Timetable Unit test entries ("TEST 1001"): they are not classes.
+
+    Named as a finding, once per course, rather than dropped silently, so a
+    real subject the rule caught by mistake would show up in the load's output.
+    Runs after code resolution, so a test code read from a room's PDF is
+    caught too.
+    """
+    for code in sorted({r.course_code for r in records if is_test_course(r.course_code)}):
+        diagnostics.add("test_course_skipped", course=code)
+    return [r for r in records if not is_test_course(r.course_code)]
+
+
+def drop_orphaned_test_courses(conn: psycopg.Connection) -> int:
+    """
+    Remove test-entry course rows that no session refers to any more.
+
+    "TEST 1001" was loaded with publication 12 before the loader learned to
+    skip test entries. Re-loading drops its sessions, but the course row would
+    stay, and the course page looks a course up there. Run after the sessions
+    are written, so a test course with history in an older publication keeps
+    its row.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT c.id, c.code FROM courses c
+             WHERE NOT EXISTS (SELECT 1 FROM sessions s WHERE s.course_id = c.id)
+            """
+        )
+        doomed = [row[0] for row in cur.fetchall() if is_test_course(row[1])]
+        if doomed:
+            cur.execute("DELETE FROM courses WHERE id = ANY(%s)", (doomed,))
+    conn.commit()
+    return len(doomed)
 
 
 def register_pdfs(conn: psycopg.Connection, paths: list[Path]) -> dict[str, int]:
@@ -633,6 +681,8 @@ def load_all(
                 dict.fromkeys(resolve_name(name, name_index) for name in record.staff)
             )
 
+        raw = drop_test_records(raw, diagnostics)
+
         merged = merge_records(raw)
 
         # The PDFs only print weeks from the current teaching week on. Weeks that
@@ -677,6 +727,7 @@ def load_all(
         written, staff_links, source_links = write_sessions(
             conn, publication_id, merged, pdf_ids
         )
+        drop_orphaned_test_courses(conn)
 
         with conn.cursor() as cur:
             cur.execute("SELECT published_at FROM publications WHERE id = %s", (publication_id,))
