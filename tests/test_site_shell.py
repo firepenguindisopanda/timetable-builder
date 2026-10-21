@@ -19,7 +19,10 @@ import explore_router
 import main
 from timetable_extractor.database import explore_queries as eq
 
-NOW = datetime(2026, 10, 12, 22, 45, tzinfo=timezone.utc)
+#: The real now, not a fixed date: the rail's "Up to date" is judged against
+#: the clock, so a pinned 12 Oct timestamp read as ageing from 20 Oct on and
+#: failed a test about the header, not the data.
+NOW = datetime.now(timezone.utc)
 
 
 @pytest.fixture
