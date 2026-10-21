@@ -24,6 +24,20 @@ import psycopg
 
 _WHITESPACE = re.compile(r"\s+")
 
+#: Subjects the Timetable Unit publishes test entries under rather than
+#: courses. "TEST 1001, TEST 1001" appeared in the 19 Oct 2026 publication:
+#: four sessions in weeks 8-12, no room, no staff, from its own PDF only. It
+#: went straight into the course list students search.
+TEST_SUBJECTS = frozenset({"TEST"})
+
+_SUBJECT = re.compile(r"[A-Za-z]+")
+
+
+def is_test_course(code: str | None) -> bool:
+    """A Timetable Unit test entry ("TEST 1001", "test1001"), not a course."""
+    match = _SUBJECT.match((code or "").strip())
+    return bool(match) and match.group(0).upper() in TEST_SUBJECTS
+
 
 def code_key(code: str) -> str:
     """Whitespace-free, case-folded form used to match spelling variants."""
