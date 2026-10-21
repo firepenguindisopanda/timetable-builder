@@ -15,7 +15,8 @@ makes "does this run in week 8" a bit test in JavaScript.
 
 from __future__ import annotations
 
-from typing import Any
+import statistics
+from typing import Any, Iterable
 
 import psycopg
 
@@ -322,30 +323,85 @@ def day_distribution(conn: psycopg.Connection) -> dict[str, Any]:
     }
 
 
-def campus_heat(conn: psycopg.Connection) -> dict[str, Any]:
-    """
-    Sessions per weekday hour across the whole campus.
+#: CELCAT writes an online class's venue as "Remote Teaching". It is not on
+#: campus, so the heat grid leaves it out. A class with no published room is
+#: kept: its venue is unknown, not elsewhere.
+REMOTE_ROOM_PREFIX = "remote"
 
-    Returned as a dense day x hour matrix so the front end can render it
-    without filling gaps itself. A slot counts a session if the session is
-    running at any point during that hour.
-    """
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT day::text AS day, h AS hour, count(*) AS sessions
-              FROM current_sessions,
-                   generate_series(start_min / 60, (end_min - 1) / 60) AS h
-             WHERE h BETWEEN %s AND %s
-             GROUP BY day, h
-            """,
-            (DAY_START_HOUR, DAY_END_HOUR),
-        )
-        counts = {(r["day"], r["hour"]): r["sessions"] for r in _rows(cur)}
 
+def _heat_class_key(row: dict[str, Any]) -> tuple:
+    """
+    One teaching event, however many rows store it.
+
+    The loader writes a block that lists several courses as one row per
+    course, and one that lists several rooms as one row per room, so a single
+    lab could be ten rows. Rows from the same block at the same time are one
+    class: the rule `merge_block_rooms` already applies for the builder. A row
+    with no block text never merges.
+    """
+    if not row.get("raw_text"):
+        return ("row", row["id"])
+    return (
+        row["day"], row["start_min"], row["end_min"], row.get("activity_type"),
+        row.get("stream_label"), row.get("weeks_raw"), row["raw_text"],
+    )
+
+
+def heat_matrix(rows: Iterable[dict[str, Any]]) -> dict[tuple[str, int], int]:
+    """
+    Distinct classes on campus per (day, hour) in a typical teaching week.
+
+    The grid used to count stored rows across the whole semester, and on
+    publication 12 it said "peak 190 at once" for Monday 5pm when 126 classes
+    run then in a typical week and the room timetables show 128 rooms in use
+    (HEATMAP-VALIDATION-SPEC.md). It counted a shared lecture once per course
+    code and a class once per room, counted a week-8 exam as if it ran every
+    week, and counted Remote Teaching as campus.
+
+    So rows collapse to classes, remote classes are dropped, each teaching
+    week is counted on its own, and a cell is the median over the weeks,
+    rounded half up. The median needs no list of exam-like types: a one-off
+    runs in one week and falls out, and two labs alternating weeks fill one
+    slot every week. A class counts in every hour it overlaps, within
+    DAY_START_HOUR to DAY_END_HOUR.
+    """
+    classes: dict[tuple, dict[str, Any]] = {}
+    for row in rows:
+        room = (row.get("room") or "").strip().lower()
+        if room.startswith(REMOTE_ROOM_PREFIX):
+            continue
+        classes.setdefault(_heat_class_key(row), row)
+
+    weeks = range(1, TOTAL_WEEKS + 1)
+    per_week: dict[int, dict[tuple[str, int], int]] = {w: {} for w in weeks}
+    for cls in classes.values():
+        first = max(cls["start_min"] // 60, DAY_START_HOUR)
+        last = min((cls["end_min"] - 1) // 60, DAY_END_HOUR)
+        for week in set(cls.get("weeks") or ()):
+            if week not in per_week:
+                continue
+            counts = per_week[week]
+            for hour in range(first, last + 1):
+                cell = (cls["day"], hour)
+                counts[cell] = counts.get(cell, 0) + 1
+
+    cells = {cell for counts in per_week.values() for cell in counts}
+    matrix = {}
+    for cell in cells:
+        median = statistics.median(per_week[w].get(cell, 0) for w in weeks)
+        typical = int(median + 0.5)
+        if typical:
+            matrix[cell] = typical
+    return matrix
+
+
+def heat_grid(matrix: dict[tuple[str, int], int]) -> dict[str, Any]:
+    """
+    The page's day x hour grid from `heat_matrix`, dense so the template
+    renders it without filling gaps, with each cell's shading band.
+    """
     hours = list(range(DAY_START_HOUR, DAY_END_HOUR + 1))
-    matrix = [[counts.get((day, hour), 0) for hour in hours] for day in DAY_ORDER]
-    peak = max((max(row) for row in matrix if row), default=0)
+    peak = max(matrix.values(), default=0)
 
     # Five discrete bands rather than a continuous ramp, so a reader can
     # compare two slots by eye instead of guessing at a gradient.
@@ -358,14 +414,31 @@ def campus_heat(conn: psycopg.Connection) -> dict[str, Any]:
         {
             "day": day,
             "cells": [
-                {"hour": hour, "count": count, "level": level(count)}
-                for hour, count in zip(hours, row)
+                {"hour": hour, "count": matrix.get((day, hour), 0),
+                 "level": level(matrix.get((day, hour), 0))}
+                for hour in hours
             ],
         }
-        for day, row in zip(DAY_ORDER, matrix)
+        for day in DAY_ORDER
     ]
-
     return {"days": DAY_ORDER, "hours": hours, "rows": rows, "peak": peak}
+
+
+def campus_heat(conn: psycopg.Connection) -> dict[str, Any]:
+    """Classes on campus per weekday hour in a typical week (`heat_matrix`)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT s.id, s.day::text AS day, s.start_min, s.end_min,
+                   s.activity_type, s.stream_label, s.weeks_raw, s.weeks,
+                   s.raw_text, r.code AS room
+              FROM sessions s
+              LEFT JOIN rooms r ON r.id = s.room_id
+             WHERE s.publication_id = (SELECT id FROM latest_publication)
+            """
+        )
+        rows = _rows(cur)
+    return heat_grid(heat_matrix(rows))
 
 
 # Course index and detail
@@ -884,6 +957,8 @@ __all__ = [
     "freshness",
     "overview",
     "campus_heat",
+    "heat_grid",
+    "heat_matrix",
     "course_index",
     "course_codes",
     "course_detail",
