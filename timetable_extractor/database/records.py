@@ -58,7 +58,8 @@ def split_courses(raw: str | None) -> list[str]:
 
 def normalise_room_code(raw: str | None) -> str:
     """
-    'FHE CLL  Room  9' -> 'FHE CLL Room 9'. Case is kept; rooms are mixed case.
+    'FHE CLL  Room  9' becomes 'FHE CLL Room 9'. Case is kept; rooms are mixed
+    case.
 
     finder.xml pads some room codes with doubled spaces and the PDFs print them
     single, so taken as given one room became two `rooms` rows: the registry's,
