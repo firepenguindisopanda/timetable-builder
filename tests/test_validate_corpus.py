@@ -144,6 +144,13 @@ class TestGate:
         # A repairable code is a warning: the loader resolves it correctly.
         assert validate_corpus.report(report_input(repaired_course_code=57), 99.0) == 0
 
+    def test_clipped_codes_alone_do_not_fail(self):
+        # A code cut off at a block's edge never becomes a course: the loader
+        # gives it to the PDF's own course or drops it.
+        result = report_input(clipped_course_code=5)
+        result["clipped_codes"] = [("GEND  ->  GEND 8001  (m19804.pdf)", 1)]
+        assert validate_corpus.report(result, 99.0) == 0
+
     @pytest.mark.parametrize(
         "stat", ["bad_day", "bad_start", "end_before_start"]
     )
