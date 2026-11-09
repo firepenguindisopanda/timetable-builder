@@ -19,6 +19,7 @@ half of this module.
 from __future__ import annotations
 
 import re
+from typing import Iterable
 
 import psycopg
 
@@ -72,6 +73,30 @@ def resolve_course_code(raw: str, index: dict[str, str]) -> str:
             return candidate
 
     return raw
+
+
+def published_subjects(canonical_codes: Iterable[str]) -> frozenset[str]:
+    """The subject prefixes published codes use: "GEND" from "GEND 8001"."""
+    subjects = set()
+    for code in canonical_codes:
+        tokens = code.split()
+        if len(tokens) > 1 and tokens[0].isalpha():
+            subjects.add(tokens[0].upper())
+    return frozenset(subjects)
+
+
+def clipped_subject(code: str, subjects: frozenset[str]) -> str | None:
+    """
+    The subject of a code CELCAT cut off at the edge of its block, or None.
+
+    A block has room for only so many lines. The 6 Nov 2026 publication listed
+    five GEND courses on an hour-long one and printed "...; GEND 7001; GEND":
+    the last code lost its number to the cell edge, and the text is not in the
+    PDF at all. A bare subject on its own is not a course, so it can only be a
+    clipped one. Callers check first that the code is not itself published.
+    """
+    token = code.strip().upper()
+    return token if token.isalpha() and token in subjects else None
 
 
 # Matching a code someone typed against what was published

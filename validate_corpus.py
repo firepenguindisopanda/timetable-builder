@@ -33,7 +33,12 @@ from typing import Any
 
 from timetable_extractor import extract_timetable
 from timetable_extractor.constants import FINDER_XML
-from timetable_extractor.database.courses import build_code_index, resolve_course_code
+from timetable_extractor.database.courses import (
+    build_code_index,
+    clipped_subject,
+    published_subjects,
+    resolve_course_code,
+)
 from timetable_extractor.database.records import split_courses
 from timetable_extractor.observability import CORRUPTING_FINDINGS
 
@@ -134,6 +139,7 @@ def validate(
     multi_session: list[str] = []
     unknown_codes: Counter[str] = Counter()
     repaired_codes: Counter[str] = Counter()
+    clipped_codes: Counter[str] = Counter()
     # Near-misses the extractor noticed but handled. These are the ones that
     # do not show up as a crash or a missing field: an unrecognised day label
     # produces a full, plausible-looking extraction on the wrong day.
@@ -155,6 +161,7 @@ def validate(
         ]
     )
     canonical_codes = set(code_index.values())
+    subjects = published_subjects(canonical_codes)
 
     started = time.time()
     for pdf in pdfs:
@@ -233,7 +240,17 @@ def validate(
             for code in split_courses(e.get("course")):
                 stats["course_codes_seen"] += 1
                 resolved = resolve_course_code(code, code_index)
-                if resolved not in canonical_codes:
+                subject = (
+                    None if resolved in canonical_codes else clipped_subject(code, subjects)
+                )
+                if subject:
+                    # Cut off at the block's edge. The loader gives it to the
+                    # PDF's own course when the subject matches, else drops it
+                    # (`repair_clipped_codes`), so it never becomes a course.
+                    stats["clipped_course_code"] += 1
+                    own = expected_code if expected_code.upper().startswith(subject + " ") else None
+                    clipped_codes[f"{code}  ->  {own or 'dropped'}  ({pdf.name})"] += 1
+                elif resolved not in canonical_codes:
                     stats["unknown_course_code"] += 1
                     unknown_codes[f"{code}  ({pdf.name})"] += 1
                 elif resolved != code:
@@ -257,6 +274,7 @@ def validate(
         "multi_session": multi_session,
         "unknown_codes": unknown_codes.most_common(20),
         "repaired_codes": repaired_codes.most_common(20),
+        "clipped_codes": clipped_codes.most_common(20),
         "unknown_rooms": unknown_rooms.most_common(20),
         "room_registry_size": len(rooms),
     }
@@ -298,6 +316,8 @@ def report(r: dict[str, Any], fail_under: float) -> int:
           f" of {stats.get('course_codes_seen', 0)}")
     print(f"   course codes needing repair: {stats.get('repaired_course_code', 0)}"
           f"   (wrapped or with text glued on)")
+    print(f"   course codes clipped    : {stats.get('clipped_course_code', 0)}"
+          f"   (cut off at a block's edge)")
     if r["room_registry_size"]:
         with_room = stats.get("has_room", 0)
         unknown = sum(c for _, c in r["unknown_rooms"])
@@ -353,6 +373,10 @@ def report(r: dict[str, Any], fail_under: float) -> int:
     if r["repaired_codes"]:
         print("\nCourse codes that only resolve after repair:")
         for change, cnt in r["repaired_codes"]:
+            print(f"   {cnt:>4}  {change}")
+    if r.get("clipped_codes"):
+        print("\nCourse codes cut off at a block's edge:")
+        for change, cnt in r["clipped_codes"]:
             print(f"   {cnt:>4}  {change}")
     if r["unknown_rooms"]:
         print("\nRooms not in the official registry (top 20):")

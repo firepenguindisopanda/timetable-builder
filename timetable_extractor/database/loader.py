@@ -21,7 +21,9 @@ import psycopg
 from timetable_extractor.database.changes import previous_publication, store_diff
 from timetable_extractor.database.courses import (
     build_code_index,
+    clipped_subject,
     is_test_course,
+    published_subjects,
     resolve_course_code,
 )
 from timetable_extractor.database.horizon import carry_past_weeks, earlier_sittings
@@ -359,6 +361,49 @@ def drop_test_records(
     return [r for r in records if not is_test_course(r.course_code)]
 
 
+def repair_clipped_codes(
+    records: list[SessionRecord],
+    own_course: dict[str, str],
+    canonical: set[str],
+    diagnostics: Diagnostics,
+) -> list[SessionRecord]:
+    """
+    Give a course code CELCAT clipped to its bare subject back to its course.
+
+    The 6 Nov 2026 publication printed an hour-long GEND block as "GEND 3501;
+    GEND 5001; GEND 6002; GEND 7001; GEND". Left alone, the bare "GEND" became
+    a course of its own, and GEND 8001, whose own PDF the block was read from,
+    lost the class. A block in a course's own PDF belongs to that course, so a
+    clipped code read there becomes it when the subject matches. Read anywhere
+    else, the course it named cannot be recovered and the record is dropped;
+    the other PDFs that print the block still place it. Runs after code
+    resolution, on records that each come from one PDF, and every repair is
+    named as a finding.
+    """
+    subjects = published_subjects(canonical)
+    kept: list[SessionRecord] = []
+    for record in records:
+        subject = (
+            None
+            if record.course_code in canonical
+            else clipped_subject(record.course_code, subjects)
+        )
+        if subject is None:
+            kept.append(record)
+            continue
+        source = min(record.sources) if record.sources else None
+        owner = own_course.get(source or "")
+        if owner and owner.split()[0].upper() != subject:
+            owner = None
+        diagnostics.add(
+            "course_code_clipped", code=record.course_code, course=owner, source=source
+        )
+        if owner:
+            record.course_code = owner
+            kept.append(record)
+    return kept
+
+
 def drop_orphaned_test_courses(conn: psycopg.Connection) -> int:
     """
     Remove test-entry course rows that no session refers to any more.
@@ -674,6 +719,11 @@ def load_all(
             name_index = build_name_index([row[0] for row in cur.fetchall()])
             cur.execute("SELECT code FROM courses WHERE resource_id IS NOT NULL")
             code_index = build_code_index([row[0] for row in cur.fetchall()])
+            cur.execute(
+                "SELECT r.pdf_link, c.code FROM courses c"
+                " JOIN resources r ON r.id = c.resource_id"
+            )
+            own_course = {link: code for link, code in cur.fetchall()}
 
         for record in raw:
             record.course_code = resolve_course_code(record.course_code, code_index)
@@ -681,6 +731,9 @@ def load_all(
                 dict.fromkeys(resolve_name(name, name_index) for name in record.staff)
             )
 
+        raw = repair_clipped_codes(
+            raw, own_course, set(code_index.values()), diagnostics
+        )
         raw = drop_test_records(raw, diagnostics)
 
         merged = merge_records(raw)
