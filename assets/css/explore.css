@@ -979,6 +979,64 @@ table.sessions td {
 table.sessions tbody tr:last-child td { border-bottom: 0; }
 table.sessions tbody tr:hover td { background: var(--paper-sunk); }
 
+/* On a phone each class becomes a small card: day and time as its heading,
+   then one labelled line per column. The 720px table scrolled sideways in
+   a 375px screen, and Weeks, its last column, was off-screen on every row.
+   On 12 Nov 2026 the same layout hid the weeks on the changes page, where
+   a weeks-only change read as two identical rows. The labels come from each
+   cell's data-label, since the columns differ between the course, room and
+   staff pages. */
+@media (max-width: 620px) {
+    table.sessions { min-width: 0; }
+    table.sessions,
+    table.sessions tbody,
+    table.sessions tr,
+    table.sessions td { display: block; }
+    /* Hidden from sight, not from screen readers: the header row still
+       names the columns. */
+    table.sessions thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    table.sessions tr {
+        padding: var(--space-3);
+        border-bottom: 1px solid var(--rule-soft);
+    }
+    table.sessions tbody tr:last-child { border-bottom: 0; }
+    table.sessions td {
+        padding: 2px 0;
+        border-bottom: 0;
+    }
+    table.sessions tbody tr:hover td { background: none; }
+    table.sessions .cell-day,
+    table.sessions .cell-time {
+        display: inline-block;
+        margin: 0 var(--space-2) var(--space-1) 0;
+    }
+    table.sessions td[data-label] {
+        position: relative;
+        padding-left: 5.5rem;
+        min-height: 1.5em;
+    }
+    table.sessions td[data-label]::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        top: 3px;
+        width: 5rem;
+        font-family: var(--font-data);
+        font-size: var(--text-xs);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+    }
+    table.sessions .cell-weeks { white-space: normal; }
+}
+
 /* A column header that carries its own explanation. */
 .th-help { position: relative; }
 
