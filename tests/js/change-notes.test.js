@@ -57,6 +57,20 @@ test('a class that only changed weeks says so', () => {
   assert.equal(line.text, 'Lecture now runs W1, W3, W5, W7, W9, W11');
 });
 
+test('a weeks-only change, as the API now labels it, still names the weeks', () => {
+  // Since 1c12803 `_api_entry` sends displayKind 'weeks_changed' for this
+  // case. The switch had no branch for it and fell through to the bare
+  // "Postgraduate changed", dropping the weeks a student has to act on.
+  const line = describeChange(change({
+    displayKind: 'weeks_changed',
+    activityType: 'Postgraduate',
+    before: [slot({ weeks: 'W1-W12' })],
+    after: [slot({ weeks: 'W1-W9, W11-W12' })],
+  }));
+  assert.equal(line.text, 'Postgraduate now runs W1-W9, W11-W12');
+  assert.equal(line.severity, 'act');
+});
+
 test('a class with several sittings changed does not pick one to report', () => {
   const line = describeChange(change({
     before: [slot(), slot({ startTime: '10:00' })],

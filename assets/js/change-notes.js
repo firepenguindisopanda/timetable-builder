@@ -123,6 +123,9 @@ function describeChange(change) {
       };
       break;
     case 'class_moved':
+    // The API splits weeks-only changes out of moves for the explorer page;
+    // _describeMove already words them ("now runs W1-W9, W11-W12").
+    case 'weeks_changed':
       described = _describeMove(change, type, before, after);
       break;
     default:
