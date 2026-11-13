@@ -119,6 +119,38 @@ def carry_past_weeks(
         )
         by_slot.setdefault(key, []).append(sitting)
 
+    # The same slot with the room left out, for the fallback below.
+    records = list(records)
+    by_roomless: dict[tuple, list[EarlierSitting]] = {}
+    for key, sittings in by_slot.items():
+        by_roomless.setdefault(key[:-1], []).extend(sittings)
+    claimants: dict[tuple, int] = {}
+    for record in records:
+        key = slot_key(record.course_code, record.activity_type, record.stream_label,
+                       record.day, record.start_min, record.end_min, None)[:-1]
+        claimants[key] = claimants.get(key, 0) + 1
+
+    def clipped_sittings(record: SessionRecord) -> list[EarlierSitting]:
+        """
+        Earlier sittings stored under this record's room with its end cut off.
+
+        CHEM 1370's Friday lecture was stored in "TLC" up to publication 15,
+        CELCAT having cut "LT D" off at the block's edge. Publication 16's
+        loader repaired the room (`repair_clipped_rooms`), found no earlier
+        sitting in TLC LT D, and dropped W5-W10. Only taken when this record
+        is the one class in its slot that could have been the clipped one.
+        """
+        if not record.room_code:
+            return []
+        key = slot_key(record.course_code, record.activity_type, record.stream_label,
+                       record.day, record.start_min, record.end_min, None)[:-1]
+        if claimants.get(key) != 1:
+            return []
+        return [
+            s for s in by_roomless.get(key, [])
+            if s.room_code and record.room_code.startswith(s.room_code + " ")
+        ]
+
     carried = 0
     for record in records:
         horizon = record_horizon(record, horizons)
@@ -138,7 +170,7 @@ def carry_past_weeks(
                 record.room_code,
             ),
             [],
-        )
+        ) or clipped_sittings(record)
         if not candidates:
             continue
 
