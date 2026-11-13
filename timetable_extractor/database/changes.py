@@ -27,6 +27,7 @@ from typing import Any, Iterable
 import psycopg
 from psycopg.types.json import Json
 
+from timetable_extractor.database.records import DAY_ORDER
 from timetable_extractor.database.weeks import expand_weeks, render_weeks
 
 #: Rooms CELCAT publishes when it has not allocated one yet. A class going
@@ -455,16 +456,17 @@ def _weeks_only(
     )
 
 
-def weeks_change_notes(
+def weeks_deltas(
     before_only: list[dict[str, Any]], after_only: list[dict[str, Any]]
-) -> list[str]:
+) -> list[dict[str, Any]]:
     """
-    Which weeks a weeks-only change dropped or added, in words.
+    Per sitting, the weeks a weeks-only change dropped and added.
 
-    The WAS and NOW rows of such a change differ only in their last column,
-    and on 6 Nov 2026 eleven cards read as two identical lines under "moved".
-    "No class in W10" is the thing a student has to act on, so it is said
-    rather than left for them to diff `W1-W12` against `W1-W9, W11-W12`.
+    One calculation for both readers: the changes page words it with
+    `weeks_change_notes`, and the builder is sent it as `weeksChanges` and
+    words it in `change-notes.js`. Until 13 Nov 2026 the builder had no
+    weeks for a change with several sittings and said only "Lecture
+    timetable changed" for SPAN 3001's two Friday lectures losing W11.
     Empty for anything that is not a weeks-only change.
     """
     if not _weeks_only(before_only, after_only):
@@ -472,22 +474,53 @@ def weeks_change_notes(
     pairs = zip(
         sorted(before_only, key=_place_key), sorted(after_only, key=_place_key)
     )
-    labelled = len(before_only) > 1
-    notes = []
+    deltas = []
     for before, after in pairs:
         was = set(expand_weeks(before["weeks"]))
         now = set(expand_weeks(after["weeks"]))
-        parts = []
-        if was - now:
-            parts.append(f"no class in {render_weeks(was - now)}")
-        if now - was:
-            parts.append(f"now also runs {render_weeks(now - was)}")
-        if not parts:
+        if was == now:
             # Same weeks, written differently. Nothing for a student to do.
             continue
+        deltas.append({
+            "day": before["day"],
+            "startTime": before["startTime"],
+            "endTime": before["endTime"],
+            "dropped": render_weeks(was - now),
+            "added": render_weeks(now - was),
+        })
+    # In the order of the week, as a student reads it, not alphabetically by
+    # day name, which put Friday before Monday.
+    return sorted(
+        deltas,
+        key=lambda d: (
+            DAY_ORDER.index(d["day"]) if d["day"] in DAY_ORDER else len(DAY_ORDER),
+            d["startTime"],
+        ),
+    )
+
+
+def weeks_change_notes(
+    before_only: list[dict[str, Any]], after_only: list[dict[str, Any]]
+) -> list[str]:
+    """
+    Which weeks a weeks-only change dropped or added, in words, for the page.
+
+    The WAS and NOW rows of such a change differ only in their last column,
+    and on 6 Nov 2026 eleven cards read as two identical lines under "moved".
+    "No class in W10" is the thing a student has to act on, so it is said
+    rather than left for them to diff `W1-W12` against `W1-W9, W11-W12`.
+    """
+    deltas = weeks_deltas(before_only, after_only)
+    notes = []
+    for delta in deltas:
+        parts = []
+        if delta["dropped"]:
+            parts.append(f"no class in {delta['dropped']}")
+        if delta["added"]:
+            parts.append(f"now also runs {delta['added']}")
         text = "; ".join(parts)
-        if labelled:
-            notes.append(f"{before['day'][:3]} {before['startTime']}: {text}")
+        if len(before_only) > 1:
+            notes.append(f"{delta['day'][:3]} {delta['startTime']}: {text}")
         else:
             notes.append(text[0].upper() + text[1:])
     return notes
@@ -683,6 +716,7 @@ def _api_entry(row: dict[str, Any]) -> dict[str, Any]:
             "lastOfType": False,
             "before": [],
             "after": [],
+            "weeksChanges": [],
         }
 
     before_only, after_only = slot_delta(
@@ -698,6 +732,9 @@ def _api_entry(row: dict[str, Any]) -> dict[str, Any]:
         "lastOfType": bool(before.get("lastOfType")),
         "before": before_only,
         "after": after_only,
+        # The weeks each sitting lost or gained, so the builder can say
+        # which, rather than "timetable changed", when several changed.
+        "weeksChanges": weeks_deltas(before_only, after_only),
     }
 
 

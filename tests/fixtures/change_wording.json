@@ -68,7 +68,8 @@
             "room": "FST CSL1",
             "weeks": "W1-W12"
           }
-        ]
+        ],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -131,7 +132,8 @@
             "room": "TLC TR3",
             "weeks": "W1-W12"
           }
-        ]
+        ],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -232,7 +234,8 @@
             "room": "FST CSL1",
             "weeks": "W1-W12"
           }
-        ]
+        ],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -294,6 +297,15 @@
             "endTime": "18:00",
             "room": "ENG Lecture Room 4",
             "weeks": "W1-W9, W11-W12"
+          }
+        ],
+        "weeksChanges": [
+          {
+            "day": "Thursday",
+            "startTime": "17:00",
+            "endTime": "18:00",
+            "dropped": "W10",
+            "added": null
           }
         ]
       },
@@ -396,12 +408,190 @@
             "room": "FHE CLL Room 9",
             "weeks": "W1-W10, W12"
           }
+        ],
+        "weeksChanges": [
+          {
+            "day": "Friday",
+            "startTime": "10:00",
+            "endTime": "12:00",
+            "dropped": "W11",
+            "added": null
+          },
+          {
+            "day": "Friday",
+            "startTime": "15:00",
+            "endTime": "17:00",
+            "dropped": "W11",
+            "added": null
+          }
         ]
       },
       "line": {
         "code": "SPAN 3001",
-        "text": "Lecture timetable changed",
+        "text": "Lecture: no class in W11 on Fri 10am and Fri 3pm",
         "severity": "act"
+      }
+    },
+    {
+      "name": "sittings whose weeks changed in different ways",
+      "before": [
+        {
+          "code": "FREN 2001",
+          "title": "French Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE CLL Room 4",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "FREN 2001",
+          "title": "French Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Wednesday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE CLL Room 4",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "FREN 2001",
+          "title": "French Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE CLL Room 4",
+          "weeks_raw": "W1-W9"
+        }
+      ],
+      "after": [
+        {
+          "code": "FREN 2001",
+          "title": "French Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE CLL Room 4",
+          "weeks_raw": "W1-W10, W12"
+        },
+        {
+          "code": "FREN 2001",
+          "title": "French Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Wednesday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE CLL Room 4",
+          "weeks_raw": "W1-W10, W12"
+        },
+        {
+          "code": "FREN 2001",
+          "title": "French Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE CLL Room 4",
+          "weeks_raw": "W1-W10"
+        }
+      ],
+      "entry": {
+        "code": "FREN 2001",
+        "title": "French Language IIA",
+        "changeType": "class_moved",
+        "displayKind": "weeks_changed",
+        "activityType": "Lecture",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Friday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE CLL Room 4",
+            "weeks": "W1-W9"
+          },
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE CLL Room 4",
+            "weeks": "W1-W12"
+          },
+          {
+            "day": "Wednesday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE CLL Room 4",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Friday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE CLL Room 4",
+            "weeks": "W1-W10"
+          },
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE CLL Room 4",
+            "weeks": "W1-W10, W12"
+          },
+          {
+            "day": "Wednesday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE CLL Room 4",
+            "weeks": "W1-W10, W12"
+          }
+        ],
+        "weeksChanges": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "dropped": "W11",
+            "added": null
+          },
+          {
+            "day": "Wednesday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "dropped": "W11",
+            "added": null
+          },
+          {
+            "day": "Friday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "dropped": null,
+            "added": "W10"
+          }
+        ]
+      },
+      "line": {
+        "code": "FREN 2001",
+        "severity": "act",
+        "text": "Lecture: no class in W11 on Mon 9am and Wed 9am; also runs W10 on Fri 9am"
       }
     },
     {
@@ -463,7 +653,8 @@
             "room": "FST CSL1",
             "weeks": "W1-W12"
           }
-        ]
+        ],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -530,7 +721,8 @@
             "weeks": "W1-W12"
           }
         ],
-        "after": []
+        "after": [],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -597,7 +789,8 @@
             "room": "FST CSL1",
             "weeks": "W1-W12"
           }
-        ]
+        ],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -688,7 +881,8 @@
             "weeks": "W1-W12"
           }
         ],
-        "after": []
+        "after": [],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -755,7 +949,8 @@
             "weeks": "W1-W12"
           }
         ],
-        "after": []
+        "after": [],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -818,7 +1013,8 @@
             "room": "FHE 314 A",
             "weeks": "W1-W12"
           }
-        ]
+        ],
+        "weeksChanges": []
       },
       "line": {
         "code": "COMP 1601",
@@ -878,7 +1074,8 @@
         "previousCode": null,
         "lastOfType": false,
         "before": [],
-        "after": []
+        "after": [],
+        "weeksChanges": []
       },
       "line": {
         "code": "PORT 2001",
@@ -938,7 +1135,8 @@
         "previousCode": null,
         "lastOfType": false,
         "before": [],
-        "after": []
+        "after": [],
+        "weeksChanges": []
       },
       "line": {
         "code": "LING 2304",
@@ -1010,7 +1208,8 @@
         "previousCode": "EDMA 11**",
         "lastOfType": false,
         "before": [],
-        "after": []
+        "after": [],
+        "weeksChanges": []
       },
       "line": {
         "code": "EDMA 11**",
