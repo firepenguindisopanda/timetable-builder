@@ -1,0 +1,1022 @@
+{
+  "_about": [
+    "What a student reads for each kind of change, end to end.",
+    "Each case is two publications' session rows, the builder API entry that",
+    "diff_sessions -> _api_entry makes of them, and the line describeChange",
+    "must print for that entry. tests/test_change_wording.py checks the rows",
+    "still produce the entry; tests/js/change-wording.test.js checks the entry",
+    "still produces the line. On 12 Nov 2026 the API started sending",
+    "'weeks_changed' and the builder had no wording for it; with this fixture",
+    "either side drifting fails its own suite.",
+    "After a deliberate change to _api_entry, regenerate the entries with",
+    "`uv run --group test python -m tests.test_change_wording --write`",
+    "review the diff. The lines are written by hand."
+  ],
+  "cases": [
+    {
+      "name": "a class on another day",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_moved",
+        "displayKind": "class_moved",
+        "activityType": "Lecture",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Friday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "Lecture moved from Mon 9am to Fri 9am",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "a class that only changed room",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "TLC TR3",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_moved",
+        "displayKind": "class_moved",
+        "activityType": "Lecture",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "TLC TR3",
+            "weeks": "W1-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "Lecture moved to TLC TR3",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "several sittings moved at once",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Wednesday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Tuesday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Thursday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_moved",
+        "displayKind": "class_moved",
+        "activityType": "Lecture",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          },
+          {
+            "day": "Wednesday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Thursday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          },
+          {
+            "day": "Tuesday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "Lecture timetable changed",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "one sitting lost a week (CHNG 6206, publication 15)",
+      "before": [
+        {
+          "code": "CHNG 6206",
+          "title": "Research Methods for Chemical Engineers",
+          "resource_id": null,
+          "activity_type": "Postgraduate",
+          "stream_label": null,
+          "day": "Thursday",
+          "start_min": 1020,
+          "end_min": 1080,
+          "room": "ENG Lecture Room 4",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "CHNG 6206",
+          "title": "Research Methods for Chemical Engineers",
+          "resource_id": null,
+          "activity_type": "Postgraduate",
+          "stream_label": null,
+          "day": "Thursday",
+          "start_min": 1020,
+          "end_min": 1080,
+          "room": "ENG Lecture Room 4",
+          "weeks_raw": "W1-W9, W11-W12"
+        }
+      ],
+      "entry": {
+        "code": "CHNG 6206",
+        "title": "Research Methods for Chemical Engineers",
+        "changeType": "class_moved",
+        "displayKind": "weeks_changed",
+        "activityType": "Postgraduate",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Thursday",
+            "startTime": "17:00",
+            "endTime": "18:00",
+            "room": "ENG Lecture Room 4",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Thursday",
+            "startTime": "17:00",
+            "endTime": "18:00",
+            "room": "ENG Lecture Room 4",
+            "weeks": "W1-W9, W11-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "CHNG 6206",
+        "text": "Postgraduate now runs W1-W9, W11-W12",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "several sittings lost a week (SPAN 3001, publication 16)",
+      "before": [
+        {
+          "code": "SPAN 3001",
+          "title": "Spanish",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 600,
+          "end_min": 720,
+          "room": "FHE CLL Room 8",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "SPAN 3001",
+          "title": "Spanish",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 900,
+          "end_min": 1020,
+          "room": "FHE CLL Room 9",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "SPAN 3001",
+          "title": "Spanish",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 600,
+          "end_min": 720,
+          "room": "FHE CLL Room 8",
+          "weeks_raw": "W1-W10, W12"
+        },
+        {
+          "code": "SPAN 3001",
+          "title": "Spanish",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Friday",
+          "start_min": 900,
+          "end_min": 1020,
+          "room": "FHE CLL Room 9",
+          "weeks_raw": "W1-W10, W12"
+        }
+      ],
+      "entry": {
+        "code": "SPAN 3001",
+        "title": "Spanish",
+        "changeType": "class_moved",
+        "displayKind": "weeks_changed",
+        "activityType": "Lecture",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Friday",
+            "startTime": "10:00",
+            "endTime": "12:00",
+            "room": "FHE CLL Room 8",
+            "weeks": "W1-W12"
+          },
+          {
+            "day": "Friday",
+            "startTime": "15:00",
+            "endTime": "17:00",
+            "room": "FHE CLL Room 9",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Friday",
+            "startTime": "10:00",
+            "endTime": "12:00",
+            "room": "FHE CLL Room 8",
+            "weeks": "W1-W10, W12"
+          },
+          {
+            "day": "Friday",
+            "startTime": "15:00",
+            "endTime": "17:00",
+            "room": "FHE CLL Room 9",
+            "weeks": "W1-W10, W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "SPAN 3001",
+        "text": "Lecture timetable changed",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "a class gained a sitting",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": null,
+          "day": "Wednesday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_moved",
+        "displayKind": "sitting_added",
+        "activityType": "Tutorial",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [],
+        "after": [
+          {
+            "day": "Wednesday",
+            "startTime": "11:00",
+            "endTime": "12:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "extra Tutorial on Wed 11am",
+        "severity": "info"
+      }
+    },
+    {
+      "name": "a class lost one of its sittings",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": null,
+          "day": "Wednesday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_moved",
+        "displayKind": "sitting_removed",
+        "activityType": "Tutorial",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Wednesday",
+            "startTime": "11:00",
+            "endTime": "12:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": []
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "one Tutorial time dropped: Wed 11am",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "a new stream on an existing course",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": "T9",
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_added",
+        "displayKind": "class_added",
+        "activityType": "Tutorial",
+        "streamLabel": "T9",
+        "lastOfType": false,
+        "before": [],
+        "after": [
+          {
+            "day": "Monday",
+            "startTime": "11:00",
+            "endTime": "12:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "new Tutorial on Mon 11am",
+        "severity": "info"
+      }
+    },
+    {
+      "name": "one stream of several removed",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": "T1",
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": "T2",
+          "day": "Tuesday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": "T1",
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_removed",
+        "displayKind": "class_removed",
+        "activityType": "Tutorial",
+        "streamLabel": "T2",
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Tuesday",
+            "startTime": "11:00",
+            "endTime": "12:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": []
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "Tutorial removed",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "the last class of a type removed",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Tutorial",
+          "stream_label": "T1",
+          "day": "Monday",
+          "start_min": 660,
+          "end_min": 720,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_removed",
+        "displayKind": "class_removed",
+        "activityType": "Tutorial",
+        "streamLabel": "T1",
+        "lastOfType": true,
+        "before": [
+          {
+            "day": "Monday",
+            "startTime": "11:00",
+            "endTime": "12:00",
+            "room": "FST CSL1",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": []
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "no longer has a published Tutorial; check with your department",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "a placeholder venue confirmed",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "Venue to be advised",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FHE 314 A",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "COMP 1601",
+        "title": "Computer Programming I",
+        "changeType": "class_venue_confirmed",
+        "displayKind": "class_venue_confirmed",
+        "activityType": "Lecture",
+        "streamLabel": null,
+        "lastOfType": false,
+        "before": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "Venue to be advised",
+            "weeks": "W1-W12"
+          }
+        ],
+        "after": [
+          {
+            "day": "Monday",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "room": "FHE 314 A",
+            "weeks": "W1-W12"
+          }
+        ]
+      },
+      "line": {
+        "code": "COMP 1601",
+        "text": "Lecture venue confirmed: FHE 314 A",
+        "severity": "info"
+      }
+    },
+    {
+      "name": "a new course",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "PORT 2001",
+          "title": "Portuguese Language IIA",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "PORT 2001",
+        "title": "Portuguese Language IIA",
+        "changeType": "course_added",
+        "displayKind": "course_added",
+        "activityType": null,
+        "streamLabel": null,
+        "previousCode": null,
+        "lastOfType": false,
+        "before": [],
+        "after": []
+      },
+      "line": {
+        "code": "PORT 2001",
+        "text": "has been added to the timetable",
+        "severity": "info"
+      }
+    },
+    {
+      "name": "a course no longer published",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "LING 2304",
+          "title": "Language Situations",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "LING 2304",
+        "title": "Language Situations",
+        "changeType": "course_dropped",
+        "displayKind": "course_dropped",
+        "activityType": null,
+        "streamLabel": null,
+        "previousCode": null,
+        "lastOfType": false,
+        "before": [],
+        "after": []
+      },
+      "line": {
+        "code": "LING 2304",
+        "text": "is no longer published",
+        "severity": "act"
+      }
+    },
+    {
+      "name": "a course renamed (EDMA 11** to EDMA 1142)",
+      "before": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "EDMA 11**",
+          "title": "Teaching Numeracy",
+          "resource_id": 77,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "after": [
+        {
+          "code": "COMP 1601",
+          "title": "Computer Programming I",
+          "resource_id": null,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        },
+        {
+          "code": "EDMA 1142",
+          "title": "Teaching Numeracy",
+          "resource_id": 77,
+          "activity_type": "Lecture",
+          "stream_label": null,
+          "day": "Monday",
+          "start_min": 540,
+          "end_min": 600,
+          "room": "FST CSL1",
+          "weeks_raw": "W1-W12"
+        }
+      ],
+      "entry": {
+        "code": "EDMA 1142",
+        "title": "Teaching Numeracy",
+        "changeType": "course_renamed",
+        "displayKind": "course_renamed",
+        "activityType": null,
+        "streamLabel": null,
+        "previousCode": "EDMA 11**",
+        "lastOfType": false,
+        "before": [],
+        "after": []
+      },
+      "line": {
+        "code": "EDMA 11**",
+        "text": "is now published as EDMA 1142",
+        "severity": "info"
+      }
+    }
+  ]
+}

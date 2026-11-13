@@ -72,18 +72,18 @@
           <tr>
             <td class="cell-day">{{ s.day }}</td>
             <td class="cell-time">{{ s.start_time }}-{{ s.end_time }}</td>
-            <td>
+            <td data-label="Type">
               {{ s.activity_type or '-' }}
               {% if s.stream_label %}<span class="chip chip--stream">{{ s.stream_label }}</span>{% endif %}
               {% if s.notes %}<div class="muted" style="font-size:var(--text-xs);">{{ s.notes }}</div>{% endif %}
             </td>
-            <td>{{ ui.room_link(s.room) }}</td>
-            <td>{{ ui.staff_links(s.staff) }}</td>
-            <td class="cell-weeks">
+            <td data-label="Room">{{ ui.room_link(s.room) }}</td>
+            <td data-label="Lecturer">{{ ui.staff_links(s.staff) }}</td>
+            <td class="cell-weeks" data-label="Weeks">
               {{ ui.week_meter(s.weeks_mask, total_weeks) }}
               <small>{{ s.weeks_raw or 'not published' }}</small>
             </td>
-            <td>{{ ui.source_dots(s.source_count) }}</td>
+            <td data-label="Sources">{{ ui.source_dots(s.source_count) }}</td>
           </tr>
           {% endfor %}
         </tbody>

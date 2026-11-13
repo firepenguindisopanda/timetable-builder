@@ -1,0 +1,32 @@
+{#
+  The update notice: what the last republish changed, site-wide.
+
+  One copy, imported by base.html and explore_base.html. Until 13 Nov 2026
+  each shell carried its own, and the weeks fix of 12 Nov had to edit both;
+  a copy missed would have counted differently depending on the page. Each
+  caller keeps its own condition for showing it. Rendered visible: a
+  dismissed notice is hidden by explore.js, which shares one dismissal key
+  across both shells, so a reader without JavaScript sees it rather than
+  missing it.
+#}
+{% macro update_notice(banner) %}
+<aside class="update-bar" id="updateBar"
+       data-publication="{{ banner.publication_id }}">
+  <div class="update-inner">
+    <p class="update-text">
+      <b>The timetable was updated on
+        <time data-ts="{{ banner.published_at }}" data-format="date">{{ banner.published_at }}</time>.</b>
+      {% set parts = [] %}
+      {% if banner.moved %}{% set _ = parts.append(banner.moved ~ ' class' ~ ('es' if banner.moved != 1 else '') ~ ' moved') %}{% endif %}
+      {% if banner.weeks_changed %}{% set _ = parts.append(banner.weeks_changed ~ ' class' ~ ('es' if banner.weeks_changed != 1 else '') ~ ' with changed weeks') %}{% endif %}
+      {% if banner.confirmed %}{% set _ = parts.append(banner.confirmed ~ ' venue' ~ ('s' if banner.confirmed != 1 else '') ~ ' confirmed') %}{% endif %}
+      {% if banner.courses_added %}{% set _ = parts.append(banner.courses_added ~ ' course' ~ ('s' if banner.courses_added != 1 else '') ~ ' added') %}{% endif %}
+      {% if banner.courses_dropped %}{% set _ = parts.append(banner.courses_dropped ~ ' no longer published') %}{% endif %}
+      <span class="update-counts">{{ parts | join(' · ') }}</span>
+    </p>
+    <a class="update-cta" href="/explore/changes">See what changed</a>
+    <button type="button" class="update-dismiss" id="updateDismiss"
+            aria-label="Dismiss this update notice">Dismiss</button>
+  </div>
+</aside>
+{% endmacro %}

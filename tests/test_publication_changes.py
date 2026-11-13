@@ -109,6 +109,56 @@ def test_a_class_changing_only_its_weeks_has_changed():
     assert change.after["slots"][0]["weeks"] == "W1, W3, W5, W7, W9, W11"
 
 
+@pytest.mark.parametrize(
+    "was,now",
+    [
+        ("W1 - W12", "W1-W12"),
+        ("W1-W7,W9-W12", "W1-W7, W9-W12"),
+        ("S2W7-S2W12", "W7-W12"),
+    ],
+)
+def test_the_same_weeks_written_differently_are_not_a_change(was, now):
+    """
+    A card for this would print two weeks columns naming the same weeks, and
+    on 12 Nov 2026 a card the reader could not tell apart was the bug. It has
+    not happened in the warehouse yet; the diff should not wait for it to.
+    """
+    assert diff_sessions([session(weeks=was)], [session(weeks=now)]) == []
+
+
+def test_unreadable_weeks_are_compared_as_written():
+    """Two strings the parser cannot read both expand to nothing, which is
+    not the same as both naming the same weeks."""
+    (change,) = diff_sessions([session(weeks="TBC")], [session(weeks="see notes")])
+    assert change.change_type == CLASS_MOVED
+
+
+def test_one_placeholder_venue_replacing_another_is_not_a_change():
+    """
+    "TBA" to "Venue to be advised" tells a student nothing: there was no
+    room and there still is not. It was reported as a move twice in 771
+    stored moves. Dropped from the diff on 13 Nov 2026.
+    """
+    before = [session(room=None), session(room="TBA", day="Tuesday")]
+    after = [session(room="Venue to be advised"), session(room="Room not confirmed", day="Tuesday")]
+    assert diff_sessions(before, after) == []
+
+
+def test_a_placeholder_swap_does_not_hide_a_real_move():
+    before = [session(room="TBA", day="Monday")]
+    after = [session(room="Venue to be advised", day="Friday")]
+    (change,) = diff_sessions(before, after)
+    assert change.change_type == CLASS_MOVED
+
+
+def test_weeks_changing_under_a_placeholder_swap_reads_as_weeks_only():
+    """The room text changed but no room did, so this is a weeks change."""
+    before = [slot(room="TBA", weeks="W1-W12")]
+    after = [slot(room="Venue to be advised", weeks="W1-W9")]
+    assert display_kind(CLASS_MOVED, before, after) == WEEKS_CHANGED
+    assert weeks_change_notes(before, after) == ["No class in W10-W12"]
+
+
 def test_times_are_rendered_for_the_page():
     (change,) = diff_sessions([session(start=540, end=600)], [session(start=780, end=840)])
     assert change.before["slots"][0]["startTime"] == "09:00"

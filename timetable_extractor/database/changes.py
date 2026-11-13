@@ -76,14 +76,42 @@ def _slot(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _room_identity(room: str | None) -> str:
+    """
+    A room as a student would tell it apart. Every placeholder is the same
+    non-room: "TBA" becoming "Venue to be advised" leaves them with nowhere to
+    go either way, and it was reported as a move twice in 771 stored moves.
+    """
+    return "" if is_placeholder_room(room) else room or ""
+
+
+def _weeks_identity(weeks: str | None) -> tuple:
+    """
+    The weeks a slot runs in, however CELCAT happened to write them.
+
+    "W1 - W12" and "W1-W12" are the same twelve weeks, and a card for them
+    would print two weeks columns naming the same weeks. Text the parser
+    cannot read is compared as written: two unreadable strings both expand
+    to nothing, which does not make them the same weeks.
+    """
+    expanded = expand_weeks(weeks)
+    return ("weeks", *expanded) if expanded else ("text", weeks or "")
+
+
 def _slot_key(slot: dict[str, Any]) -> tuple:
-    """Comparable, order-independent identity of a slot."""
+    """
+    Comparable, order-independent identity of a slot.
+
+    Compared by what it means to a student, not by its printed text (see
+    `_room_identity` and `_weeks_identity`). The stored slot keeps the text
+    CELCAT printed; only the comparison is normalised.
+    """
     return (
         slot["day"],
         slot["startTime"],
         slot["endTime"],
-        slot["room"] or "",
-        slot["weeks"] or "",
+        _room_identity(slot["room"]),
+        _weeks_identity(slot["weeks"]),
     )
 
 
@@ -413,7 +441,7 @@ WEEKS_CHANGED = "weeks_changed"
 
 def _place_key(slot: dict[str, Any]) -> tuple:
     """Where and when a slot sits, without the weeks it runs in."""
-    return (slot["day"], slot["startTime"], slot["endTime"], slot["room"] or "")
+    return (slot["day"], slot["startTime"], slot["endTime"], _room_identity(slot["room"]))
 
 
 def _weeks_only(
@@ -533,6 +561,30 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
         columns = [c.name for c in cur.description or ()]
         rows = [dict(zip(columns, row)) for row in cur.fetchall()]
 
+    return {
+        "from_id": from_id,
+        "to_id": to_id,
+        "from_published_at": from_published_at,
+        "to_published_at": to_published_at,
+        **shape_changes(rows),
+    }
+
+
+def shape_changes(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Stored change rows, arranged as the changes page reads them.
+
+    Pure, so a test can take session rows through `diff_sessions` and this
+    to the rendered page without a warehouse. Until 13 Nov 2026 this lived
+    inside `changes_for_page`, so the page was only ever tested with
+    hand-built cards. Those cards had `display_kind` already set, and on
+    12 Nov the page called eleven weeks-only changes "moved" with every
+    test passing.
+
+    Each row has the columns of `publication_changes` (`change_type`,
+    `course_code`, `course_title`, `activity_type`, `stream_label`,
+    `before`, `after`), which is also the shape of `asdict(Change)`.
+    """
     classes: list[dict[str, Any]] = []
     courses_added: list[dict[str, Any]] = []
     courses_dropped: list[dict[str, Any]] = []
@@ -593,10 +645,6 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
         counts[entry["display_kind"]] = counts.get(entry["display_kind"], 0) + 1
 
     return {
-        "from_id": from_id,
-        "to_id": to_id,
-        "from_published_at": from_published_at,
-        "to_published_at": to_published_at,
         "classes": classes,
         "courses_added": courses_added,
         "courses_dropped": courses_dropped,
