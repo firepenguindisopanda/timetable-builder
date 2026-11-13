@@ -36,6 +36,7 @@
         <time data-ts="{{ changes_banner.published_at }}" data-format="date">{{ changes_banner.published_at }}</time>.</b>
       {% set parts = [] %}
       {% if changes_banner.moved %}{% set _ = parts.append(changes_banner.moved ~ ' class' ~ ('es' if changes_banner.moved != 1 else '') ~ ' moved') %}{% endif %}
+      {% if changes_banner.weeks_changed %}{% set _ = parts.append(changes_banner.weeks_changed ~ ' class' ~ ('es' if changes_banner.weeks_changed != 1 else '') ~ ' with changed weeks') %}{% endif %}
       {% if changes_banner.confirmed %}{% set _ = parts.append(changes_banner.confirmed ~ ' venue' ~ ('s' if changes_banner.confirmed != 1 else '') ~ ' confirmed') %}{% endif %}
       {% if changes_banner.courses_added %}{% set _ = parts.append(changes_banner.courses_added ~ ' course' ~ ('s' if changes_banner.courses_added != 1 else '') ~ ' added') %}{% endif %}
       {% if changes_banner.courses_dropped %}{% set _ = parts.append(changes_banner.courses_dropped ~ ' no longer published') %}{% endif %}

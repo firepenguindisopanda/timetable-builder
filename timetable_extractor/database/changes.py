@@ -27,7 +27,7 @@ from typing import Any, Iterable
 import psycopg
 from psycopg.types.json import Json
 
-from timetable_extractor.database.weeks import expand_weeks
+from timetable_extractor.database.weeks import expand_weeks, render_weeks
 
 #: Rooms CELCAT publishes when it has not allocated one yet. A class going
 #: from one of these to a real room has not moved; its venue was confirmed,
@@ -394,18 +394,75 @@ _CLASS_KIND_ORDER = {
     CLASS_MOVED: 0,
     CLASS_REMOVED: 1,
     "sitting_removed": 2,
-    CLASS_ADDED: 3,
-    "sitting_added": 4,
-    CLASS_VENUE_CONFIRMED: 5,
+    "weeks_changed": 3,
+    CLASS_ADDED: 4,
+    "sitting_added": 5,
+    CLASS_VENUE_CONFIRMED: 6,
 }
 
 
 #: Display-only kinds. The stored `change_type` records what happened to the
 #: class; these record what the reader sees, which is not always the same:
 #: a class that kept every sitting and gained one more has changed without
-#: having moved.
+#: having moved, and one that kept its day, hour and room but lost a week
+#: has not moved either.
 SITTING_ADDED = "sitting_added"
 SITTING_REMOVED = "sitting_removed"
+WEEKS_CHANGED = "weeks_changed"
+
+
+def _place_key(slot: dict[str, Any]) -> tuple:
+    """Where and when a slot sits, without the weeks it runs in."""
+    return (slot["day"], slot["startTime"], slot["endTime"], slot["room"] or "")
+
+
+def _weeks_only(
+    before_only: list[dict[str, Any]], after_only: list[dict[str, Any]]
+) -> bool:
+    """Whether the changed slots pair up on everything except their weeks."""
+    return (
+        bool(before_only)
+        and len(before_only) == len(after_only)
+        and sorted(map(_place_key, before_only)) == sorted(map(_place_key, after_only))
+    )
+
+
+def weeks_change_notes(
+    before_only: list[dict[str, Any]], after_only: list[dict[str, Any]]
+) -> list[str]:
+    """
+    Which weeks a weeks-only change dropped or added, in words.
+
+    The WAS and NOW rows of such a change differ only in their last column,
+    and on 6 Nov 2026 eleven cards read as two identical lines under "moved".
+    "No class in W10" is the thing a student has to act on, so it is said
+    rather than left for them to diff `W1-W12` against `W1-W9, W11-W12`.
+    Empty for anything that is not a weeks-only change.
+    """
+    if not _weeks_only(before_only, after_only):
+        return []
+    pairs = zip(
+        sorted(before_only, key=_place_key), sorted(after_only, key=_place_key)
+    )
+    labelled = len(before_only) > 1
+    notes = []
+    for before, after in pairs:
+        was = set(expand_weeks(before["weeks"]))
+        now = set(expand_weeks(after["weeks"]))
+        parts = []
+        if was - now:
+            parts.append(f"no class in {render_weeks(was - now)}")
+        if now - was:
+            parts.append(f"now also runs {render_weeks(now - was)}")
+        if not parts:
+            # Same weeks, written differently. Nothing for a student to do.
+            continue
+        text = "; ".join(parts)
+        if labelled:
+            notes.append(f"{before['day'][:3]} {before['startTime']}: {text}")
+        else:
+            notes.append(text[0].upper() + text[1:])
+    return notes
 
 
 def slot_delta(
@@ -436,6 +493,8 @@ def display_kind(
         return SITTING_ADDED
     if before_only and not after_only:
         return SITTING_REMOVED
+    if _weeks_only(before_only, after_only):
+        return WEEKS_CHANGED
     return CLASS_MOVED
 
 
@@ -507,6 +566,7 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
                 # gained a sitting has not moved, and saying it moved would
                 # send them looking for a change that is not there.
                 "display_kind": display_kind(kind, before_only, after_only),
+                "weeks_notes": weeks_change_notes(before_only, after_only),
             }
             classes.append(entry)
             # A removal that took the last of its type is the case that

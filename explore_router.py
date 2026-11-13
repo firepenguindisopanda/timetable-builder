@@ -386,6 +386,7 @@ def changes_banner_context() -> dict[str, Any] | None:
         "publication_id": data["to_id"],
         "published_at": _iso(data["to_published_at"]),
         "moved": counts.get(cq.CLASS_MOVED, 0),
+        "weeks_changed": counts.get(cq.WEEKS_CHANGED, 0),
         "confirmed": counts.get(cq.CLASS_VENUE_CONFIRMED, 0),
         "courses_added": len(data["courses_added"]),
         "courses_dropped": len(data["courses_dropped"]),
