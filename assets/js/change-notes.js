@@ -68,6 +68,43 @@ function _describeMove(change, type, before, after) {
   return { severity: ACT, text: type + ' moved from ' + _at(b) + ' to ' + _at(a) };
 }
 
+/** "Mon 9am", "Mon 9am and Fri 9am", "Mon 9am, Wed 9am and Fri 9am". */
+function _listAt(slots) {
+  const ats = slots.map(_at);
+  return ats.length < 2
+    ? ats.join('')
+    : ats.slice(0, -1).join(', ') + ' and ' + ats[ats.length - 1];
+}
+
+/**
+ * Several sittings whose weeks changed, by what changed and on which.
+ *
+ * Until 13 Nov 2026 a weeks change with more than one sitting fell through to
+ * `_describeMove`'s "Lecture timetable changed", and SPAN 3001's two Friday
+ * lectures losing W11 told a student nothing about W11. The weeks per sitting
+ * come from the API (`weeksChanges`, from `changes.py:weeks_deltas`), so they
+ * are worked out once, in Python, for this and the changes page alike.
+ * Sittings that changed the same way are named together.
+ */
+function _describeWeeks(type, deltas) {
+  const groups = [];
+  deltas.forEach(function (d) {
+    const what = [
+      d.dropped ? 'no class in ' + d.dropped : null,
+      d.added ? 'also runs ' + d.added : null,
+    ].filter(Boolean).join(' and ');
+    const group = groups.find(function (g) { return g.what === what; });
+    if (group) group.slots.push(d);
+    else groups.push({ what: what, slots: [d] });
+  });
+  return {
+    severity: ACT,
+    text: type + ': ' + groups.map(function (g) {
+      return g.what + ' on ' + _listAt(g.slots);
+    }).join('; '),
+  };
+}
+
 /**
  * One change, as a line under the student's own course code.
  *
@@ -122,10 +159,16 @@ function describeChange(change) {
         text: 'one ' + type + ' time dropped: ' + _at(before[0]),
       };
       break;
-    case 'class_moved':
-    // The API splits weeks-only changes out of moves for the explorer page;
-    // _describeMove already words them ("now runs W1-W9, W11-W12").
     case 'weeks_changed':
+      // One sitting keeps its established wording ("now runs W1-W9,
+      // W11-W12"); several say which weeks on which sittings.
+      if ((change.weeksChanges || []).length > 1) {
+        described = _describeWeeks(type, change.weeksChanges);
+        break;
+      }
+      described = _describeMove(change, type, before, after);
+      break;
+    case 'class_moved':
       described = _describeMove(change, type, before, after);
       break;
     default:

@@ -28,6 +28,7 @@ from timetable_extractor.database.changes import (
     slot_delta,
     summarise,
     weeks_change_notes,
+    weeks_deltas,
 )
 
 
@@ -432,6 +433,33 @@ def test_with_several_sittings_each_note_says_which_one():
         "Mon 17:00: no class in W10-W12",
         "Thu 17:00: no class in W10-W11",
     ]
+
+
+def test_each_changed_sitting_says_which_weeks_went_and_came():
+    """
+    SPAN 3001 in publication 16: two Friday lectures lose W11. The builder
+    said only "Lecture timetable changed" for a change with more than one
+    sitting, so it is handed the weeks per sitting rather than a sentence.
+    """
+    before = [slot(day="Friday", start="10:00", end="12:00", weeks="W1-W12"),
+              slot(day="Friday", start="15:00", end="17:00", weeks="W1-W12")]
+    after = [slot(day="Friday", start="15:00", end="17:00", weeks="W1-W10, W12"),
+             slot(day="Friday", start="10:00", end="12:00", weeks="W1-W10, W12")]
+    assert weeks_deltas(before, after) == [
+        {"day": "Friday", "startTime": "10:00", "endTime": "12:00",
+         "dropped": "W11", "added": None},
+        {"day": "Friday", "startTime": "15:00", "endTime": "17:00",
+         "dropped": "W11", "added": None},
+    ]
+
+
+def test_weeks_added_and_dropped_are_both_given():
+    (delta,) = weeks_deltas([slot(weeks="W1-W5, W12")], [slot(weeks="W1-W5, W10")])
+    assert (delta["dropped"], delta["added"]) == ("W12", "W10")
+
+
+def test_a_move_has_no_weeks_deltas():
+    assert weeks_deltas([slot(day="Monday")], [slot(day="Friday")]) == []
 
 
 def test_a_genuine_move_gets_no_weeks_notes():
