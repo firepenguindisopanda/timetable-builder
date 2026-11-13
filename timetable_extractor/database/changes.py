@@ -533,6 +533,30 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
         columns = [c.name for c in cur.description or ()]
         rows = [dict(zip(columns, row)) for row in cur.fetchall()]
 
+    return {
+        "from_id": from_id,
+        "to_id": to_id,
+        "from_published_at": from_published_at,
+        "to_published_at": to_published_at,
+        **shape_changes(rows),
+    }
+
+
+def shape_changes(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Stored change rows, arranged as the changes page reads them.
+
+    Pure, so a test can take session rows through `diff_sessions` and this
+    to the rendered page without a warehouse. Until 13 Nov 2026 this lived
+    inside `changes_for_page`, so the page was only ever tested with
+    hand-built cards. Those cards had `display_kind` already set, and on
+    12 Nov the page called eleven weeks-only changes "moved" with every
+    test passing.
+
+    Each row has the columns of `publication_changes` (`change_type`,
+    `course_code`, `course_title`, `activity_type`, `stream_label`,
+    `before`, `after`), which is also the shape of `asdict(Change)`.
+    """
     classes: list[dict[str, Any]] = []
     courses_added: list[dict[str, Any]] = []
     courses_dropped: list[dict[str, Any]] = []
@@ -593,10 +617,6 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
         counts[entry["display_kind"]] = counts.get(entry["display_kind"], 0) + 1
 
     return {
-        "from_id": from_id,
-        "to_id": to_id,
-        "from_published_at": from_published_at,
-        "to_published_at": to_published_at,
         "classes": classes,
         "courses_added": courses_added,
         "courses_dropped": courses_dropped,
