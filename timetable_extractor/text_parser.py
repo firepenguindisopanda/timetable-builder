@@ -23,6 +23,13 @@ _WEEKS_LABELLED = re.compile(rf"\bWks?\s+({_WEEK_RANGE}(?:\s*,\s*{_WEEK_RANGE})*
 # Fallback for blocks that carry a range with no "Wks" label.
 _WEEKS_BARE = re.compile(rf"((?:S\d+W\d+|SUM\s+W\d+)\s*-\s*(?:S\d+W\d+|SUM\s+W\d+))")
 
+#: The labelled weeks with every space removed, for a header pdfplumber
+#: letter-spaced ("W k W 1 2"). Case is kept, so "Wks" never swallows the
+#: "S" of a semester-prefixed token ("WkS2W7").
+_TOKEN_TIGHT = r"(?:SUM)?(?:S\d+)?W\d+"
+_RANGE_TIGHT = rf"{_TOKEN_TIGHT}(?:-{_TOKEN_TIGHT})?"
+_WEEKS_TIGHT = re.compile(rf"Wks?({_RANGE_TIGHT}(?:,{_RANGE_TIGHT})*)")
+
 # Field labels. CELCAT uses the plural when a block covers several courses or
 # rooms ("Courses: CHEM 1075; CHEM 1080").
 _FIELD_LABEL = re.compile(r"\b(Courses?|Staff|Rooms?):")
@@ -89,6 +96,24 @@ def group_paragraphs(lines: list[tuple[float, str]]) -> list[str]:
 def _repair_split_weeks(text: str) -> str:
     """Rejoin week tokens broken across lines: "W1- W11" -> "W1-W11"."""
     return re.sub(rf"({_WEEK_TOKEN})-\s+({_WEEK_TOKEN})", r"\1-\2", text)
+
+
+def _letter_spaced_weeks(header: str) -> str | None:
+    """
+    Weeks read from a header pdfplumber split into single letters.
+
+    On 12 Nov 2026 one staff PDF (s97897) gave CHEM 1370's Monday tutorial
+    as "T u to ria l, / W k W 1 2" where four other PDFs read "Wk W12". The
+    type survived through `canonical_activity_type`, which already reads
+    de-spaced text, but the weeks came out None, and the loader kept that
+    copy as a second sitting with no weeks at all. Only the header is read,
+    so a range in a trailing note cannot stand in for the class's weeks.
+    """
+    match = _WEEKS_TIGHT.search(re.sub(r"\s+", "", header))
+    if not match:
+        return None
+    weeks = match.group(1).replace(",", ", ")
+    return re.sub(r"SUM(?=W)", "SUM ", weeks)
 
 
 def parse_block_text(
@@ -168,6 +193,8 @@ def parse_block_text(
     wk = _WEEKS_LABELLED.search(joined) or _WEEKS_BARE.search(joined)
     if wk:
         result["weeks"] = wk.group(1).strip()
+    else:
+        result["weeks"] = _letter_spaced_weeks(header)
 
     # Week count: [=6]
     wc = re.search(r"\[=(\d+)\]", joined)

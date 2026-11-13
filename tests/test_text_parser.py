@@ -67,6 +67,28 @@ class TestWeeks:
     def test_no_weeks_present(self):
         assert parse_block_text(block("Course: COMP 2603\nRoom: Lab"))["weeks"] is None
 
+    @pytest.mark.parametrize(
+        "header,expected",
+        [
+            # s97897.pdf, 12 Nov 2026: CHEM 1370's Monday 12:00 tutorial came
+            # out letter-spaced in this one staff PDF while four others read
+            # "Wk W12". Weeks were None, so the loader stored a second copy
+            # of the sitting with no weeks at all.
+            ("T u to ria l,\nW k W 1 2", "W12"),
+            ("L e c tu re ,\nW k s W 1 - W 7 , W 9 - W 1 2 [= 1 1 ]", "W1-W7, W9-W12"),
+            ("Le c ture ,\nW k s S U M W 1 - S U M W 7", "SUM W1-SUM W7"),
+        ],
+    )
+    def test_letter_spaced_weeks(self, header, expected):
+        text = header + "\nCourse: CHEM 1370\nRoom: TCB 32"
+        assert parse_block_text(block(text))["weeks"] == expected
+
+    def test_letter_spacing_rescue_does_not_read_a_note(self):
+        """The rescue reads the header only: a week range in a later note
+        stays out of it."""
+        text = "Lecture,\nCourse: CHEM 1370\nRoom: TCB 32\nW 1 - W 1 2"
+        assert parse_block_text(block(text))["weeks"] is None
+
     def test_week_count(self):
         assert parse_block_text(block("Wks W1-W11 [=11]"))["week_count"] == 11
 
