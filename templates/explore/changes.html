@@ -17,6 +17,7 @@
    that only gained a sitting reads as an addition, not a move. #}
 {% set KIND_STYLE = {
   'class_moved': 'class_moved',
+  'weeks_changed': 'weeks_changed',
   'class_venue_confirmed': 'class_venue_confirmed',
   'class_added': 'class_added',
   'sitting_added': 'class_added',
@@ -25,6 +26,7 @@
 } %}
 {% set KIND_LABEL = {
   'class_moved': 'moved',
+  'weeks_changed': 'weeks changed',
   'class_venue_confirmed': 'venue confirmed',
   'class_added': 'new class',
   'sitting_added': 'extra sitting',
@@ -41,6 +43,7 @@
     <span class="chg-kind">{{ KIND_LABEL.get(kind, 'changed') }}</span>
   </div>
   {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}
+  {% for note in entry.weeks_notes or [] %}<p class="chg-note">{{ note }}</p>{% endfor %}
   <div class="chg-slots">
     {% for slot in entry.before_slots %}{{ slot_row(slot, 'was', kind) }}{% endfor %}
     {% for slot in entry.after_slots %}{{ slot_row(slot, 'now', kind) }}{% endfor %}
@@ -85,6 +88,9 @@
 
       <div class="figures">
         <div class="figure"><b>{{ changes.counts.class_moved }}</b><span>classes moved</span></div>
+        {% if changes.counts.weeks_changed %}
+        <div class="figure"><b>{{ changes.counts.weeks_changed }}</b><span>weeks changed</span></div>
+        {% endif %}
         <div class="figure"><b>{{ changes.counts.class_venue_confirmed }}</b><span>venues confirmed</span></div>
         <div class="figure"><b>{{ changes.courses_added | length }}</b><span>courses added</span></div>
         <div class="figure"><b>{{ changes.courses_dropped | length }}</b><span>no longer published</span></div>

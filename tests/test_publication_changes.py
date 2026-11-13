@@ -22,10 +22,12 @@ from timetable_extractor.database.changes import (
     COURSE_RENAMED,
     SITTING_ADDED,
     SITTING_REMOVED,
+    WEEKS_CHANGED,
     diff_sessions,
     display_kind,
     slot_delta,
     summarise,
+    weeks_change_notes,
 )
 
 
@@ -331,6 +333,59 @@ def test_a_class_that_only_lost_a_sitting_has_not_moved():
 
 def test_a_class_that_gained_and_lost_has_moved():
     assert display_kind(CLASS_MOVED, [slot(day="Monday")], [slot(day="Friday")]) == CLASS_MOVED
+
+
+def test_a_class_that_only_changed_weeks_has_not_moved():
+    """
+    CHNG 6206 on 6 Nov 2026: same Thursday, same hour, same room, week 10
+    dropped. The page called it "moved" and printed two identical rows,
+    because the weeks column is the one a phone scrolls out of sight.
+    """
+    before = [slot(weeks="W1-W12")]
+    after = [slot(weeks="W1-W9, W11-W12")]
+    assert display_kind(CLASS_MOVED, before, after) == WEEKS_CHANGED
+
+
+def test_several_sittings_changing_only_weeks_have_not_moved():
+    before = [slot(day="Monday", weeks="W1-W12"), slot(day="Thursday", weeks="W1-W12")]
+    after = [slot(day="Thursday", weeks="W1-W9"), slot(day="Monday", weeks="W1-W9")]
+    assert display_kind(CLASS_MOVED, before, after) == WEEKS_CHANGED
+
+
+def test_a_room_change_alongside_new_weeks_has_still_moved():
+    before = [slot(room="FST C1", weeks="W1-W12")]
+    after = [slot(room="FST C2", weeks="W1-W9")]
+    assert display_kind(CLASS_MOVED, before, after) == CLASS_MOVED
+
+
+def test_a_dropped_week_is_named():
+    notes = weeks_change_notes([slot(weeks="W1-W12")], [slot(weeks="W1-W9, W11-W12")])
+    assert notes == ["No class in W10"]
+
+
+def test_added_weeks_are_named():
+    notes = weeks_change_notes([slot(weeks="W7, W12")], [slot(weeks="W7, W10-W12")])
+    assert notes == ["Now also runs W10-W11"]
+
+
+def test_weeks_dropped_and_added_are_both_named():
+    notes = weeks_change_notes([slot(weeks="W1-W5, W12")], [slot(weeks="W1-W5, W10")])
+    assert notes == ["No class in W12; now also runs W10"]
+
+
+def test_with_several_sittings_each_note_says_which_one():
+    before = [slot(day="Monday", start="17:00", weeks="W1-W12"),
+              slot(day="Thursday", start="17:00", weeks="W1-W12")]
+    after = [slot(day="Monday", start="17:00", weeks="W1-W9"),
+             slot(day="Thursday", start="17:00", weeks="W1-W9, W12")]
+    assert weeks_change_notes(before, after) == [
+        "Mon 17:00: no class in W10-W12",
+        "Thu 17:00: no class in W10-W11",
+    ]
+
+
+def test_a_genuine_move_gets_no_weeks_notes():
+    assert weeks_change_notes([slot(day="Monday")], [slot(day="Friday")]) == []
 
 
 @pytest.mark.parametrize(

@@ -179,6 +179,45 @@ def test_a_venue_confirmation_is_not_called_a_move(client):
     assert "venue confirmed" in body
 
 
+def test_a_weeks_only_change_says_which_weeks_rather_than_moved(monkeypatch):
+    """
+    6 Nov 2026: eleven of twelve "moved" cards showed identical WAS and NOW
+    rows. Only the weeks had changed, and on a phone that column was scrolled
+    out of sight. The card has to say what changed in words.
+    """
+    entry = {
+        "course_code": "CHNG 6206", "course_title": "Research Methods",
+        "activity_type": "Postgraduate", "stream_label": None,
+        "kind": "class_moved", "display_kind": "weeks_changed",
+        "weeks_notes": ["No class in W10"],
+        "before_slots": [{"day": "Thursday", "startTime": "17:00", "endTime": "18:00",
+                          "room": "ENG Lecture Room 4", "weeks": "W1-W12"}],
+        "after_slots": [{"day": "Thursday", "startTime": "17:00", "endTime": "18:00",
+                         "room": "ENG Lecture Room 4", "weeks": "W1-W9, W11-W12"}],
+    }
+    fake = FakeWarehouse(change_set(
+        classes=[entry], counts={"class_moved": 0, "weeks_changed": 1,
+                                 "class_venue_confirmed": 0},
+        lost_types=[], total=5,
+    ))
+    monkeypatch.setattr(explore_router, "query", fake)
+    explore_router.clear_cache()
+    with TestClient(main.app) as client:
+        page = client.get(CHANGES_URL).text
+        banner = client.get(ROOMS_URL).text
+    explore_router.clear_cache()
+
+    card = page[page.index("CHNG 6206"):]
+    card = card[:card.index("</article>")]
+    assert "weeks changed" in card
+    assert ">moved<" not in card
+    assert "No class in W10" in card
+    assert "<b>1</b><span>weeks changed</span>" in page
+    assert "<b>0</b><span>classes moved</span>" in page
+    assert "1 class with changed weeks" in banner
+    assert "moved" not in banner[banner.index("update-counts"):][:200]
+
+
 # Getting there and back
 
 

@@ -1244,7 +1244,8 @@ table.sessions tbody tr:hover td { background: var(--paper-sunk); }
     border-radius: var(--r-sm);
 }
 
-.chg--class_moved            { --chg-hue: var(--gold); }
+.chg--class_moved,
+.chg--weeks_changed          { --chg-hue: var(--gold); }
 .chg--class_venue_confirmed  { --chg-hue: var(--teal); }
 .chg--class_added,
 .chg--course_added           { --chg-hue: var(--green); }
@@ -1338,6 +1339,32 @@ table.sessions tbody tr:hover td { background: var(--paper-sunk); }
 .chg-room { white-space: normal; }
 .chg-slot--was .chg-room { color: var(--ink-3); }
 .chg-weeks { text-align: right; color: var(--ink-3); font-weight: 400; }
+
+/* A weeks-only change: the weeks are the whole story, so the line saying
+   which ones went is the loudest thing on the card. */
+.chg-note {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ink);
+}
+.chg--weeks_changed .chg-slot--now .chg-weeks { color: var(--ink); font-weight: 500; }
+
+/* On a phone the fixed row was 32rem inside a sideways scroller, so the
+   weeks column sat off-screen and a weeks-only change read as two identical
+   lines (6 Nov 2026). Weeks drop to their own line under the room instead. */
+@media (max-width: 620px) {
+    .chg-slot {
+        min-width: 0;
+        grid-template-columns: 2.6rem 2.6rem 6.2rem minmax(0, 1fr);
+        row-gap: 0;
+    }
+    .chg-weeks {
+        grid-column: 2 / -1;
+        text-align: left;
+        white-space: normal;
+    }
+}
 
 /* The update notice under the provenance rail
  *
