@@ -404,6 +404,107 @@ def repair_clipped_codes(
     return kept
 
 
+def _clipped_room(room: str | None, registered: set[str]) -> bool:
+    """
+    Whether a room reads as a registered room with its end cut off.
+
+    The cut falls on a line break, and CELCAT breaks lines between words, so
+    the prefix must end on one: "TLC" for "TLC LT D", never "TCB 3" for
+    "TCB 32". A room that is registered, or prefixes nothing ("FHE CLL Room
+    9", "Remote Teaching"), is a room as printed.
+    """
+    if not room or room in registered:
+        return False
+    return any(full.startswith(room + " ") for full in registered)
+
+
+def repair_clipped_rooms(
+    records: list[SessionRecord],
+    own_room: dict[str, str],
+    registered: set[str],
+    diagnostics: Diagnostics,
+) -> list[SessionRecord]:
+    """
+    Give a room CELCAT clipped to its first words back its full name.
+
+    CHEM 1370's Friday 08:00 lecture was stored in room "TLC" from at least
+    publication 14 to 16. Its block ends "Room: TLC", with "LT D" cut off at
+    the cell's bottom edge, even in TLC LT D's own PDF. "TLC" became a room
+    of its own, and 19 sessions in publication 16 sat in seven such rooms.
+    The room-side twin of `repair_clipped_codes`, and certain only where the
+    evidence is:
+
+    - Read from a room's own PDF, the class is in that room, unless the
+      block already names it in full, in which case the clipped one is a
+      second room.
+    - Read from a course or staff PDF, it takes the room another description
+      of the same class names in full, when exactly one registered room
+      fits. Parallel streams in TCB 31 and TCB 32 leave "TCB" as it is.
+
+    Every repair is named as `room_code_clipped`; a room left as printed is
+    named as `room_clipped_unresolved`. Runs on records that each come from
+    one PDF, before merging, so the repaired descriptions merge into one.
+    """
+    clipped = [r for r in records if _clipped_room(r.room_code, registered)]
+    if not clipped:
+        return records
+
+    # Rooms each block names in full, per source PDF, so a room PDF does not
+    # claim a clipped room when its own room is already in the block.
+    named: dict[tuple, set[str]] = {}
+    for record in records:
+        if record.room_code and not _clipped_room(record.room_code, registered):
+            block = (min(record.sources),) + record.core_identity
+            named.setdefault(block, set()).add(record.room_code)
+
+    def repaired(record: SessionRecord, room: str) -> None:
+        diagnostics.add(
+            "room_code_clipped", room=record.room_code, now=room,
+            course=record.course_code, source=min(record.sources),
+        )
+        record.room_code = room
+
+    unresolved: list[SessionRecord] = []
+    for record in clipped:
+        source = min(record.sources)
+        mine = own_room.get(source)
+        block = (source,) + record.core_identity
+        if (
+            mine
+            and mine.startswith(record.room_code + " ")
+            and mine not in named.get(block, set())
+        ):
+            repaired(record, mine)
+        else:
+            unresolved.append(record)
+
+    # Full rooms other descriptions of each class name, room PDFs now included.
+    full_rooms: dict[tuple, list[SessionRecord]] = {}
+    for record in records:
+        if record.room_code in registered:
+            full_rooms.setdefault(record.core_identity, []).append(record)
+
+    for record in unresolved:
+        source = min(record.sources)
+        fits = {
+            other.room_code
+            for other in full_rooms.get(record.core_identity, [])
+            # The other rooms of its own block are, by being listed beside
+            # it, not the room it is.
+            if min(other.sources) != source
+            and other.room_code.startswith(record.room_code + " ")
+            and (record.stream_label is None or other.stream_label in (None, record.stream_label))
+        }
+        if len(fits) == 1:
+            repaired(record, fits.pop())
+        else:
+            diagnostics.add(
+                "room_clipped_unresolved", room=record.room_code,
+                course=record.course_code, source=min(record.sources),
+            )
+    return records
+
+
 def drop_orphaned_test_courses(conn: psycopg.Connection) -> int:
     """
     Remove test-entry course rows that no session refers to any more.
@@ -724,6 +825,13 @@ def load_all(
                 " JOIN resources r ON r.id = c.resource_id"
             )
             own_course = {link: code for link, code in cur.fetchall()}
+            cur.execute(
+                "SELECT r.pdf_link, rm.code FROM rooms rm"
+                " JOIN resources r ON r.id = rm.resource_id"
+            )
+            own_room = {link: code for link, code in cur.fetchall()}
+            cur.execute("SELECT code FROM rooms WHERE resource_id IS NOT NULL")
+            registered_rooms = {row[0] for row in cur.fetchall()}
 
         for record in raw:
             record.course_code = resolve_course_code(record.course_code, code_index)
@@ -735,6 +843,7 @@ def load_all(
             raw, own_course, set(code_index.values()), diagnostics
         )
         raw = drop_test_records(raw, diagnostics)
+        raw = repair_clipped_rooms(raw, own_room, registered_rooms, diagnostics)
 
         merged = merge_records(raw)
 
