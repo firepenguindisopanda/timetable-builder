@@ -185,6 +185,19 @@ def test_a_sitting_in_the_exact_room_wins_over_a_clipped_one():
     assert r.weeks_raw == "W1-W12"
 
 
+def test_a_clipped_sitting_is_a_source_beside_one_in_the_exact_room():
+    """
+    Publication 15 held CHEM 1170's Tuesday lecture twice: "Daaga" W1-W12
+    from three PDFs, and "Daaga Auditorium" W10-W12 from one staff PDF, a row
+    that had itself failed to carry. Taking only the exact room's sitting
+    dropped W1-W9; both agree on the weeks still to come, so both count.
+    """
+    r = record("W11-W12", room="Daaga Auditorium")
+    carry_past_weeks([r], [earlier("W10-W12", room="Daaga Auditorium"),
+                           earlier("W1-W12", room="Daaga")], WEEK_11)
+    assert r.weeks_raw == "W1-W12"
+
+
 def test_a_clipped_room_two_classes_could_claim_hands_on_nothing():
     """Two tutorials now in FST C1 and FST C2: either could have been the one
     stored as "FST", and giving both its weeks would invent history for one."""
