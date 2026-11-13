@@ -405,3 +405,26 @@ def test_the_calendar_shows_only_its_own_notice(client):
 
 def test_other_tool_pages_keep_the_site_wide_notice(client):
     assert 'id="updateBar"' in client.get("/extract").text
+
+
+def _notice(page: str) -> str:
+    start = page.index('<aside class="update-bar"')
+    return " ".join(page[start:page.index("</aside>", start)].split())
+
+
+def test_both_shells_print_the_same_notice(client):
+    """
+    The tool pages (base.html) and the explorer (explore_base.html) each
+    carried their own copy of the notice, and the weeks fix of 12 Nov 2026
+    had to edit both. One copy missed would have told a student a different
+    count depending on which page they were on.
+    """
+    assert _notice(client.get("/extract").text) == _notice(client.get(ROOMS_URL).text)
+
+
+def test_neither_shell_keeps_notice_markup_of_its_own():
+    from pathlib import Path
+
+    templates = Path(__file__).parent.parent / "templates"
+    for shell in ("base.html", "explore_base.html"):
+        assert "update-counts" not in (templates / shell).read_text(encoding="utf-8"), shell

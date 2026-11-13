@@ -135,6 +135,26 @@ def test_every_card_shows_what_its_label_claims(case, monkeypatch):
             assert card["notes"], "weeks changed without saying which"
 
 
+def test_changes_a_student_could_not_see_never_reach_the_page(monkeypatch):
+    """
+    Beside one real move, a class whose weeks were re-spelled and one whose
+    placeholder venue was re-worded. Only the move is a card: the other two
+    would print rows the reader cannot tell apart.
+    """
+    (case,) = [c for c in FIXTURE["cases"] if c["name"] == "a class on another day"]
+    quiet_before = [
+        {**case["before"][0], "code": "OPTM 3011", "weeks_raw": "W1 - W12"},
+        {**case["before"][0], "code": "COMS 6003", "room": "TBA"},
+    ]
+    quiet_after = [
+        {**case["before"][0], "code": "OPTM 3011", "weeks_raw": "W1-W12"},
+        {**case["before"][0], "code": "COMS 6003", "room": "Venue to be advised"},
+    ]
+    page = render(case["before"] + quiet_before, case["after"] + quiet_after, monkeypatch)
+    assert [card["kind"] for card in cards(page)] == ["moved"]
+    assert "OPTM 3011" not in page and "COMS 6003" not in page
+
+
 def test_the_case_that_shipped_on_12_november(monkeypatch):
     """CHNG 6206 on 6 Nov 2026: same Thursday hour and room, week 10 gone."""
     (case,) = [c for c in FIXTURE["cases"] if "CHNG 6206" in c["name"]]

@@ -588,6 +588,7 @@
 {% from "_components/nav.html" import nav %}
 {% from "_components/site_header.html" import site_header %}
 {% from "_components/freshness_rail.html" import freshness_rail %}
+{% from "_components/update_notice.html" import update_notice %}
 <a class="skip-link" href="#main">Skip to content</a>
 
 {#
@@ -602,31 +603,12 @@
 {% endif %}
 
     {#
-      The explorer's update notice, site-wide. It shares the explorer's
-      markup, styles and dismissal key, so dismissing it on any page hides
-      it everywhere until the next republish.
+      The explorer's update notice, site-wide: the same macro as the
+      explorer's (_components/update_notice.html), with its styles and
+      dismissal key, so dismissing it on any page hides it everywhere until
+      the next republish.
     #}
-    {% if changes_banner is defined and changes_banner %}
-    <aside class="update-bar" id="updateBar"
-           data-publication="{{ changes_banner.publication_id }}">
-      <div class="update-inner">
-        <p class="update-text">
-          <b>The timetable was updated on
-            <time data-ts="{{ changes_banner.published_at }}" data-format="date">{{ changes_banner.published_at }}</time>.</b>
-          {% set parts = [] %}
-          {% if changes_banner.moved %}{% set _ = parts.append(changes_banner.moved ~ ' class' ~ ('es' if changes_banner.moved != 1 else '') ~ ' moved') %}{% endif %}
-          {% if changes_banner.weeks_changed %}{% set _ = parts.append(changes_banner.weeks_changed ~ ' class' ~ ('es' if changes_banner.weeks_changed != 1 else '') ~ ' with changed weeks') %}{% endif %}
-          {% if changes_banner.confirmed %}{% set _ = parts.append(changes_banner.confirmed ~ ' venue' ~ ('s' if changes_banner.confirmed != 1 else '') ~ ' confirmed') %}{% endif %}
-          {% if changes_banner.courses_added %}{% set _ = parts.append(changes_banner.courses_added ~ ' course' ~ ('s' if changes_banner.courses_added != 1 else '') ~ ' added') %}{% endif %}
-          {% if changes_banner.courses_dropped %}{% set _ = parts.append(changes_banner.courses_dropped ~ ' no longer published') %}{% endif %}
-          <span class="update-counts">{{ parts | join(' · ') }}</span>
-        </p>
-        <a class="update-cta" href="/explore/changes">See what changed</a>
-        <button type="button" class="update-dismiss" id="updateDismiss"
-                aria-label="Dismiss this update notice">Dismiss</button>
-      </div>
-    </aside>
-    {% endif %}
+    {% if changes_banner is defined and changes_banner %}{{ update_notice(changes_banner) }}{% endif %}
 
     <!-- Main Content -->
     <main id="main" class="container py-4">

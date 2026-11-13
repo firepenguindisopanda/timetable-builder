@@ -76,14 +76,42 @@ def _slot(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _room_identity(room: str | None) -> str:
+    """
+    A room as a student would tell it apart. Every placeholder is the same
+    non-room: "TBA" becoming "Venue to be advised" leaves them with nowhere to
+    go either way, and it was reported as a move twice in 771 stored moves.
+    """
+    return "" if is_placeholder_room(room) else room or ""
+
+
+def _weeks_identity(weeks: str | None) -> tuple:
+    """
+    The weeks a slot runs in, however CELCAT happened to write them.
+
+    "W1 - W12" and "W1-W12" are the same twelve weeks, and a card for them
+    would print two weeks columns naming the same weeks. Text the parser
+    cannot read is compared as written: two unreadable strings both expand
+    to nothing, which does not make them the same weeks.
+    """
+    expanded = expand_weeks(weeks)
+    return ("weeks", *expanded) if expanded else ("text", weeks or "")
+
+
 def _slot_key(slot: dict[str, Any]) -> tuple:
-    """Comparable, order-independent identity of a slot."""
+    """
+    Comparable, order-independent identity of a slot.
+
+    Compared by what it means to a student, not by its printed text (see
+    `_room_identity` and `_weeks_identity`). The stored slot keeps the text
+    CELCAT printed; only the comparison is normalised.
+    """
     return (
         slot["day"],
         slot["startTime"],
         slot["endTime"],
-        slot["room"] or "",
-        slot["weeks"] or "",
+        _room_identity(slot["room"]),
+        _weeks_identity(slot["weeks"]),
     )
 
 
@@ -413,7 +441,7 @@ WEEKS_CHANGED = "weeks_changed"
 
 def _place_key(slot: dict[str, Any]) -> tuple:
     """Where and when a slot sits, without the weeks it runs in."""
-    return (slot["day"], slot["startTime"], slot["endTime"], slot["room"] or "")
+    return (slot["day"], slot["startTime"], slot["endTime"], _room_identity(slot["room"]))
 
 
 def _weeks_only(
