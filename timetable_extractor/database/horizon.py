@@ -170,7 +170,15 @@ def carry_past_weeks(
                 record.room_code,
             ),
             [],
-        ) or clipped_sittings(record)
+        )
+        # Beside the exact room, not instead of it: publication 15 held CHEM
+        # 1170's Tuesday lecture as "Daaga" W1-W12 from three PDFs and as
+        # "Daaga Auditorium" W10-W12 from one, and taking the exact room
+        # alone dropped W1-W9. Sittings that agree on the weeks still to come
+        # pool their past weeks below.
+        candidates = candidates + [
+            c for c in clipped_sittings(record) if c not in candidates
+        ]
         if not candidates:
             continue
 
