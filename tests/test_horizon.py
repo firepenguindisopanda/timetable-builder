@@ -164,6 +164,41 @@ def test_a_class_with_no_earlier_sitting_in_its_slot_keeps_what_was_printed():
     assert moved.weeks_raw == "W2-W12"
 
 
+WEEK_11 = {"m1.pdf": 11}
+
+
+def test_a_room_once_stored_clipped_still_hands_on_its_past_weeks():
+    """
+    CHEM 1370's Friday lecture was stored in "TLC" up to publication 15, its
+    room's name cut off at the block's edge. Publication 16 repaired it to
+    TLC LT D, found no earlier sitting there, and dropped W5-W10.
+    """
+    r = record("W11-W12", room="TLC LT D")
+    assert carry_past_weeks([r], [earlier("W5-W12", room="TLC")], WEEK_11) == 1
+    assert r.weeks_raw == "W5-W12"
+
+
+def test_a_sitting_in_the_exact_room_wins_over_a_clipped_one():
+    r = record("W11-W12", room="TLC LT D")
+    carry_past_weeks([r], [earlier("W1-W12", room="TLC LT D"),
+                           earlier("W5-W12", room="TLC")], WEEK_11)
+    assert r.weeks_raw == "W1-W12"
+
+
+def test_a_clipped_room_two_classes_could_claim_hands_on_nothing():
+    """Two tutorials now in FST C1 and FST C2: either could have been the one
+    stored as "FST", and giving both its weeks would invent history for one."""
+    c1 = record("W11-W12", room="FST C1")
+    c2 = record("W11-W12", room="FST C2")
+    assert carry_past_weeks([c1, c2], [earlier("W1-W12", room="FST")], WEEK_11) == 0
+    assert (c1.weeks_raw, c2.weeks_raw) == ("W11-W12", "W11-W12")
+
+
+def test_a_room_that_merely_starts_with_the_same_letters_is_not_a_clipping():
+    r = record("W11-W12", room="TCB 32")
+    assert carry_past_weeks([r], [earlier("W1-W12", room="TCB 3")], WEEK_11) == 0
+
+
 def test_a_different_stream_in_the_same_slot_is_not_a_source():
     r = record("W2-W12", stream_label="T2")
     assert carry_past_weeks([r], [earlier("W1-W12", stream_label="T1")], WEEK_2) == 0
