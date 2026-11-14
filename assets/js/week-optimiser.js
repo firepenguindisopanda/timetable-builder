@@ -37,8 +37,12 @@ function _runsInWeek(event, week) {
  *
  * Scored on the worst week because classes do not all run every week, and a
  * student has to get through each one of them.
+ *
+ * `breakMins` is the gap that ends a run, RUN_BREAK_MINS when omitted. A
+ * student may ask for 2 hours instead (spec 14.1), and the figures shown for
+ * their options have to be measured the way they asked.
  */
-function weekQuality(events) {
+function weekQuality(events, breakMins = RUN_BREAK_MINS) {
   let runMins = 0;
   let days = 0;
   const named = _weeksNamed(events);
@@ -58,7 +62,7 @@ function weekQuality(events) {
       spans.sort((a, b) => a[0] - b[0]);
       let [start, reach] = spans[0];
       for (const [from, to] of spans.slice(1)) {
-        if (from - reach < RUN_BREAK_MINS) {
+        if (from - reach < breakMins) {
           reach = Math.max(reach, to);
         } else {
           runMins = Math.max(runMins, reach - start);
@@ -129,6 +133,26 @@ function _referencePicks(reference, ordered) {
   return picks;
 }
 
+/**
+ * A student's preferences in the shape the search reads (spec 14.1): the
+ * days to keep free as a set of day names, and the break in minutes.
+ *
+ * Anything missing or unreadable means the default, no free days and
+ * RUN_BREAK_MINS, because the preferences come from browser storage that an
+ * old version of the page, or a person, may have left in any state.
+ */
+function _preferences(prefs) {
+  const given = prefs && typeof prefs === 'object' ? prefs : {};
+  const freeDays = new Set(
+    Array.isArray(given.freeDays) ? given.freeDays.filter((d) => typeof d === 'string') : []
+  );
+  const breakMins =
+    typeof given.breakMins === 'number' && Number.isFinite(given.breakMins) && given.breakMins > 0
+      ? given.breakMins
+      : RUN_BREAK_MINS;
+  return { freeDays, breakMins };
+}
+
 /** Whether a held entry is at least as good as (runMins, days) on both. */
 function _matched(front, runMins, days) {
   return front.some((e) => e.runMins <= runMins && e.days <= days);
@@ -153,9 +177,11 @@ function _matched(front, runMins, days) {
  *
  * Clashes are worked out once per pair with eventsCollide: `fixedHits` on a
  * candidate counts its clashes with the fixed events, and `later` names the
- * candidates of later groups it clashes with.
+ * candidates of later groups it clashes with. `blocked` on a candidate is 1
+ * when its day is one the student wants free, and fixed events carry none,
+ * since they cannot move (spec 14.2). `breakMins` is the gap that ends a run.
  */
-function _searchModel(fixed, candidates) {
+function _searchModel(fixed, candidates, prefs) {
   const all = [...fixed];
   for (const options of candidates) all.push(...options);
   const named = _weeksNamed(all);
@@ -212,6 +238,7 @@ function _searchModel(fixed, candidates) {
     a.day === b.day && a.from < b.to && b.from < a.to && eventsCollide(a.event, b.event);
   candidateInfo.forEach((options, depth) => {
     for (const info of options) {
+      info.blocked = prefs.freeDays.has(info.event.day) ? 1 : 0;
       info.fixedHits = 0;
       for (const other of fixedInfo) {
         if (collide(info, other)) info.fixedHits += 1;
@@ -232,6 +259,7 @@ function _searchModel(fixed, candidates) {
   });
 
   return {
+    breakMins: prefs.breakMins,
     classCount: classWeeks.length,
     dayCount: dayIndex.size,
     fixed: fixedInfo,
@@ -262,12 +290,12 @@ function _clashState(model) {
  * `from` and `to` are already in start order, ties in the order the events
  * were added, which is the order weekQuality's stable sort leaves them in.
  */
-function _cellRun(from, to) {
+function _cellRun(from, to, breakMins) {
   let start = from[0];
   let reach = to[0];
   let run = 0;
   for (let i = 1; i < from.length; i++) {
-    if (from[i] - reach < RUN_BREAK_MINS) {
+    if (from[i] - reach < breakMins) {
       reach = Math.max(reach, to[i]);
     } else {
       run = Math.max(run, reach - start);
@@ -288,6 +316,7 @@ function _cellRun(from, to) {
  */
 function _weekState(model) {
   const days = model.dayCount;
+  const breakMins = model.breakMins;
   const cellCount = model.classCount * days;
   const cellFrom = [];
   const cellTo = [];
@@ -315,7 +344,7 @@ function _weekState(model) {
       from.splice(at, 0, info.from);
       to.splice(at, 0, info.to);
       const before = cellRun[cell];
-      const now = _cellRun(from, to);
+      const now = _cellRun(from, to, breakMins);
       cellRun[cell] = now;
       if (now > state.runMins) state.runMins = now;
       if (from.length === 1) {
@@ -352,7 +381,8 @@ function _weekState(model) {
  * of every group is ignored. `budget` is a count of partial arrangements
  * visited, NODE_BUDGET when omitted.
  *
- * Returns { clashes, front, proven, nodes }. `clashes` is the fewest clashing
+ * Returns { clashes, front, proven, nodes }, and { clashes, blocked, front,
+ * proven, nodes } when `prefs` is given. `clashes` is the fewest clashing
  * pairs any arrangement has, counted as findConflicts counts them, so clashes
  * among the fixed events are included. `front` is every (runMins, days) not
  * beaten on both by another at that count (spec 3.3), sorted by runMins, each
@@ -366,25 +396,46 @@ function _weekState(model) {
  * the result is the canonical-first arrangement at worst and never empty.
  * That can overrun the budget by at most one node per group.
  *
+ * `prefs` is optional: { freeDays, breakMins }, the student's days to keep
+ * free and the gap that ends a run (spec 14). With it, arrangements are
+ * compared on clashes, then on `blocked`, the number of chosen sittings on a
+ * free day (fixed events never count), and only then on the front; the
+ * reference and canonical rules apply among those with the best pair, and a
+ * reference with more classes on free days than the best does not appear.
+ * runMins is measured with `breakMins`. Without `prefs` the search and its
+ * result, node count and shape included, are exactly what they were before
+ * preferences existed, so adding courses and share links, which never pass
+ * any, land on the same week as before.
+ *
  * No clock, date or random number: the same input gives the same week on any
  * machine, which a share link relies on. Spec 3.5.
  */
-function bestWeeks(fixedEvents, groups, references, budget) {
+function bestWeeks(fixedEvents, groups, references, budget, prefs) {
   const limit = budget === undefined || budget === null ? NODE_BUDGET : budget;
+  const given = prefs !== undefined && prefs !== null;
+  const wanted = _preferences(prefs);
   const ordered = _canonicalGroups(groups || []);
   const fixed = fixedEvents || [];
   const n = ordered.length;
   const candidates = ordered.map((g) => g.sessions.map((s) => _candidateEvent(g, s)));
 
   let bestClashes = Infinity;
+  let bestBlocked = Infinity;
   let held = [];
+
+  // Whether (clashes, blocked) is worse than the best pair, compared in that
+  // order: a free day is never kept at the price of a clash (spec 14.2).
+  // With no free days blocked is always 0, so this is the clash test alone.
+  const worse = (clashes, blocked) =>
+    clashes > bestClashes || (clashes === bestClashes && blocked > bestBlocked);
 
   // Spec 3.4: an entry already held is never displaced by an equal one, so
   // the first to reach (runMins, days) stands for it.
-  function offer(clashes, runMins, days, picks) {
-    if (clashes > bestClashes) return;
-    if (clashes < bestClashes) {
+  function offer(clashes, blocked, runMins, days, picks) {
+    if (worse(clashes, blocked)) return;
+    if (clashes < bestClashes || blocked < bestBlocked) {
       bestClashes = clashes;
+      bestBlocked = blocked;
       held = [];
     } else if (_matched(held, runMins, days)) {
       return;
@@ -396,13 +447,15 @@ function bestWeeks(fixedEvents, groups, references, budget) {
   for (const reference of references || []) {
     const picks = _referencePicks(reference, ordered);
     if (!picks) continue;
-    const events = [...fixed, ...picks.map((at, i) => candidates[i][at])];
-    const q = weekQuality(events);
-    offer(findConflicts(events).length, q.runMins, q.days, picks);
+    const chosen = picks.map((at, i) => candidates[i][at]);
+    const events = [...fixed, ...chosen];
+    const q = weekQuality(events, wanted.breakMins);
+    const blocked = chosen.filter((e) => wanted.freeDays.has(e.day)).length;
+    offer(findConflicts(events).length, blocked, q.runMins, q.days, picks);
   }
 
   const fixedClashes = findConflicts(fixed).length;
-  const model = _searchModel(fixed, candidates);
+  const model = _searchModel(fixed, candidates, wanted);
   const week = _weekState(model);
   for (const info of model.fixed) week.place(info, []);
   const pending = _clashState(model);
@@ -410,19 +463,28 @@ function bestWeeks(fixedEvents, groups, references, budget) {
   let nodes = 0;
   let stopped = false;
 
-  // clashes, run and days only grow as sittings are added, so a partial that
-  // is already matched or beaten cannot lead to a new front entry. Pruning on
+  // clashes, blocked, run and days only grow as sittings are added, so a
+  // partial that is already matched or beaten cannot lead to a new front
+  // entry. blocked is a count of chosen sittings on free days, and a sitting
+  // once chosen stays chosen below this node, so the count at a partial is a
+  // lower bound on every arrangement under it, as clashes are. Pruning on
   // matched, not only beaten, keeps the first arrangement to reach an entry.
-  function visit(depth, clashes) {
+  function visit(depth, clashes, blocked) {
     if (held.length > 0 && nodes >= limit) {
       stopped = true;
       return;
     }
     nodes += 1;
-    if (clashes > bestClashes) return;
-    if (clashes === bestClashes && _matched(held, week.runMins, week.days)) return;
+    if (worse(clashes, blocked)) return;
+    if (
+      clashes === bestClashes &&
+      blocked === bestBlocked &&
+      _matched(held, week.runMins, week.days)
+    ) {
+      return;
+    }
     if (depth === n) {
-      offer(clashes, week.runMins, week.days, picks);
+      offer(clashes, blocked, week.runMins, week.days, picks);
       return;
     }
     const options = model.candidates[depth];
@@ -430,10 +492,11 @@ function bestWeeks(fixedEvents, groups, references, budget) {
     for (let at = 0; at < options.length && !stopped; at++) {
       const info = options[at];
       const total = clashes + hitsHere[at];
-      // A child already over the best clash count is abandoned on entry
+      const totalBlocked = blocked + info.blocked;
+      // A child already worse than the best pair is abandoned on entry
       // without looking at its week, so it is counted here the same way and
       // its sitting never placed.
-      if (total > bestClashes) {
+      if (worse(total, totalBlocked)) {
         if (held.length > 0 && nodes >= limit) {
           stopped = true;
           break;
@@ -447,13 +510,13 @@ function bestWeeks(fixedEvents, groups, references, budget) {
       picks.push(at);
       week.place(info, saved);
       pending.place(info, 1);
-      visit(depth + 1, total);
+      visit(depth + 1, total, totalBlocked);
       pending.place(info, -1);
       week.unplace(saved, runMins, days);
       picks.pop();
     }
   }
-  visit(0, fixedClashes);
+  visit(0, fixedClashes, 0);
 
   // Reported in the caller's group order, which reads better than canonical.
   const front = held
@@ -467,7 +530,8 @@ function bestWeeks(fixedEvents, groups, references, budget) {
       }
       return { runMins: e.runMins, days: e.days, sessionIds };
     });
-  return { clashes: bestClashes, front, proven: !stopped, nodes };
+  if (!given) return { clashes: bestClashes, front, proven: !stopped, nodes };
+  return { clashes: bestClashes, blocked: bestBlocked, front, proven: !stopped, nodes };
 }
 
 /**
@@ -498,8 +562,17 @@ function bestWeeks(fixedEvents, groups, references, budget) {
  * placeCourses's answer. Re-arrange passes the week on the grid, so a week
  * that is already one of the best comes back with nothing moved (spec 3.4).
  * One that does not name a valid sitting of every new group is ignored.
+ *
+ * `prefs` is optional, { freeDays, breakMins } as bestWeeks takes it, and
+ * only Re-arrange passes it (spec 14.3). With it, `quality` and every
+ * option's runMins are measured with that break, and `summary` and every
+ * option gain `blocked`: how many of the newly placed sittings fall on a free
+ * day. Placements in `existing` are never counted, as they cannot move.
+ * Without it the result is exactly what it was before preferences existed.
  */
-function placeCoursesBest(existing, courseGroups, index, extraReferences) {
+function placeCoursesBest(existing, courseGroups, index, extraReferences, prefs) {
+  const given = prefs !== undefined && prefs !== null;
+  const wanted = _preferences(prefs);
   const base = placeCourses(existing, courseGroups, index);
   const looseAt = existing.length;
   const loose = base.placements.slice(looseAt);
@@ -521,22 +594,37 @@ function placeCoursesBest(existing, courseGroups, index, extraReferences) {
   let proven = true;
   if (distinct && groups.every(Boolean)) {
     const extra = Array.isArray(extraReferences) ? extraReferences : [];
-    const found = bestWeeks(eventsFor(existing, index), groups, [...extra, reference]);
+    const found = bestWeeks(
+      eventsFor(existing, index),
+      groups,
+      [...extra, reference],
+      undefined,
+      prefs
+    );
     front = found.front;
     proven = found.proven;
   } else {
-    front = [{ ...weekQuality(eventsFor(base.placements, index)), sessionIds: reference }];
+    front = [{
+      ...weekQuality(eventsFor(base.placements, index), wanted.breakMins),
+      sessionIds: reference,
+    }];
   }
 
   const arranged = (entry) => [
     ...existing,
     ...loose.map((p) => ({ ...p, selectedSessionId: entry.sessionIds[p.groupId] })),
   ];
-  const options = front.map((entry) => ({
-    runMins: entry.runMins,
-    days: entry.days,
-    placements: arranged(entry),
-  }));
+  // Counted from the placements rather than taken from bestWeeks, so the
+  // fallback above, which skips the search, is counted the same way.
+  const blockedIn = (placements) =>
+    eventsFor(placements.slice(looseAt), index).filter((e) => wanted.freeDays.has(e.day)).length;
+  const options = front.map((entry) => {
+    const placementsHere = arranged(entry);
+    const option = { runMins: entry.runMins, days: entry.days };
+    if (given) option.blocked = blockedIn(placementsHere);
+    option.placements = placementsHere;
+    return option;
+  });
   const placements = options[0].placements;
 
   const events = eventsFor(placements, index);
@@ -559,19 +647,16 @@ function placeCoursesBest(existing, courseGroups, index, extraReferences) {
     };
   });
 
-  return {
-    ...base,
-    placements,
-    placed,
-    summary: {
-      ...base.summary,
-      conflictsAfter: conflicts.length,
-      unavoidable: placed.filter((p) => p.unavoidable).map((p) => p.groupId),
-      quality: weekQuality(events),
-      proven,
-      options,
-    },
+  const summary = {
+    ...base.summary,
+    conflictsAfter: conflicts.length,
+    unavoidable: placed.filter((p) => p.unavoidable).map((p) => p.groupId),
+    quality: weekQuality(events, wanted.breakMins),
+    proven,
+    options,
   };
+  if (given) summary.blocked = options[0].blocked;
+  return { ...base, placements, placed, summary };
 }
 
 /**

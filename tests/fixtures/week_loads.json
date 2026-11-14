@@ -30,6 +30,7 @@
       "arrangements": 1,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 3 }
         ]
@@ -104,6 +105,7 @@
       "arrangements": 240,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 3 }
         ]
@@ -173,6 +175,7 @@
       "arrangements": 120,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 180, "days": 4 },
           { "runMins": 240, "days": 3 }
@@ -294,6 +297,7 @@
       "arrangements": 23760,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 4 },
           { "runMins": 180, "days": 3 }
@@ -429,6 +433,7 @@
       "arrangements": 3207600,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 3 },
           { "runMins": 360, "days": 2 }
@@ -473,6 +478,7 @@
       "arrangements": 30,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 60, "days": 1 }
         ]
@@ -533,6 +539,7 @@
       "arrangements": 300,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 60, "days": 2 },
           { "runMins": 120, "days": 1 }
@@ -621,6 +628,7 @@
       "arrangements": 800,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 4 }
         ]
@@ -705,6 +713,7 @@
       "arrangements": 240,
       "expected": {
         "clashes": 1,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 4 }
         ]
@@ -767,6 +776,7 @@
       "arrangements": 80,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 3 }
         ]
@@ -857,6 +867,7 @@
       "arrangements": 18432,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 240, "days": 3 }
         ]
@@ -953,6 +964,7 @@
       "arrangements": 5940,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 2 }
         ]
@@ -1039,8 +1051,461 @@
       "arrangements": 10800,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 2 }
+        ]
+      }
+    },
+    {
+      "name": "sciences-mixed-monday-friday-free",
+      "about": "sciences-mixed with Monday and Friday kept free: every group has a sitting from Tuesday to Thursday that keeps the same run and days, so the free days cost nothing.",
+      "source": "warehouse",
+      "courses": ["BIOL 2061", "CHEM 2470", "PSYC 1001"],
+      "preferences": { "freeDays": ["Monday", "Friday"], "breakMins": 60 },
+      "fixed": [],
+      "groups": [
+        {
+          "groupId": "BIOL 2061|Lecture|all",
+          "sittings": [
+            { "sessionId": 18519, "day": "Monday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18521, "day": "Wednesday", "startTime": "11:00", "endTime": "12:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "BIOL 2061|Tutorial|all",
+          "sittings": [
+            { "sessionId": 18520, "day": "Wednesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18522, "day": "Thursday", "startTime": "08:00", "endTime": "09:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18523, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18524, "day": "Thursday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18525, "day": "Friday", "startTime": "08:00", "endTime": "09:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "CHEM 2470|Chemistry Review Centre|all",
+          "sittings": [
+            { "sessionId": 18830, "day": "Monday", "startTime": "13:00", "endTime": "15:00", "weeks": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18833, "day": "Tuesday", "startTime": "14:00", "endTime": "16:00", "weeks": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18835, "day": "Wednesday", "startTime": "15:00", "endTime": "17:00", "weeks": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "CHEM 2470|Lecture|all",
+          "sittings": [
+            { "sessionId": 18832, "day": "Tuesday", "startTime": "11:00", "endTime": "12:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18834, "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "CHEM 2470|Tutorial|all",
+          "sittings": [
+            { "sessionId": 18829, "day": "Monday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18831, "day": "Monday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18836, "day": "Wednesday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18837, "day": "Thursday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18838, "day": "Thursday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18839, "day": "Thursday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "PSYC 1001|Lecture|all",
+          "sittings": [
+            { "sessionId": 21358, "day": "Wednesday", "startTime": "09:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21363, "day": "Wednesday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "PSYC 1001|Tutorial|all",
+          "sittings": [
+            { "sessionId": 21352, "day": "Monday", "startTime": "16:00", "endTime": "17:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21353, "day": "Monday", "startTime": "17:00", "endTime": "18:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21354, "day": "Monday", "startTime": "18:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21355, "day": "Tuesday", "startTime": "16:00", "endTime": "17:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21356, "day": "Tuesday", "startTime": "17:00", "endTime": "18:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21357, "day": "Tuesday", "startTime": "18:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21359, "day": "Wednesday", "startTime": "11:00", "endTime": "12:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21360, "day": "Wednesday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21361, "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21362, "day": "Wednesday", "startTime": "16:00", "endTime": "17:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21364, "day": "Wednesday", "startTime": "17:00", "endTime": "18:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21366, "day": "Wednesday", "startTime": "18:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21367, "day": "Wednesday", "startTime": "19:00", "endTime": "20:00", "weeks": [1, 2, 3, 4, 5, 6, 9, 10, 11, 12] },
+            { "sessionId": 21369, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 21370, "day": "Thursday", "startTime": "11:00", "endTime": "12:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 10800,
+      "expected": {
+        "clashes": 0,
+        "blocked": 0,
+        "front": [
+          { "runMins": 120, "days": 2 }
+        ]
+      }
+    },
+    {
+      "name": "comp-year-two-three-tuesday-free",
+      "about": "comp-year-two-three with Tuesday kept free: it can be done, but only with a longer run on more days, (240, 4) where the best week without it is (120, 3).",
+      "source": "warehouse",
+      "courses": ["COMP 2601", "COMP 2611", "COMP 3607", "COMP 3613"],
+      "preferences": { "freeDays": ["Tuesday"], "breakMins": 60 },
+      "fixed": [],
+      "groups": [
+        {
+          "groupId": "COMP 2601|Lecture|all",
+          "sittings": [
+            { "sessionId": 19190, "day": "Wednesday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19191, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2601|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19193, "day": "Friday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19194, "day": "Friday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19195, "day": "Friday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lab|all",
+          "sittings": [
+            { "sessionId": 19214, "day": "Monday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19215, "day": "Monday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19217, "day": "Tuesday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19218, "day": "Wednesday", "startTime": "09:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19219, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lecture|all",
+          "sittings": [
+            { "sessionId": 19216, "day": "Tuesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19220, "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lab|all",
+          "sittings": [
+            { "sessionId": 19236, "day": "Friday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lecture|all",
+          "sittings": [
+            { "sessionId": 19234, "day": "Monday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19235, "day": "Wednesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Lecture|all",
+          "sittings": [
+            { "sessionId": 19238, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19237, "day": "Tuesday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19239, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 240,
+      "expected": {
+        "clashes": 0,
+        "blocked": 0,
+        "front": [
+          { "runMins": 240, "days": 4 }
+        ]
+      }
+    },
+    {
+      "name": "comp-year-two-three-monday-friday-free",
+      "about": "comp-year-two-three with Monday and Friday kept free: the COMP 2601 tutorial and the COMP 3607 lab only run on Friday, so two classes stay on a free day whatever is chosen.",
+      "source": "warehouse",
+      "courses": ["COMP 2601", "COMP 2611", "COMP 3607", "COMP 3613"],
+      "preferences": { "freeDays": ["Monday", "Friday"], "breakMins": 60 },
+      "fixed": [],
+      "groups": [
+        {
+          "groupId": "COMP 2601|Lecture|all",
+          "sittings": [
+            { "sessionId": 19190, "day": "Wednesday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19191, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2601|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19193, "day": "Friday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19194, "day": "Friday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19195, "day": "Friday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lab|all",
+          "sittings": [
+            { "sessionId": 19214, "day": "Monday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19215, "day": "Monday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19217, "day": "Tuesday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19218, "day": "Wednesday", "startTime": "09:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19219, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lecture|all",
+          "sittings": [
+            { "sessionId": 19216, "day": "Tuesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19220, "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lab|all",
+          "sittings": [
+            { "sessionId": 19236, "day": "Friday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lecture|all",
+          "sittings": [
+            { "sessionId": 19234, "day": "Monday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19235, "day": "Wednesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Lecture|all",
+          "sittings": [
+            { "sessionId": 19238, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19237, "day": "Tuesday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19239, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 240,
+      "expected": {
+        "clashes": 0,
+        "blocked": 2,
+        "front": [
+          { "runMins": 120, "days": 3 }
+        ]
+      }
+    },
+    {
+      "name": "comp-year-two-three-pinned-lecture-wednesday-free",
+      "about": "comp-year-two-three-pinned-lecture with Wednesday kept free: the pinned COMP 2611 lecture is on Wednesday and does not count, so B* is 1, for the COMP 3613 lecture that only runs on Wednesday, and not 2.",
+      "source": "warehouse",
+      "courses": ["COMP 2601", "COMP 2611", "COMP 3607", "COMP 3613"],
+      "preferences": { "freeDays": ["Wednesday"], "breakMins": 60 },
+      "fixed": [
+        { "label": "COMP 2611 Lecture 19220 (pinned)", "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+      ],
+      "groups": [
+        {
+          "groupId": "COMP 2601|Lecture|all",
+          "sittings": [
+            { "sessionId": 19190, "day": "Wednesday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19191, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2601|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19193, "day": "Friday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19194, "day": "Friday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19195, "day": "Friday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lab|all",
+          "sittings": [
+            { "sessionId": 19214, "day": "Monday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19215, "day": "Monday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19217, "day": "Tuesday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19218, "day": "Wednesday", "startTime": "09:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19219, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lab|all",
+          "sittings": [
+            { "sessionId": 19236, "day": "Friday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lecture|all",
+          "sittings": [
+            { "sessionId": 19234, "day": "Monday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19235, "day": "Wednesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Lecture|all",
+          "sittings": [
+            { "sessionId": 19238, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19237, "day": "Tuesday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19239, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 120,
+      "expected": {
+        "clashes": 0,
+        "blocked": 1,
+        "front": [
+          { "runMins": 180, "days": 5 }
+        ]
+      }
+    },
+    {
+      "name": "comp-year-two-three-two-hour-break",
+      "about": "comp-year-two-three with a 2-hour break: classes an hour apart now join, so the front of (120, 3) becomes three entries trading run against days.",
+      "source": "warehouse",
+      "courses": ["COMP 2601", "COMP 2611", "COMP 3607", "COMP 3613"],
+      "preferences": { "freeDays": [], "breakMins": 120 },
+      "fixed": [],
+      "groups": [
+        {
+          "groupId": "COMP 2601|Lecture|all",
+          "sittings": [
+            { "sessionId": 19190, "day": "Wednesday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19191, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2601|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19193, "day": "Friday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19194, "day": "Friday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19195, "day": "Friday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lab|all",
+          "sittings": [
+            { "sessionId": 19214, "day": "Monday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19215, "day": "Monday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19217, "day": "Tuesday", "startTime": "17:00", "endTime": "19:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19218, "day": "Wednesday", "startTime": "09:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19219, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 2611|Lecture|all",
+          "sittings": [
+            { "sessionId": 19216, "day": "Tuesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19220, "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lab|all",
+          "sittings": [
+            { "sessionId": 19236, "day": "Friday", "startTime": "12:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3607|Lecture|all",
+          "sittings": [
+            { "sessionId": 19234, "day": "Monday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19235, "day": "Wednesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Lecture|all",
+          "sittings": [
+            { "sessionId": 19238, "day": "Wednesday", "startTime": "11:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "COMP 3613|Tutorial|all",
+          "sittings": [
+            { "sessionId": 19237, "day": "Tuesday", "startTime": "15:00", "endTime": "16:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 19239, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 240,
+      "expected": {
+        "clashes": 0,
+        "blocked": 0,
+        "front": [
+          { "runMins": 180, "days": 5 },
+          { "runMins": 240, "days": 4 },
+          { "runMins": 360, "days": 3 }
+        ]
+      }
+    },
+    {
+      "name": "agbu-with-biol-both-choices",
+      "about": "agbu-with-biol with Monday and Friday free and a 2-hour break: the front differs both from the one with free days alone, (120, 1), and from the one with the break alone.",
+      "source": "warehouse",
+      "courses": ["AGBU 1005", "BIOL 2061"],
+      "preferences": { "freeDays": ["Monday", "Friday"], "breakMins": 120 },
+      "fixed": [],
+      "groups": [
+        {
+          "groupId": "AGBU 1005|Lecture|all",
+          "sittings": [
+            { "sessionId": 18210, "day": "Monday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4] },
+            { "sessionId": 18217, "day": "Wednesday", "startTime": "13:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "AGBU 1005|Tutorial|all",
+          "sittings": [
+            { "sessionId": 18209, "day": "Monday", "startTime": "12:00", "endTime": "13:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18211, "day": "Monday", "startTime": "13:00", "endTime": "14:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18212, "day": "Monday", "startTime": "15:00", "endTime": "16:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18213, "day": "Monday", "startTime": "16:00", "endTime": "17:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18214, "day": "Monday", "startTime": "17:00", "endTime": "18:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18215, "day": "Tuesday", "startTime": "16:00", "endTime": "17:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18216, "day": "Tuesday", "startTime": "17:00", "endTime": "18:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18218, "day": "Wednesday", "startTime": "13:00", "endTime": "14:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18219, "day": "Wednesday", "startTime": "14:00", "endTime": "15:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18220, "day": "Wednesday", "startTime": "15:00", "endTime": "16:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18221, "day": "Wednesday", "startTime": "16:00", "endTime": "17:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18222, "day": "Wednesday", "startTime": "17:00", "endTime": "18:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18223, "day": "Thursday", "startTime": "16:00", "endTime": "17:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18224, "day": "Friday", "startTime": "15:00", "endTime": "16:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18225, "day": "Friday", "startTime": "16:00", "endTime": "17:00", "weeks": [5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "BIOL 2061|Lecture|all",
+          "sittings": [
+            { "sessionId": 18519, "day": "Monday", "startTime": "13:00", "endTime": "14:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18521, "day": "Wednesday", "startTime": "11:00", "endTime": "12:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "BIOL 2061|Tutorial|all",
+          "sittings": [
+            { "sessionId": 18520, "day": "Wednesday", "startTime": "09:00", "endTime": "10:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18522, "day": "Thursday", "startTime": "08:00", "endTime": "09:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18523, "day": "Thursday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18524, "day": "Thursday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 18525, "day": "Friday", "startTime": "08:00", "endTime": "09:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 300,
+      "expected": {
+        "clashes": 0,
+        "blocked": 0,
+        "front": [
+          { "runMins": 240, "days": 2 },
+          { "runMins": 360, "days": 1 }
         ]
       }
     },
@@ -1068,6 +1533,7 @@
       "arrangements": 4,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 60, "days": 2 },
           { "runMins": 120, "days": 1 }
@@ -1093,6 +1559,7 @@
       "arrangements": 2,
       "expected": {
         "clashes": 1,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 1 }
         ]
@@ -1117,6 +1584,7 @@
       "arrangements": 2,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 60, "days": 2 },
           { "runMins": 150, "days": 1 }
@@ -1142,6 +1610,7 @@
       "arrangements": 2,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 60, "days": 1 }
         ]
@@ -1173,6 +1642,7 @@
       "arrangements": 4,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 2 }
         ]
@@ -1197,9 +1667,72 @@
       "arrangements": 2,
       "expected": {
         "clashes": 0,
+        "blocked": 0,
         "front": [
           { "runMins": 120, "days": 2 },
           { "runMins": 210, "days": 1 }
+        ]
+      }
+    },
+    {
+      "name": "paper-clash-free-on-free-day",
+      "about": "Small enough to work on paper: the only lab that misses the fixed class is on the free Monday, so it is chosen, C* is 0 and B* is 1.",
+      "source": "hand-built",
+      "preferences": { "freeDays": ["Monday"], "breakMins": 60 },
+      "fixed": [
+        { "label": "HAND 0006 Lecture (pinned)", "day": "Tuesday", "startTime": "09:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+      ],
+      "groups": [
+        {
+          "groupId": "HAND 0006|Lab|all",
+          "sittings": [
+            { "sessionId": 61, "day": "Monday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 62, "day": "Tuesday", "startTime": "10:00", "endTime": "11:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        },
+        {
+          "groupId": "HAND 0006|Tutorial|all",
+          "sittings": [
+            { "sessionId": 63, "day": "Monday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 64, "day": "Wednesday", "startTime": "14:00", "endTime": "15:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 4,
+      "expected": {
+        "clashes": 0,
+        "blocked": 1,
+        "front": [
+          { "runMins": 120, "days": 3 }
+        ]
+      }
+    },
+    {
+      "name": "gap-ninety-two-hour-break",
+      "about": "Small enough to work on paper: with a 2-hour break a 90-minute gap joins two classes and a 120-minute gap does not, which the warehouse cannot show because its classes all start on the hour.",
+      "source": "hand-built",
+      "preferences": { "freeDays": [], "breakMins": 120 },
+      "fixed": [
+        { "label": "HAND 0007 Lecture (pinned)", "day": "Thursday", "startTime": "09:00", "endTime": "10:30", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+        { "label": "HAND 0007 Lab (pinned)", "day": "Thursday", "startTime": "14:30", "endTime": "15:30", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+      ],
+      "groups": [
+        {
+          "groupId": "HAND 0007|Tutorial|all",
+          "sittings": [
+            { "sessionId": 71, "day": "Thursday", "startTime": "12:00", "endTime": "13:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 72, "day": "Thursday", "startTime": "12:30", "endTime": "13:30", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+            { "sessionId": 73, "day": "Friday", "startTime": "08:00", "endTime": "09:00", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+          ]
+        }
+      ],
+      "arrangements": 3,
+      "expected": {
+        "clashes": 0,
+        "blocked": 0,
+        "front": [
+          { "runMins": 90, "days": 2 },
+          { "runMins": 180, "days": 1 }
         ]
       }
     }

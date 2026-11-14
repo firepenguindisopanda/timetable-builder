@@ -11,7 +11,9 @@
  *
  * Each case is written out in full, fixed events and loose groups with their
  * days, times and weeks, so a reader in another language needs nothing but
- * this file. The warehouse cases are grouped by the app's own
+ * this file. A case may also carry the student's `preferences`, the days to
+ * keep free and the break that ends a run (spec 14), and every answer gives
+ * `blocked`, the fewest chosen sittings on a free day. The warehouse cases are grouped by the app's own
  * `weeklyOptionGroups`, loaded through the test harness, so the instances are
  * the ones a student's timetable would actually produce. A JS test rebuilds
  * them with `buildInstances` and fails if they no longer match, which is why
@@ -33,6 +35,14 @@ const { load, course } = require('../js/harness.js');
  * is to share nothing with the solver it checks.
  */
 const RUN_BREAK_MINS = 60;
+
+/**
+ * The breaks a student may choose between, and the day names a free day may
+ * take. Spec 14.1. A typing slip in a case should stop the build, not quietly
+ * become a preference no student can set.
+ */
+const BREAK_CHOICES = [60, 120];
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 /**
  * The most arrangements one case may have.
@@ -134,6 +144,47 @@ const WAREHOUSE_LOADS = [
     about: 'An ordinary three-course load across biology, chemistry and psychology.',
     courses: ['BIOL 2061', 'CHEM 2470', 'PSYC 1001'],
   },
+  // Preferences (spec 14). Each of these is a load above with a student's
+  // choices added, taken from the warehouse wherever it has an example of the
+  // case: only the clash-free-only-on-a-free-day case and the half-hour gaps
+  // are made up, below in HAND_BUILT.
+  {
+    name: 'sciences-mixed-monday-friday-free',
+    about: 'sciences-mixed with Monday and Friday kept free: every group has a sitting from Tuesday to Thursday that keeps the same run and days, so the free days cost nothing.',
+    courses: ['BIOL 2061', 'CHEM 2470', 'PSYC 1001'],
+    preferences: { freeDays: ['Monday', 'Friday'], breakMins: 60 },
+  },
+  {
+    name: 'comp-year-two-three-tuesday-free',
+    about: 'comp-year-two-three with Tuesday kept free: it can be done, but only with a longer run on more days, (240, 4) where the best week without it is (120, 3).',
+    courses: ['COMP 2601', 'COMP 2611', 'COMP 3607', 'COMP 3613'],
+    preferences: { freeDays: ['Tuesday'], breakMins: 60 },
+  },
+  {
+    name: 'comp-year-two-three-monday-friday-free',
+    about: 'comp-year-two-three with Monday and Friday kept free: the COMP 2601 tutorial and the COMP 3607 lab only run on Friday, so two classes stay on a free day whatever is chosen.',
+    courses: ['COMP 2601', 'COMP 2611', 'COMP 3607', 'COMP 3613'],
+    preferences: { freeDays: ['Monday', 'Friday'], breakMins: 60 },
+  },
+  {
+    name: 'comp-year-two-three-pinned-lecture-wednesday-free',
+    about: 'comp-year-two-three-pinned-lecture with Wednesday kept free: the pinned COMP 2611 lecture is on Wednesday and does not count, so B* is 1, for the COMP 3613 lecture that only runs on Wednesday, and not 2.',
+    courses: ['COMP 2601', 'COMP 2611', 'COMP 3607', 'COMP 3613'],
+    pins: [{ sessionId: 19220, kind: 'main' }],
+    preferences: { freeDays: ['Wednesday'], breakMins: 60 },
+  },
+  {
+    name: 'comp-year-two-three-two-hour-break',
+    about: 'comp-year-two-three with a 2-hour break: classes an hour apart now join, so the front of (120, 3) becomes three entries trading run against days.',
+    courses: ['COMP 2601', 'COMP 2611', 'COMP 3607', 'COMP 3613'],
+    preferences: { freeDays: [], breakMins: 120 },
+  },
+  {
+    name: 'agbu-with-biol-both-choices',
+    about: 'agbu-with-biol with Monday and Friday free and a 2-hour break: the front differs both from the one with free days alone, (120, 1), and from the one with the break alone.',
+    courses: ['AGBU 1005', 'BIOL 2061'],
+    preferences: { freeDays: ['Monday', 'Friday'], breakMins: 120 },
+  },
 ];
 
 /**
@@ -164,6 +215,35 @@ const WAREHOUSE_LOADS = [
  *        F, one run 09:00-12:00, 180. Week 2 is F, 120. Week 3 is B, 90.
  *        (180, 1).
  * C* = 1, and (120, 1) beats (180, 1), so the front is [(120, 1)].
+ *
+ * The last two carry preferences (spec 14) and are worked the same way.
+ *
+ * paper-clash-free-on-free-day. Monday free, 1-hour break. Fixed F Tue
+ * 09:00-11:00. Lab: S1 Mon 10:00-11:00, S2 Tue 10:00-11:00. Tutorial: T1 Mon
+ * 14:00-15:00, T2 Wed 14:00-15:00. All weeks 1 to 12, so every week is alike.
+ *   S1+T1: no clash. B = 2. Mon has 10-11 and 14-15, three hours apart, so two
+ *          runs of 60; Tue 120. (120, 2).
+ *   S1+T2: no clash. B = 1. Mon 60, Tue 120, Wed 60. (120, 3).
+ *   S2+T1: S2 overlaps F on Tuesday, C = 1, B = 1.
+ *   S2+T2: C = 1, B = 0.
+ * C* = 0, so S2 is out however much the free Monday wanted it: B* = 1, not 0.
+ * Of the two clash-free weeks only S1+T2 has B = 1, so the front is
+ * [(120, 3)], though S1+T1 has fewer days. Without the free day it would be
+ * [(120, 2)].
+ *
+ * gap-ninety-two-hour-break. 2-hour break, no free days. Fixed F1 Thu
+ * 09:00-10:30 and F2 Thu 14:30-15:30. One group: X Thu 12:00-13:00, W Thu
+ * 12:30-13:30, Y Fri 08:00-09:00. All weeks 1 to 12. No sitting clashes.
+ *   X: 12:00 is 90 after 10:30, under 120, so it joins F1; 14:30 is 90 after
+ *      13:00 and joins too. One run 09:00-15:30 of 390. (390, 1).
+ *   W: 12:30 is 120 after 10:30, not under 120, so a new run starts; 14:30 is
+ *      60 after 13:30 and joins it. Runs of 90 and 180. (180, 1).
+ *   Y: Thursday's two classes are 240 apart, runs of 90 and 60; Friday 60.
+ *      (90, 2).
+ * C* = 0, B* = 0, and (180, 1) beats (390, 1): the front is [(90, 2),
+ * (180, 1)]. Joining at 90 is what keeps X off the front; were W joined at
+ * exactly 120 it would score (390, 1) and drop off as well. With the 1-hour
+ * break all three make runs of 90 at most and the front is [(90, 1)].
  */
 const HAND_BUILT = [
   {
@@ -264,6 +344,47 @@ const HAND_BUILT = [
       },
     ],
   },
+  {
+    name: 'paper-clash-free-on-free-day',
+    about: 'Small enough to work on paper: the only lab that misses the fixed class is on the free Monday, so it is chosen, C* is 0 and B* is 1.',
+    preferences: { freeDays: ['Monday'], breakMins: 60 },
+    fixed: [_fixed('HAND 0006 Lecture (pinned)', 'Tuesday', '09:00', '11:00', ALL_WEEKS)],
+    groups: [
+      {
+        groupId: 'HAND 0006|Lab|all',
+        sittings: [
+          _sitting(61, 'Monday', '10:00', '11:00', ALL_WEEKS),
+          _sitting(62, 'Tuesday', '10:00', '11:00', ALL_WEEKS),
+        ],
+      },
+      {
+        groupId: 'HAND 0006|Tutorial|all',
+        sittings: [
+          _sitting(63, 'Monday', '14:00', '15:00', ALL_WEEKS),
+          _sitting(64, 'Wednesday', '14:00', '15:00', ALL_WEEKS),
+        ],
+      },
+    ],
+  },
+  {
+    name: 'gap-ninety-two-hour-break',
+    about: 'Small enough to work on paper: with a 2-hour break a 90-minute gap joins two classes and a 120-minute gap does not, which the warehouse cannot show because its classes all start on the hour.',
+    preferences: { freeDays: [], breakMins: 120 },
+    fixed: [
+      _fixed('HAND 0007 Lecture (pinned)', 'Thursday', '09:00', '10:30', ALL_WEEKS),
+      _fixed('HAND 0007 Lab (pinned)', 'Thursday', '14:30', '15:30', ALL_WEEKS),
+    ],
+    groups: [
+      {
+        groupId: 'HAND 0007|Tutorial|all',
+        sittings: [
+          _sitting(71, 'Thursday', '12:00', '13:00', ALL_WEEKS),
+          _sitting(72, 'Thursday', '12:30', '13:30', ALL_WEEKS),
+          _sitting(73, 'Friday', '08:00', '09:00', ALL_WEEKS),
+        ],
+      },
+    ],
+  },
 ];
 
 function _sitting(sessionId, day, startTime, endTime, weeks) {
@@ -332,9 +453,27 @@ function _warehouseInstance(spec) {
     about: spec.about,
     source: 'warehouse',
     courses: [...spec.courses],
+    ..._preferencesOf(spec),
     fixed,
     groups,
   };
+}
+
+/**
+ * A case's preferences in the written shape, or nothing when it has none, so
+ * a case without them is written exactly as it was before preferences
+ * existed. Spec 14.6.
+ */
+function _preferencesOf(spec) {
+  if (!spec.preferences) return {};
+  const { freeDays, breakMins } = spec.preferences;
+  if (!Array.isArray(freeDays) || freeDays.some((d) => !DAY_NAMES.includes(d))) {
+    throw new Error(`${spec.name}: free days must be day names, got ${JSON.stringify(freeDays)}`);
+  }
+  if (!BREAK_CHOICES.includes(breakMins)) {
+    throw new Error(`${spec.name}: a break is 60 or 120 minutes, got ${breakMins}`);
+  }
+  return { preferences: { freeDays: [...freeDays], breakMins } };
 }
 
 /**
@@ -350,6 +489,7 @@ function buildInstances() {
     name: spec.name,
     about: spec.about,
     source: 'hand-built',
+    ..._preferencesOf(spec),
     fixed: spec.fixed.map((e) => ({ ...e })),
     groups: spec.groups.map((g) => ({
       groupId: g.groupId,
@@ -435,8 +575,11 @@ function _inWeek(event, week) {
   return week === null || event.weeks === null || event.weeks.has(week);
 }
 
-/** Longest run and days with class in the worst week. Spec 3.2. */
-function _runAndDays(events, weeks) {
+/**
+ * Longest run and days with class in the worst week. Spec 3.2, with the
+ * break the student chose in place of the fixed hour (spec 14.2).
+ */
+function _runAndDays(events, weeks, breakMins) {
   let runMins = 0;
   let days = 0;
   for (const week of weeks) {
@@ -452,7 +595,7 @@ function _runAndDays(events, weeks) {
       let first = dayEvents[0].start;
       let reach = dayEvents[0].end;
       for (const event of dayEvents.slice(1)) {
-        if (event.start - reach < RUN_BREAK_MINS) {
+        if (event.start - reach < breakMins) {
           reach = Math.max(reach, event.end);
         } else {
           runMins = Math.max(runMins, reach - first);
@@ -480,7 +623,13 @@ function _front(pairs) {
 }
 
 /**
- * C* and the front, found by scoring every arrangement.
+ * C*, B* and the front, found by scoring every arrangement.
+ *
+ * Spec 14.2: the fewest clashes first, then among those the fewest chosen
+ * sittings on a free day, then the front over what is left. Fixed events are
+ * never counted toward B, since the student cannot move them. A case with no
+ * preferences has no free days and the one-hour break, which is the model of
+ * spec 3 exactly, so its B* is 0 and its answer is the one it always had.
  *
  * Every pair this scores is also put to the app's `eventsCollide`, once per
  * distinct pair, and a disagreement stops the build: a fixture whose clash
@@ -502,9 +651,13 @@ function solveByBruteForce(instance) {
   const weeks = _weeksConsidered(plain);
   const checked = new Uint8Array(raw.length * raw.length);
 
+  const preferences = instance.preferences || { freeDays: [], breakMins: RUN_BREAK_MINS };
+  const freeDays = new Set(preferences.freeDays);
+
   const choice = instance.groups.map(() => 0);
   const fixedIds = instance.fixed.map((_, i) => i);
   let best = Infinity;
+  let bestBlocked = Infinity;
   let pairs = new Map();
 
   for (let n = 0; n < arrangements; n++) {
@@ -529,12 +682,23 @@ function solveByBruteForce(instance) {
       }
     }
 
-    if (clashes <= best) {
-      if (clashes < best) {
+    // Only the chosen sittings, one per group, are looked at here.
+    let blocked = 0;
+    choice.forEach((c, g) => {
+      if (freeDays.has(instance.groups[g].sittings[c].day)) blocked++;
+    });
+
+    if (clashes < best || (clashes === best && blocked <= bestBlocked)) {
+      if (clashes < best || blocked < bestBlocked) {
         best = clashes;
+        bestBlocked = blocked;
         pairs = new Map();
       }
-      const { runMins, days } = _runAndDays(ids.map((id) => plain[id]), weeks);
+      const { runMins, days } = _runAndDays(
+        ids.map((id) => plain[id]),
+        weeks,
+        preferences.breakMins
+      );
       pairs.set(`${runMins}|${days}`, { runMins, days });
     }
 
@@ -546,7 +710,12 @@ function solveByBruteForce(instance) {
     }
   }
 
-  return { arrangements, clashes: best, front: _front([...pairs.values()]) };
+  return {
+    arrangements,
+    clashes: best,
+    blocked: bestBlocked,
+    front: _front([...pairs.values()]),
+  };
 }
 
 // Output. A hand-rolled writer, because JSON.stringify with an indent puts
@@ -590,11 +759,11 @@ function main() {
     cases.push({
       ...instance,
       arrangements: answer.arrangements,
-      expected: { clashes: answer.clashes, front: answer.front },
+      expected: { clashes: answer.clashes, blocked: answer.blocked, front: answer.front },
     });
     console.log(
       `${instance.name}: ${answer.arrangements} arrangements, ` +
-      `C* ${answer.clashes}, front ${_frontText(answer.front)}`
+      `C* ${answer.clashes}, B* ${answer.blocked}, front ${_frontText(answer.front)}`
     );
   }
   fs.writeFileSync(OUTPUT, _format({ runBreakMins: RUN_BREAK_MINS, cases }, '') + '\n');
