@@ -714,6 +714,131 @@ test('a split lecture group stays split in every option', () => {
   }
 });
 
+// Re-arrange with the student's preferences. WEEK-OPTIMISER-SPEC 14.3, 14.7.
+
+const MONDAY_FREE = { freeDays: ['Monday'], breakMins: 60 };
+const BOTH_CHOICES = { freeDays: ['Monday', 'Friday', 'Saturday'], breakMins: 120 };
+
+/** How many unpinned classes in these placements fall on one of the days. */
+function blockedOf(state, placements, freeDays) {
+  return placements
+    .filter((p) => !p.pinned)
+    .map((p) => api.get('eventForPlacement')(p, state.groupIndex))
+    .filter((e) => e && freeDays.includes(e.day))
+    .length;
+}
+
+test('asking for options with preferences changes nothing', () => {
+  const { state } = firstYearWithPin();
+  const before = stateSnapshot(state);
+  let notified = 0;
+  state.onChange(() => { notified += 1; });
+
+  state.rearrangeOptions(BOTH_CHOICES);
+  state.rearrangeOptions(MONDAY_FREE);
+
+  assert.deepEqual(stateSnapshot(state), before);
+  assert.equal(notified, 0);
+});
+
+test('preferences are never saved with the timetable', () => {
+  const { state } = firstYearWithPin();
+  state.rearrangeOptions(BOTH_CHOICES);
+  const saved = JSON.stringify(state.toSaved());
+  for (const word of ['freeDays', 'breakMins', 'prefs', 'preferences', 'celcat_week_prefs']) {
+    assert.ok(!saved.includes(word), `the saved timetable mentions ${word}`);
+  }
+});
+
+test('every week on offer says how many classes fall on a free day', () => {
+  const { state } = firstYearWithPin();
+  for (const result of [state.rearrangeOptions(), state.rearrangeOptions(MONDAY_FREE)]) {
+    for (const week of [result.current, ...result.options]) {
+      for (const key of ['runMins', 'days', 'clashes', 'blocked', 'placements']) {
+        assert.ok(key in week, `${key} is missing`);
+      }
+    }
+  }
+  const plainResult = state.rearrangeOptions();
+  assert.ok([plainResult.current, ...plainResult.options].every((w) => w.blocked === 0));
+});
+
+test('with Monday free, each option counts its Monday classes and has no more than now', () => {
+  const state = new TimetableState({ courses: [] });
+  state.addCourses(coursesOf(...FIRST_YEAR));
+  const { current, options } = state.rearrangeOptions(MONDAY_FREE);
+
+  assert.equal(current.blocked, blockedOf(state, current.placements, ['Monday']));
+  assert.ok(current.blocked > 0, 'the plain first-year week has no Monday class to avoid');
+  for (const option of options) {
+    assert.equal(option.blocked, blockedOf(state, option.placements, ['Monday']));
+    if (option.clashes === current.clashes) {
+      assert.ok(option.blocked <= current.blocked, `${option.blocked} > ${current.blocked}`);
+    }
+  }
+});
+
+test('a pinned class on a free day is not counted against a week', () => {
+  const { state, pinned } = firstYearWithPin();
+  const day = state.getGroup(pinned.groupId).sessions
+    .find((s) => s.sessionId === pinned.sessionId).day;
+  const { current, options } = state.rearrangeOptions({ freeDays: [day], breakMins: 60 });
+  for (const week of [current, ...options]) {
+    assert.equal(week.blocked, blockedOf(state, week.placements, [day]));
+  }
+});
+
+test('a 2-hour break measures every run with two hours', () => {
+  const { state } = firstYearWithPin();
+  const { current, options } = state.rearrangeOptions(BOTH_CHOICES);
+  const weekQuality = api.get('weekQuality');
+  const eventsFor = api.get('eventsFor');
+  for (const week of [current, ...options]) {
+    const q = weekQuality(eventsFor(week.placements, state.groupIndex), 120);
+    assert.deepEqual([week.runMins, week.days], [q.runMins, q.days]);
+  }
+  // The same grid with a 1-hour break never measures a longer run.
+  const plainNow = state.rearrangeOptions().current;
+  assert.ok(plainNow.runMins <= current.runMins);
+});
+
+test('re-optimising gives the same week whatever preferences were last asked for', () => {
+  const asked = firstYearWithPin().state;
+  const fresh = firstYearWithPin().state;
+  asked.rearrangeOptions(BOTH_CHOICES);
+  asked.rearrangeOptions(MONDAY_FREE);
+
+  asked.reoptimise();
+  fresh.reoptimise();
+
+  assert.deepEqual(plain(asked.placements), plain(fresh.placements));
+});
+
+test('adding courses gives the same week whatever preferences were last asked for', () => {
+  const build = () => {
+    const state = new TimetableState({ courses: [] });
+    state.addCourses(coursesOf('COMP 1601', 'COMP 1602'));
+    return state;
+  };
+  const asked = build();
+  const fresh = build();
+  asked.rearrangeOptions(BOTH_CHOICES);
+
+  asked.addCourses(coursesOf('MATH 1115', 'FOUN 1101'));
+  fresh.addCourses(coursesOf('MATH 1115', 'FOUN 1101'));
+
+  assert.deepEqual(plain(asked.placements), plain(fresh.placements));
+});
+
+test('options without preferences are the ones re-optimising takes', () => {
+  // rearrangeOptions() always hands the search a preferences object; with
+  // the defaults it must find exactly what reoptimise() finds without one.
+  const { state } = firstYearWithPin();
+  const { options } = state.rearrangeOptions();
+  state.reoptimise();
+  assert.ok(sameArrangement(state.placements, options[0].placements));
+});
+
 // The student's override
 
 

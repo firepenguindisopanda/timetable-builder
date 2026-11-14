@@ -62,6 +62,23 @@ function titleDerivedKey(title) {
 }
 
 /**
+ * The preferences re-arrange searches with, from whatever the page passed.
+ * WEEK-OPTIMISER-SPEC 14.1: any real day name may be kept free, and a break
+ * is 1 hour or 2. Anything else reads as the defaults, so a stale or odd
+ * value can never make the search fail.
+ */
+const _REARRANGE_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function _rearrangePrefs(prefs) {
+  const given = prefs && typeof prefs === 'object' ? prefs : {};
+  const wanted = Array.isArray(given.freeDays) ? given.freeDays : [];
+  return {
+    freeDays: _REARRANGE_DAYS.filter(day => wanted.includes(day)),
+    breakMins: given.breakMins === 120 ? 120 : 60,
+  };
+}
+
+/**
  * The front entries re-arrange offers: the first, the last, and the middle one
  * when there are more than two. WEEK-OPTIMISER-SPEC 5.2. Three cards are as
  * many as a student can weigh against each other; the ends are the two
@@ -612,7 +629,10 @@ class TimetableState {
    * WEEK-OPTIMISER-SPEC 5.2.
    */
   reoptimise() {
-    this.applyArrangement(this.rearrangeOptions().options[0]);
+    // No preferences, ever: a share link carries course codes only, so the
+    // week re-optimising gives must not depend on this browser's choices.
+    // WEEK-OPTIMISER-SPEC 14.3.
+    this.applyArrangement(this._rearrange(null).options[0]);
   }
 
   /**
@@ -626,11 +646,28 @@ class TimetableState {
    * Returns { current, options, proven }. `current` is the grid now, `options`
    * at most three entries of the front: the first, the last, and the middle
    * one when there are more than two, in the front's order (shortest run
-   * first). Each carries runMins, days, clashes and a full placements list
-   * that applyArrangement can put on the grid.
+   * first). Each carries runMins, days, clashes, blocked and a full placements
+   * list that applyArrangement can put on the grid.
+   *
+   * `prefs` is the student's { freeDays, breakMins } (spec 14.1), the defaults
+   * when omitted: no free days and a 1-hour break. runMins is measured with
+   * that break, and `blocked` counts the unpinned classes on a free day; a
+   * pinned one cannot move, so the dialog names it instead of counting it.
+   * The preferences are only read, never kept on the state.
    */
-  rearrangeOptions() {
+  rearrangeOptions(prefs) {
+    return this._rearrange(_rearrangePrefs(prefs));
+  }
+
+  /**
+   * rearrangeOptions with the preferences already settled. `prefs` null
+   * searches without any, as adding courses does, which is what reoptimise()
+   * needs; `blocked` is then counted against no free days.
+   */
+  _rearrange(prefs) {
     const index = this.groupIndex;
+    const breakMins = prefs ? prefs.breakMins : undefined;
+    const freeDays = new Set(prefs ? prefs.freeDays : []);
     const { pinned, loose } = this._rearrangeInstance();
 
     // Each loose group where its unpinned placement sits now. A group with
@@ -643,14 +680,22 @@ class TimetableState {
       onGrid[p.groupId] = p.selectedSessionId;
     }
 
-    const result = placeCoursesBest(pinned, loose, index, [onGrid]);
+    const result = prefs
+      ? placeCoursesBest(pinned, loose, index, [onGrid], prefs)
+      : placeCoursesBest(pinned, loose, index, [onGrid]);
     const describe = (placements) => {
       const events = eventsFor(placements, index);
-      const quality = weekQuality(events);
+      const quality = weekQuality(events, breakMins);
+      // Counted the same way for the grid and every option, from the
+      // placements, so the figures compare like with like.
+      const blocked = eventsFor(placements.filter(p => !p.pinned), index)
+        .filter(e => freeDays.has(e.day))
+        .length;
       return {
         runMins: quality.runMins,
         days: quality.days,
         clashes: findConflicts(events).length,
+        blocked,
         placements: JSON.parse(JSON.stringify(placements)),
       };
     };
