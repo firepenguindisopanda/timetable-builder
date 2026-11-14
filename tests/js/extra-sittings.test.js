@@ -17,6 +17,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'week-optimiser.js',
   'slot-identity.js',
   'timetable-state.js'
 );
@@ -190,6 +191,53 @@ test('re-optimising keeps a pinned extra and re-places around it', () => {
   assert.ok(placements.some(p => p.selectedSessionId === extra.sessionId && p.pinned));
   // The two placements still show two different sittings.
   assert.notEqual(placements[0].selectedSessionId, placements[1].selectedSessionId);
+});
+
+test('re-arrange options keep a pinned extra, and never give its sitting to the twin', () => {
+  const state = stateOf('COMP 1602', 'COMP 1601', 'MATH 1115');
+  const extra = unattendedSession(state, LECTURES);
+  state.addSitting(LECTURES, extra.sessionId);
+
+  const { options } = state.rearrangeOptions();
+
+  assert.ok(options.length >= 1);
+  for (const option of options) {
+    const held = option.placements.filter(p => p.groupId === LECTURES);
+    assert.equal(held.length, 2);
+    const pinned = held.filter(p => p.pinned);
+    assert.equal(pinned.length, 1);
+    assert.equal(pinned[0].selectedSessionId, extra.sessionId);
+    const loose = held.find(p => !p.pinned);
+    assert.notEqual(loose.selectedSessionId, extra.sessionId);
+  }
+});
+
+test('re-arrange options never bring back a dismissed class', () => {
+  const state = stateOf('COMP 1602', 'COMP 1601');
+  const [placed] = placementsOf(state, LECTURES);
+  state.removePlacement(LECTURES, placed.selectedSessionId);
+
+  const { options } = state.rearrangeOptions();
+
+  assert.ok(options.length >= 1);
+  for (const option of options) {
+    assert.equal(option.placements.filter(p => p.groupId === LECTURES).length, 0);
+  }
+});
+
+test('taking an option keeps the extra, and undo restores the week exactly', () => {
+  const state = stateOf('COMP 1602', 'COMP 1601', 'MATH 1115');
+  const extra = unattendedSession(state, LECTURES);
+  state.addSitting(LECTURES, extra.sessionId);
+  const before = JSON.parse(JSON.stringify(state.placements));
+
+  const { options } = state.rearrangeOptions();
+  state.applyArrangement(options[options.length - 1]);
+
+  assert.ok(state.placements.some(
+    p => p.groupId === LECTURES && p.selectedSessionId === extra.sessionId && p.pinned));
+  state.undo();
+  assert.deepEqual(JSON.parse(JSON.stringify(state.placements)), before);
 });
 
 // Moving when a group holds more than one placement

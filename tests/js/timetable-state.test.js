@@ -12,6 +12,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'week-optimiser.js',
   'slot-identity.js',
   'timetable-state.js'
 );
@@ -194,6 +195,132 @@ test('adding a course already on the timetable changes nothing', () => {
   assert.deepEqual(state.placements, before);
 });
 
+// Adding takes the best week. WEEK-OPTIMISER-SPEC 5.1
+
+/** The first-year load of spec 9.3. */
+const FIRST_YEAR = [
+  'COMP 1601',
+  'COMP 1602',
+  'MATH 1115',
+  'FOUN 1101',
+  'FOUN 1001 (FULL & PART-TIME)',
+];
+
+function coursesOf(...codes) {
+  return TimetableState.fromWarehouseResponse(response(...codes)).courses;
+}
+
+/** The longest run and days of the week on a state's grid. */
+function qualityOf(state) {
+  const weekQuality = api.get('weekQuality');
+  const eventsFor = api.get('eventsFor');
+  return weekQuality(eventsFor(state.placements, state.groupIndex));
+}
+
+test('adding courses takes the week with the shortest stretch of class, not the earliest', () => {
+  const courses = coursesOf(...FIRST_YEAR);
+  const state = new TimetableState({ courses: [] });
+  const result = state.addCourses(courses);
+
+  // What the old placer gives for the same courses, for comparison.
+  const groups = courses.map((c) => ({
+    courseKey: c.courseKey,
+    groups: api.get('weeklyOptionGroups')(c, {}),
+  }));
+  const index = api.get('indexGroups')(groups.flatMap((c) => c.groups));
+  const old = api.get('placeCourses')([], groups, index);
+  const before = api.get('weekQuality')(api.get('eventsFor')(old.placements, index));
+
+  const after = qualityOf(state);
+  assert.deepEqual(state.getConflicts(), []);
+  assert.ok(
+    after.runMins < before.runMins,
+    `longest run ${after.runMins} should be under the old placer's ${before.runMins}`
+  );
+  assert.deepEqual({ ...result.summary.quality }, { ...after });
+  assert.equal(result.summary.proven, true);
+});
+
+test('adding courses moves nothing already on the timetable, pinned or not', () => {
+  const state = stateOf('COMP 1601', 'PSYC 1001');
+  const menu = state.optionGroups.find((g) => g.sessions.length > 1);
+  state.moveEvent(menu.groupId, menu.sessions[4].sessionId);
+  const before = JSON.parse(JSON.stringify(state.placements));
+  assert.ok(before.some((p) => p.pinned) && before.some((p) => !p.pinned));
+
+  state.addCourses(coursesOf('COMP 1602', 'MATH 1115', 'FOUN 1101'));
+
+  assert.ok(state.placements.length > before.length);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(state.placements.slice(0, before.length))),
+    before
+  );
+});
+
+test('classes that are added arrive unpinned', () => {
+  const state = stateOf('COMP 1601');
+  const had = state.placements.length;
+
+  state.addCourses(coursesOf('COMP 1602', 'MATH 1115'));
+
+  const added = state.placements.slice(had);
+  assert.ok(added.length > 0);
+  assert.ok(added.every((p) => !p.pinned));
+});
+
+test('what adding reports keeps every field the page reads', () => {
+  const state = new TimetableState({ courses: [] });
+  const result = state.addCourses(coursesOf(...FIRST_YEAR));
+
+  assert.deepEqual([...result.added], FIRST_YEAR);
+  assert.deepEqual([...result.alreadyPresent], []);
+  assert.equal(result.placed.length, state.placements.length);
+  for (const entry of result.placed) {
+    const placement = state.placements.find((p) => p.groupId === entry.groupId);
+    assert.equal(entry.selectedSessionId, placement.selectedSessionId);
+    assert.equal(entry.clashing, false);
+  }
+  for (const key of [
+    'courses',
+    'groups',
+    'conflictsBefore',
+    'conflictsAfter',
+    'repairAttempts',
+    'repairCapped',
+    'unavoidable',
+  ]) {
+    assert.ok(key in result.summary, `summary.${key} is missing`);
+  }
+  assert.equal(result.summary.conflictsAfter, 0);
+});
+
+test('the same courses added in another order give the same week', () => {
+  // A share link carries course codes only, so the recipient's browser has
+  // to land on the week the sender saw.
+  const chosen = (state) =>
+    state.placements
+      .map((p) => `${p.groupId} ${p.selectedSessionId}`)
+      .sort();
+
+  const one = new TimetableState({ courses: [] });
+  one.addCourses(coursesOf(...FIRST_YEAR));
+  const other = new TimetableState({ courses: [] });
+  other.addCourses(coursesOf(...[...FIRST_YEAR].reverse()));
+
+  assert.deepEqual(chosen(other), chosen(one));
+});
+
+test('undo after adding puts the timetable back exactly', () => {
+  const state = stateOf('COMP 1601');
+  const before = JSON.parse(JSON.stringify(state.placements));
+
+  state.addCourses(coursesOf('COMP 1602', 'MATH 1115'));
+  state.undo();
+
+  assert.deepEqual(JSON.parse(JSON.stringify(state.placements)), before);
+  assert.deepEqual([...state.courseKeys], ['COMP 1601']);
+});
+
 test('removing a course leaves every other placement put', () => {
   const state = stateOf('COMP 1601', 'PSYC 1001');
   const keep = state.placements.filter((p) => p.courseKey === 'COMP 1601');
@@ -320,6 +447,271 @@ test('re-optimising still places everything', () => {
   state.reoptimise();
 
   assert.equal(state.placements.length, groups);
+});
+
+// Re-arrange: the best weeks on offer, and taking one
+
+// Read lazily, so these fail one by one before the helper exists.
+function sameArrangement(a, b) {
+  return api.get('sameArrangement')(a, b);
+}
+
+const plain = (value) => JSON.parse(JSON.stringify(value));
+
+/** [clashes, runMins, days] of a set of placements, scored independently. */
+function scoreOfPlacements(state, placements) {
+  const events = api.get('eventsFor')(placements, state.groupIndex);
+  const q = api.get('weekQuality')(events);
+  return [api.get('findConflicts')(events).length, q.runMins, q.days];
+}
+
+/** Negative when a is the better week: clashes, then run, then days. */
+function compareScores(a, b) {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
+/** Everything a student could lose: the grid, the history, the saved copy. */
+function stateSnapshot(state) {
+  const { savedAt, ...saved } = state.toSaved();
+  return plain({
+    placements: state.placements,
+    history: state.history.length,
+    future: state.future.length,
+    saved,
+  });
+}
+
+/** A first-year week added from empty, then one class pinned somewhere else. */
+function firstYearWithPin() {
+  const state = new TimetableState({ courses: [] });
+  state.addCourses(coursesOf(...FIRST_YEAR));
+  const menu = state.optionGroups.find((g) => g.sessions.length > 2);
+  const placed = state.placements.find((p) => p.groupId === menu.groupId);
+  const target = menu.sessions.find((s) => s.sessionId !== placed.selectedSessionId);
+  state.moveEvent(menu.groupId, target.sessionId);
+  return { state, pinned: { groupId: menu.groupId, sessionId: target.sessionId } };
+}
+
+test('asking for re-arrange options changes nothing', () => {
+  const { state } = firstYearWithPin();
+  const before = stateSnapshot(state);
+  let notified = 0;
+  state.onChange(() => { notified += 1; });
+
+  const result = state.rearrangeOptions();
+
+  assert.deepEqual(stateSnapshot(state), before);
+  assert.equal(notified, 0);
+  assert.ok(result.current);
+  assert.ok(Array.isArray(result.options));
+  assert.ok(result.options.length >= 1 && result.options.length <= 3);
+  assert.equal(typeof result.proven, 'boolean');
+  for (const option of [result.current, ...result.options]) {
+    for (const key of ['runMins', 'days', 'clashes', 'placements']) {
+      assert.ok(key in option, `${key} is missing`);
+    }
+  }
+});
+
+test('the current week is a copy, so changing it cannot touch the grid', () => {
+  const { state } = firstYearWithPin();
+  const before = plain(state.placements);
+  const { current } = state.rearrangeOptions();
+
+  assert.deepEqual(plain(current.placements), before);
+  assert.notStrictEqual(current.placements, state.placements);
+  current.placements.length = 0;
+  assert.deepEqual(plain(state.placements), before);
+});
+
+test('the current week reports the figures of the grid', () => {
+  const { state } = firstYearWithPin();
+  const { current } = state.rearrangeOptions();
+  const [clashes, runMins, days] = scoreOfPlacements(state, state.placements);
+  assert.deepEqual(
+    [current.clashes, current.runMins, current.days],
+    [clashes, runMins, days]
+  );
+});
+
+test('each option reports its own figures and is a full week', () => {
+  const { state } = firstYearWithPin();
+  const groups = new Set(state.placements.map((p) => p.groupId));
+  for (const option of state.rearrangeOptions().options) {
+    const [clashes, runMins, days] = scoreOfPlacements(state, option.placements);
+    assert.deepEqual([option.clashes, option.runMins, option.days], [clashes, runMins, days]);
+    assert.deepEqual(new Set(option.placements.map((p) => p.groupId)), groups);
+  }
+});
+
+test('options run from the shortest stretch to the fewest days', () => {
+  const { state } = firstYearWithPin();
+  const { options } = state.rearrangeOptions();
+  for (let i = 1; i < options.length; i++) {
+    assert.ok(options[i - 1].runMins < options[i].runMins);
+    assert.ok(options[i - 1].days > options[i].days);
+  }
+});
+
+test('a longer front is cut to its first, middle and last entries', () => {
+  const pick = api.get('_rearrangePicks');
+  const front = (n) => Array.from({ length: n }, (_, i) => ({ at: i }));
+  const ats = (n) => pick(front(n)).map((e) => e.at);
+  assert.deepEqual(ats(1), [0]);
+  assert.deepEqual(ats(2), [0, 1]);
+  assert.deepEqual(ats(3), [0, 1, 2]);
+  assert.deepEqual(ats(4), [0, 2, 3]);
+  assert.deepEqual(ats(5), [0, 2, 4]);
+  assert.deepEqual(ats(7), [0, 3, 6]);
+});
+
+test('a front of three gives three options, in order', () => {
+  // These three courses reach 2, 3 and 4 hours in a row on 4, 3 and 2 days.
+  const state = new TimetableState({ courses: [] });
+  state.addCourses(coursesOf('COMP 1602', 'MATH 1115', 'PSYC 1001'));
+  const { options } = state.rearrangeOptions();
+  assert.deepEqual(
+    options.map((o) => [o.runMins, o.days]),
+    [[120, 4], [180, 3], [240, 2]]
+  );
+});
+
+test('a pinned class is in every option, where the student put it', () => {
+  const { state, pinned } = firstYearWithPin();
+  for (const option of state.rearrangeOptions().options) {
+    const held = option.placements.filter((p) => p.groupId === pinned.groupId);
+    assert.equal(held.length, 1);
+    assert.equal(held[0].selectedSessionId, pinned.sessionId);
+    assert.equal(held[0].pinned, true);
+  }
+});
+
+test('every option has the fewest clashes, and no more than the grid has now', () => {
+  const { state } = firstYearWithPin();
+  const { current, options } = state.rearrangeOptions();
+  const counts = new Set(options.map((o) => o.clashes));
+  assert.equal(counts.size, 1);
+  assert.ok(options[0].clashes <= current.clashes);
+});
+
+test('straight after adding from empty, the grid is one of the options', () => {
+  const state = new TimetableState({ courses: [] });
+  state.addCourses(coursesOf(...FIRST_YEAR));
+
+  const { current, options } = state.rearrangeOptions();
+
+  assert.ok(options.some((o) => sameArrangement(o.placements, current.placements)));
+});
+
+test('a week made worse by hand is never what re-arrange offers first', () => {
+  const state = new TimetableState({ courses: [] });
+  state.addCourses(coursesOf(...FIRST_YEAR));
+  const best = scoreOfPlacements(state, state.placements);
+
+  // Move one unpinned class somewhere that makes the week worse, then unpin
+  // it, so the grid holds a worse week that re-arrange is free to change.
+  let worse = null;
+  for (const group of state.optionGroups) {
+    const placed = state.placements.find((p) => p.groupId === group.groupId);
+    for (const session of group.sessions) {
+      const tried = state.placements.map((p) =>
+        p === placed ? { ...p, selectedSessionId: session.sessionId } : p);
+      if (compareScores(scoreOfPlacements(state, tried), best) > 0) {
+        worse = { groupId: group.groupId, sessionId: session.sessionId };
+        break;
+      }
+    }
+    if (worse) break;
+  }
+  assert.ok(worse, 'no single move makes this week worse');
+  state.moveEvent(worse.groupId, worse.sessionId);
+  state.setPinned(worse.groupId, false);
+  assert.ok(state.placements.every((p) => !p.pinned));
+
+  const { current, options } = state.rearrangeOptions();
+  const now = [current.clashes, current.runMins, current.days];
+  const first = [options[0].clashes, options[0].runMins, options[0].days];
+  assert.ok(compareScores(first, now) < 0, `${first} should beat ${now}`);
+});
+
+test('taking an option puts that week on the grid, and one undo takes it back', () => {
+  const state = new TimetableState({ courses: [] });
+  state.addCourses(coursesOf(...FIRST_YEAR));
+  const menu = state.optionGroups.find((g) => g.sessions.length > 2);
+  const placed = state.placements.find((p) => p.groupId === menu.groupId);
+  const other = menu.sessions.find((s) => s.sessionId !== placed.selectedSessionId);
+  state.moveEvent(menu.groupId, other.sessionId);
+  state.setPinned(menu.groupId, false);
+  const before = plain(state.placements);
+  const depth = state.history.length;
+  let notified = 0;
+  state.onChange(() => { notified += 1; });
+
+  const { options } = state.rearrangeOptions();
+  const option = options[options.length - 1];
+  assert.equal(state.applyArrangement(option), true);
+
+  assert.ok(sameArrangement(state.placements, option.placements));
+  assert.notStrictEqual(state.placements, option.placements);
+  assert.equal(state.history.length, depth + 1);
+  assert.equal(notified, 1);
+
+  state.undo();
+  assert.deepEqual(plain(state.placements), before);
+
+  state.redo();
+  assert.ok(sameArrangement(state.placements, option.placements));
+});
+
+test('applying no option, or one without placements, does nothing', () => {
+  const state = stateOf('COMP 1601');
+  const before = stateSnapshot(state);
+  assert.equal(state.applyArrangement(), false);
+  assert.equal(state.applyArrangement(null), false);
+  assert.equal(state.applyArrangement({ runMins: 0, days: 0 }), false);
+  assert.deepEqual(stateSnapshot(state), before);
+});
+
+test('re-optimising applies the first option', () => {
+  const { state } = firstYearWithPin();
+  const { options } = state.rearrangeOptions();
+
+  state.reoptimise();
+
+  assert.deepEqual(plain(state.placements), plain(options[0].placements));
+});
+
+test('re-optimising is still one undo step', () => {
+  const { state } = firstYearWithPin();
+  const before = plain(state.placements);
+  const depth = state.history.length;
+
+  state.reoptimise();
+  assert.equal(state.history.length, depth + 1);
+
+  state.undo();
+  assert.deepEqual(plain(state.placements), before);
+});
+
+test('a split lecture group stays split in every option', () => {
+  const state = stateOf('COMP 1601');
+  state.setOptionGroupOverride('COMP 1601', 'Lecture', 'split');
+  const lectureGroups = state.optionGroups
+    .filter((g) => g.courseKey === 'COMP 1601' && g.type === 'Lecture')
+    .map((g) => g.groupId)
+    .sort();
+  assert.ok(lectureGroups.length > 1, 'COMP 1601 lectures no longer split');
+
+  for (const option of state.rearrangeOptions().options) {
+    const held = option.placements
+      .filter((p) => lectureGroups.includes(p.groupId))
+      .map((p) => p.groupId)
+      .sort();
+    assert.deepEqual(held, lectureGroups);
+  }
 });
 
 // The student's override

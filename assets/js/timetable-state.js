@@ -61,6 +61,17 @@ function titleDerivedKey(title) {
     .replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
+/**
+ * The front entries re-arrange offers: the first, the last, and the middle one
+ * when there are more than two. WEEK-OPTIMISER-SPEC 5.2. Three cards are as
+ * many as a student can weigh against each other; the ends are the two
+ * extremes of shortest run and fewest days, and the middle sits between.
+ */
+function _rearrangePicks(front) {
+  if (front.length <= 2) return front.slice();
+  return [front[0], front[Math.floor(front.length / 2)], front[front.length - 1]];
+}
+
 function _session(fields) {
   const startTime = _formatTime(fields.startTime);
   const endTime = _formatTime(fields.endTime);
@@ -383,7 +394,10 @@ class TimetableState {
     }
     this._invalidate();
 
-    const result = placeCourses(
+    // Among the weeks with the fewest clashes, take the one with the
+    // shortest unbroken run of class, then the fewest days. Everything
+    // already placed stays where it is. WEEK-OPTIMISER-SPEC 5.1.
+    const result = placeCoursesBest(
       this.placements,
       incoming.map(c => ({
         courseKey: c.courseKey,
@@ -593,10 +607,81 @@ class TimetableState {
    * Re-place everything from scratch. Spec 8.3, the old autoPlaceAll.
    *
    * Only ever called deliberately, because it is allowed to move classes the
-   * student arranged by hand. Pinned placements survive it.
+   * student arranged by hand. Pinned placements survive it. Takes the first
+   * of the re-arrange options, the shortest longest run, in one undo step.
+   * WEEK-OPTIMISER-SPEC 5.2.
    */
   reoptimise() {
+    this.applyArrangement(this.rearrangeOptions().options[0]);
+  }
+
+  /**
+   * The best weeks re-arranging could give, without changing anything.
+   * WEEK-OPTIMISER-SPEC 5.2.
+   *
+   * The week on the grid goes to the search as the first reference, so when
+   * it is already one of the best it comes back as that option with nothing
+   * moved, rather than as a different week that merely scores the same.
+   *
+   * Returns { current, options, proven }. `current` is the grid now, `options`
+   * at most three entries of the front: the first, the last, and the middle
+   * one when there are more than two, in the front's order (shortest run
+   * first). Each carries runMins, days, clashes and a full placements list
+   * that applyArrangement can put on the grid.
+   */
+  rearrangeOptions() {
+    const index = this.groupIndex;
+    const { pinned, loose } = this._rearrangeInstance();
+
+    // Each loose group where its unpinned placement sits now. A group with
+    // no unpinned placement is left out, which makes this reference name too
+    // few groups and the search ignore it, as it should: the grid is not a
+    // complete arrangement of the instance then.
+    const onGrid = {};
+    for (const p of this.placements) {
+      if (p.pinned || Object.prototype.hasOwnProperty.call(onGrid, p.groupId)) continue;
+      onGrid[p.groupId] = p.selectedSessionId;
+    }
+
+    const result = placeCoursesBest(pinned, loose, index, [onGrid]);
+    const describe = (placements) => {
+      const events = eventsFor(placements, index);
+      const quality = weekQuality(events);
+      return {
+        runMins: quality.runMins,
+        days: quality.days,
+        clashes: findConflicts(events).length,
+        placements: JSON.parse(JSON.stringify(placements)),
+      };
+    };
+
+    return {
+      current: describe(this.placements),
+      options: _rearrangePicks(result.summary.options).map(entry => describe(entry.placements)),
+      proven: result.summary.proven,
+    };
+  }
+
+  /**
+   * Put one of rearrangeOptions()'s weeks on the grid, as one undo step.
+   *
+   * False, and nothing touched, without an option to apply, so a stale or
+   * empty click in the dialog cannot leave a blank undo step behind.
+   */
+  applyArrangement(option) {
+    if (!option || !Array.isArray(option.placements)) return false;
     this._snapshot();
+    this.placements = JSON.parse(JSON.stringify(option.placements));
+    this._notify();
+    return true;
+  }
+
+  /**
+   * What re-arranging may change, built the same way for the options and
+   * for reoptimise(): the pinned placements, which stay as they are, and the
+   * loose course groups, one sitting of each to be chosen.
+   */
+  _rearrangeInstance() {
     const pinned = this.placements.filter(p => p.pinned);
 
     // Which sessions of each group the pinned placements already occupy. A
@@ -631,8 +716,7 @@ class TimetableState {
           : g)
         .filter(g => g.sessions.length > 0),
     }));
-    this.placements = placeCourses(pinned, loose, this.groupIndex).placements;
-    this._notify();
+    return { pinned, loose };
   }
 
   /** Course codes that came from the warehouse and could be refreshed. */
