@@ -3,7 +3,7 @@
 #
 #   julia --project=optimisation optimisation/check_fixture.jl [fixture.json]
 #
-# Exits 0 only if every C* and every front matches, otherwise 1.
+# Exits 0 only if every C*, every B* and every front matches, otherwise 1.
 
 include(joinpath(@__DIR__, "week_model.jl"))
 
@@ -15,19 +15,22 @@ function main(args)
     path = normpath(isempty(args) ? default_path : args[1])
     cases = load_cases(path)
     println("Fixture: ", path)
-    println("Each line: C* and front (run minutes/days), expected then got.")
+    println("Each line: C*, B* and front (run minutes/days), expected then got.")
     println()
 
     failed = String[]
     total = @elapsed for case in cases
         seconds = @elapsed got = solve_case(case)
-        ok = got.clashes == case.expected_clashes && got.front == case.expected_front
+        ok = got.clashes == case.expected_clashes &&
+             got.blocked == case.expected_blocked &&
+             got.front == case.expected_front
         if !ok
             push!(failed, case.name)
         end
-        println(rpad(case.name, 36),
-                " expected C=", case.expected_clashes, " ", rpad(show_front(case.expected_front), 16),
-                " got C=", got.clashes, " ", rpad(show_front(got.front), 16),
+        println(rpad(case.name, 50),
+                " expected C=", case.expected_clashes, " B=", case.expected_blocked, " ",
+                rpad(show_front(case.expected_front), 24),
+                " got C=", got.clashes, " B=", got.blocked, " ", rpad(show_front(got.front), 24),
                 ok ? "match   " : "MISMATCH", " ", round(seconds; digits = 2), "s")
     end
 

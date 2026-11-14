@@ -9,7 +9,8 @@ using JuMP
 using HiGHS
 using JSON
 
-# A run ends at a gap of this many minutes or more (RUN_BREAK_MINS).
+# A run ends at a gap of this many minutes or more. This is the break used when
+# a case names no preference; a case can ask for a longer one (breakMins).
 const RUN_BREAK_MINS = 60
 
 # One class on the timetable. weeks is empty when the class has no week data,
@@ -32,7 +33,10 @@ struct Case
     name::String
     fixed::Vector{Event}
     groups::Vector{Group}
+    free_days::Vector{String}
+    break_mins::Int
     expected_clashes::Int
+    expected_blocked::Int
     expected_front::Vector{Tuple{Int,Int}}
 end
 
@@ -73,7 +77,18 @@ function read_case(raw)
         push!(groups, Group(g["groupId"], session_ids, sittings))
     end
     front = Tuple{Int,Int}[(e["runMins"], e["days"]) for e in raw["expected"]["front"]]
-    return Case(raw["name"], fixed, groups, raw["expected"]["clashes"], front)
+
+    # A case without preferences keeps no day free and a one-hour break.
+    free_days = String[]
+    break_mins = RUN_BREAK_MINS
+    prefs = get(raw, "preferences", nothing)
+    if prefs !== nothing
+        free_days = String[d for d in prefs["freeDays"]]
+        break_mins = prefs["breakMins"]
+    end
+    expected = raw["expected"]
+    return Case(raw["name"], fixed, groups, free_days, break_mins,
+                expected["clashes"], expected["blocked"], front)
 end
 
 # All cases in the fixture file.
@@ -163,11 +178,11 @@ function weeks_to_score(case::Case)
     return kept
 end
 
-# The largest slot length in minutes that divides 60 and every start and end
-# time, so every class covers whole slots and the 60-minute break is a whole
-# number of slots.
+# The largest slot length in minutes that divides the case's break and every
+# start and end time, so every class covers whole slots and the break is a
+# whole number of slots.
 function slot_length(case::Case)
-    size = RUN_BREAK_MINS
+    size = case.break_mins
     for e in all_events(case)
         size = gcd(size, e.start_mins, e.end_mins)
     end
@@ -184,7 +199,7 @@ end
 # ---------------------------------------------------------------------------
 
 # Builds the JuMP model for one case. Variables and expressions are reachable
-# by name: model[:x], model[:C], model[:R], model[:D]. The candidate keys
+# by name: model[:x], model[:C], model[:B], model[:R], model[:D]. The candidate keys
 # (group index, sitting index) are in model[:candidates].
 #
 # Only x, c, y, z and D are integer. Occupancy o and coverage b are continuous
@@ -241,6 +256,14 @@ function build_model(case::Case)
     @expression(model, C, fixed_clashes + sum(c[p] for p in pairs; init = 0) +
                           sum(fixed_hits[a] * x[a] for a in candidates))
 
+    # ---- Classes on free days B ----
+
+    # The number of chosen sittings that fall on a day the student wants free.
+    # Fixed events are left out: they cannot move, so they are no part of the
+    # choice. B only grows as sittings are added, like C.
+    blocked = [a for a in candidates if sitting(a).day in case.free_days]
+    @expression(model, B, sum(x[a] for a in blocked; init = 0))
+
     # ---- Occupancy ----
 
     weeks = weeks_to_score(case)
@@ -289,13 +312,13 @@ function build_model(case::Case)
 
     # ---- Bridging short gaps ----
 
-    # A run goes on across a free stretch shorter than RUN_BREAK_MINS. So slot t
-    # counts towards a run (b = 1) when it is occupied, or when it lies between
-    # two occupied slots i < t < j with fewer than RUN_BREAK_MINS minutes
+    # A run goes on across a free stretch shorter than the case's break. So slot
+    # t counts towards a run (b = 1) when it is occupied, or when it lies
+    # between two occupied slots i < t < j with fewer than break_mins minutes
     # between them. Whatever is on between i and j, every free stretch there is
     # shorter still, so the whole of i..j is one run. As with o, b is only
     # forced up, and only R reads it.
-    max_gap_slots = div(RUN_BREAK_MINS - 1, slot)  # largest k with k * slot < 60
+    max_gap_slots = div(case.break_mins - 1, slot)  # largest k with k * slot < break
     bridge_rows = Tuple{Tuple{Int,String,Int},Tuple{Int,String,Int},Tuple{Int,String,Int}}[]
     cover_set = Set(occ_keys)
     for w in weeks, d in days
@@ -444,15 +467,18 @@ function solve_clashes(case::Case)
 end
 
 # The best weeks of a case (spec 3.3). Returns
-#   (clashes = C*, front = [(runMins, days), ...], choices = [Dict, ...])
+#   (clashes = C*, blocked = B*, front = [(runMins, days), ...],
+#    choices = [Dict, ...])
 # where choices[i] is one arrangement reaching front[i], group id => session id.
 # It is whichever arrangement the solver found, not the one the site would
 # report under spec 3.4.
 function solve_case(case::Case)
     model = build_model(case)
-    C, R, D = model[:C], model[:R], model[:D]
+    C, B, R, D = model[:C], model[:B], model[:R], model[:D]
 
-    # 1. Fewest clashes, then hold C at that minimum.
+    # 1. Fewest clashes, then hold C at that minimum. Clashes come before free
+    #    days: a missed class is worse than a class on a day the student
+    #    wanted off, so a free day never causes a clash.
     @objective(model, Min, C)
     clashes = solve_for(model)
     if clashes === nothing
@@ -460,7 +486,12 @@ function solve_case(case::Case)
     end
     @constraint(model, C <= clashes)
 
-    # 2. For each day limit: the shortest longest run with D at most the limit,
+    # 2. Among those, fewest classes on free days, then hold B there.
+    @objective(model, Min, B)
+    blocked = solve_for(model)
+    @constraint(model, B <= blocked)
+
+    # 3. For each day limit: the shortest longest run with D at most the limit,
     #    then the fewest days with R held at that run.
     found = []
     for limit in 1:7
@@ -477,9 +508,10 @@ function solve_case(case::Case)
         delete(model, day_cap)
     end
 
-    # 3. Drop dominated and repeated pairs.
+    # 4. Drop dominated and repeated pairs.
     front = pareto_front(found)
     return (clashes = clashes,
+            blocked = blocked,
             front = Tuple{Int,Int}[(e[1], e[2]) for e in front],
             choices = [e[3] for e in front])
 end
