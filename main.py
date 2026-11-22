@@ -23,6 +23,7 @@ from typing import List, Optional
 
 import logging
 import os
+import re
 import secrets
 import time
 from collections import Counter
@@ -164,6 +165,60 @@ logger = observability.get_logger("timetable.http")
 # Static assets are logged at debug: they are numerous, uninteresting when
 # healthy, and would bury the request events that matter.
 QUIET_PATH_PREFIXES = ("/assets", "/favicon")
+
+#: The largest PDF an upload may be. UWI's biggest timetable PDF is about
+#: 75 KB, so this is generous for real files and still stops one request
+#: from filling memory and disk.
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+#: Used when an upload's name has nothing left once its folders are removed.
+FALLBACK_UPLOAD_NAME = "timetable.pdf"
+
+_UPLOAD_CHUNK_BYTES = 64 * 1024
+
+
+def safe_upload_name(filename: str | None) -> str:
+    """
+    The last part of an upload's filename, with no folders in it.
+
+    The multipart filename is whatever the client sends. `/extract` is public
+    and used to join it onto its temp folder as it came: an absolute name
+    replaced the folder and `../` climbed out of it, so anyone could write a
+    file anywhere the server's user can. Found by the 21 Nov 2026 audit.
+
+    The name is kept rather than replaced because extraction reports it back
+    as `source_file`. Both separators are split on, since a Windows client
+    sends backslashes and the server may be either.
+    """
+    name = re.split(r"[\\/]", filename or "")[-1].strip()
+    if name in {"", ".", ".."} or any(ord(ch) < 32 for ch in name):
+        return FALLBACK_UPLOAD_NAME
+    return name
+
+
+async def save_upload(upload: UploadFile, directory: Path) -> Path:
+    """
+    Write an upload into `directory` and return its path.
+
+    Refuses a file over MAX_UPLOAD_BYTES with 413, reading in chunks so an
+    oversized upload is never held in memory whole.
+    """
+    dest = directory / safe_upload_name(upload.filename)
+    # Belt and braces: safe_upload_name already leaves no separators.
+    if dest.resolve().parent != directory.resolve():
+        raise HTTPException(status_code=400, detail="Invalid file name")
+
+    written = 0
+    with open(dest, "wb") as out:
+        while chunk := await upload.read(_UPLOAD_CHUNK_BYTES):
+            written += len(chunk)
+            if written > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB",
+                )
+            out.write(chunk)
+    return dest
 
 
 @asynccontextmanager
@@ -416,11 +471,7 @@ async def extract_from_upload(files: List[UploadFile] = File(...)):
             if not upload.filename:
                 continue
 
-            # Save uploaded file to temp directory
-            dest = Path(tmp_dir) / upload.filename
-            with open(dest, "wb") as f:
-                content = await upload.read()
-                f.write(content)
+            dest = await save_upload(upload, Path(tmp_dir))
 
             # Run extraction
             try:
@@ -640,10 +691,7 @@ async def admin_calibrate(
 
     tmp_dir = tempfile.mkdtemp(prefix="calibrate_")
     try:
-        dest = Path(tmp_dir) / (file.filename or "timetable.pdf")
-        with open(dest, "wb") as f:
-            content = await file.read()
-            f.write(content)
+        dest = await save_upload(file, Path(tmp_dir))
 
         from timetable_extractor.calibration.orchestrator import CalibrationOrchestrator
         from timetable_extractor.calibration.providers.nemotron import NemotronProvider

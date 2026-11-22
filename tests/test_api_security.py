@@ -15,6 +15,10 @@ a 404 from the outer gate would shadow the behaviour they pin.
 
 from __future__ import annotations
 
+import tempfile
+import uuid
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -331,3 +335,90 @@ class TestCors:
             },
         )
         assert "DELETE" not in response.headers.get("access-control-allow-methods", "")
+
+
+class TestUploadFilenames:
+    """
+    `/extract` is public, and it used to join the multipart filename onto its
+    temp folder as sent. An absolute filename replaced the folder and `../`
+    climbed out of it, so anyone could write a file anywhere the server's user
+    can, before extraction was even tried. Found by the 21 Nov 2026 audit.
+    """
+
+    @pytest.fixture
+    def captured(self, monkeypatch):
+        """Record the path extraction is handed, then fail as a bad PDF would."""
+        seen: list[str] = []
+
+        def fake_extract(path):
+            seen.append(path)
+            raise ValueError("not a timetable")
+
+        monkeypatch.setattr(main, "extract_timetable", fake_extract)
+        return seen
+
+    def test_an_absolute_filename_stays_in_the_temp_folder(self, client, captured, tmp_path):
+        target = tmp_path / "escaped.pdf"
+
+        response = client.post(
+            "/extract", files={"files": (target.as_posix(), b"%PDF-1.4", "application/pdf")}
+        )
+
+        assert response.status_code == 422
+        assert not target.exists()
+        assert Path(captured[0]).name == "escaped.pdf"
+
+    @pytest.mark.parametrize("prefix", ["../", "..\\", "../../", "sub/../../"])
+    def test_a_relative_climb_stays_in_the_temp_folder(self, client, captured, prefix):
+        name = f"audit-escape-{uuid.uuid4().hex}.pdf"
+        landing = [Path(tempfile.gettempdir()) / name, Path(tempfile.gettempdir()).parent / name]
+
+        try:
+            response = client.post(
+                "/extract", files={"files": (prefix + name, b"%PDF-1.4", "application/pdf")}
+            )
+            assert response.status_code == 422
+            assert not any(path.exists() for path in landing)
+            assert Path(captured[0]).name == name
+        finally:
+            for path in landing:
+                path.unlink(missing_ok=True)
+
+    @pytest.mark.parametrize("filename", ["..", ".", "/"])
+    def test_a_name_with_nothing_usable_gets_a_safe_one(self, client, captured, filename):
+        response = client.post(
+            "/extract", files={"files": (filename, b"%PDF-1.4", "application/pdf")}
+        )
+
+        assert response.status_code == 422
+        assert Path(captured[0]).name == main.FALLBACK_UPLOAD_NAME
+
+    @pytest.mark.parametrize(
+        ("filename", "expected"),
+        [
+            (r"C:\Users\me\COMP1601.pdf", "COMP1601.pdf"),
+            ("/etc/cron.d/job", "job"),
+            ("bad\x00name.pdf", "timetable.pdf"),
+            ("line\nbreak.pdf", "timetable.pdf"),
+            (None, "timetable.pdf"),
+        ],
+    )
+    def test_the_name_helper(self, filename, expected):
+        """Cases an HTTP client will not send as given: httpx encodes control bytes."""
+        assert main.safe_upload_name(filename) == expected
+
+    def test_a_plain_name_is_kept_for_the_result(self, client, captured):
+        """`source_file` in the result is the upload's name, so it is kept."""
+        client.post("/extract", files={"files": ("COMP1601.pdf", b"%PDF-1.4", "application/pdf")})
+
+        assert Path(captured[0]).name == "COMP1601.pdf"
+
+    def test_an_oversized_upload_is_refused_before_extraction(self, client, captured, monkeypatch):
+        monkeypatch.setattr(main, "MAX_UPLOAD_BYTES", 16)
+
+        response = client.post(
+            "/extract", files={"files": ("big.pdf", b"x" * 17, "application/pdf")}
+        )
+
+        assert response.status_code == 413
+        assert captured == []
