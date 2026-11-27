@@ -20,6 +20,7 @@ const api = load(
   'calendar-utils.js',
   'option-groups.js',
   'placement.js',
+  'week-optimiser.js',
   'slot-identity.js',
   'timetable-state.js',
   'subscription-link.js'

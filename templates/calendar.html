@@ -407,6 +407,8 @@
 <script src="/assets/js/course-search.js?v={{ asset_version }}"></script>
 <script src="/assets/js/option-groups.js?v={{ asset_version }}"></script>
 <script src="/assets/js/placement.js?v={{ asset_version }}"></script>
+<script src="/assets/js/week-optimiser.js?v={{ asset_version }}"></script>
+<script src="/assets/js/week-options.js?v={{ asset_version }}"></script>
 <script src="/assets/js/conflict-resolve.js?v={{ asset_version }}"></script>
 <script src="/assets/js/detail-view.js?v={{ asset_version }}"></script>
 <script src="/assets/js/slot-identity.js?v={{ asset_version }}"></script>
@@ -1366,6 +1368,70 @@
                 parseSessionId(option.dataset.fromSessionId)
             );
             toast('Moved it.', 'It stays where you put it.', undefined, { undo: true });
+            closeResolveDialog();
+        });
+    }
+
+    /**
+     * Offer the weeks re-arranging could give, and put the chosen one on
+     * the grid. WEEK-OPTIMISER-SPEC 5.3 and 14.4.
+     *
+     * Which weeks, and every word shown, come from week-options.js, where
+     * they are tested; this only draws them. It uses the clash dialog's
+     * overlay, so the backdrop, Escape and the return of focus are
+     * closeResolveDialog's and are not written a second time.
+     */
+    function openWeekOptionsDialog() {
+        closeResolveDialog();
+        let prefs = loadWeekPrefs(browserStorage());
+        let view = weekOptionsView(state.rearrangeOptions(prefs), state.groupIndex, prefs);
+        const overlay = document.createElement('div');
+        overlay.className = 'resolve-overlay';
+        overlay.innerHTML =
+            `<div class="resolve-dialog week-options-dialog" role="dialog" aria-modal="true"
+                 aria-label="Re-arrange your week">
+                ${renderWeekOptions(view, weekOptionsDays(state.optionGroups))}
+            </div>`;
+        document.body.appendChild(overlay);
+
+        // Re-arrange sits in the More menu, which closes behind it, so the
+        // button itself is hidden by the time the dialog shuts. More is the
+        // control that leads back to it.
+        resolveReturnFocus = document.getElementById('moreBtn') || $clearBtn;
+        holdFocusIn(overlay);
+        const first = overlay.querySelector('.week-option-use')
+            || overlay.querySelector('.week-options-choices input')
+            || overlay.querySelector('.resolve-close');
+        if (first) first.focus();
+
+        // A changed choice searches again and redraws only the line for now
+        // and the results. The choices are left in place, so the control the
+        // student changed keeps focus.
+        overlay.addEventListener('change', event => {
+            if (!event.target.closest('.week-options-choices') || !state) return;
+            prefs = {
+                freeDays: [...overlay.querySelectorAll('input[name="weekFreeDay"]:checked')]
+                    .map(box => box.value),
+                breakMins: Number((overlay.querySelector('input[name="weekBreak"]:checked') || {}).value),
+            };
+            saveWeekPrefs(browserStorage(), prefs);
+            view = weekOptionsView(state.rearrangeOptions(prefs), state.groupIndex, prefs);
+            overlay.querySelector('.week-options-now').textContent = view.now;
+            overlay.querySelector('.week-options-results').innerHTML = renderWeekOptionsResults(view);
+        });
+
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay || event.target.closest('.resolve-close')) {
+                closeResolveDialog();
+                return;
+            }
+            const use = event.target.closest('.week-option-use');
+            if (!use || !state) return;
+            const card = view.cards[Number(use.dataset.option)];
+            if (card && state.applyArrangement(card.option)) {
+                if ($searchBox) $searchBox.value = '';
+                toast('Re-arranged your week.', card.applied, undefined, { undo: true });
+            }
             closeResolveDialog();
         });
     }
@@ -2472,10 +2538,10 @@
     // Button Listeners
     $clearBtn.addEventListener('click', () => {
         if (!state) return;
-        if (confirm('Re-place every class? Anything you moved by hand stays put.')) {
-            state.reoptimise();
-            if ($searchBox) $searchBox.value = '';
-        }
+        // No yes-or-no box: the student is shown the weeks on offer and what
+        // each would move. The dialog opens even with nothing better to
+        // offer, because the choices that could change that live in it.
+        openWeekOptionsDialog();
     });
 
     $clearAllBtn.addEventListener('click', () => {
