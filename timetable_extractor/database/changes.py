@@ -570,6 +570,7 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
         cur.execute(
             """
             SELECT id, published_at FROM publications
+             WHERE load_revision > 0
              ORDER BY COALESCE(published_at, discovered_at) DESC LIMIT 2
             """
         )
@@ -820,6 +821,7 @@ def changes_for_courses(
         cur.execute(
             """
             SELECT id, published_at FROM publications
+             WHERE load_revision > 0
              ORDER BY COALESCE(published_at, discovered_at) DESC LIMIT 2
             """
         )

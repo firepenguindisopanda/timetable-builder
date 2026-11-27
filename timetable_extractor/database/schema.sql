@@ -54,6 +54,14 @@ CREATE TABLE IF NOT EXISTS publications (
 COMMENT ON TABLE publications IS
     'One row per distinct finder.xml the site has served, i.e. per republish.';
 
+-- How many times this publication's sessions have been written. 0 until the
+-- first load commits them; every `--replace` reload adds 1. A client that keeps
+-- its own copy reads (id, load_revision) as the identity of the data, because
+-- a reload rewrites the sessions under the same id. Bumped by write_sessions
+-- in the transaction that writes the sessions. PUBLICATION-ENDPOINT-SPEC.md.
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS load_revision INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS loaded_at     TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS sync_runs (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     started_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -283,6 +291,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS publication_changes_identity_idx
         from_publication_id, to_publication_id, change_type, course_code,
         COALESCE(activity_type, ''), COALESCE(stream_label, '')
     );
+
+
+-- Publications loaded before load_revision existed count as loaded once. Here,
+-- after `sessions` exists, so a fresh database can run the file top to bottom.
+-- Only rows still at 0 are touched, so running the file again changes nothing.
+UPDATE publications p
+   SET load_revision = 1, loaded_at = p.discovered_at
+ WHERE p.load_revision = 0
+   AND EXISTS (SELECT 1 FROM sessions s WHERE s.publication_id = p.id);
 
 
 -- Convenience views

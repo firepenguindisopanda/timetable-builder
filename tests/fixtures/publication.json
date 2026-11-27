@@ -1,0 +1,21 @@
+{
+  "apiVersion": 1,
+  "publication": {
+    "id": 16,
+    "revision": 4,
+    "publishedAt": "2026-11-12T18:43:06+00:00",
+    "loadedAt": "2026-11-13T07:58:00+00:00",
+    "resourceCount": 1617
+  },
+  "semester": {
+    "label": "Semester_1_TT2026_2027",
+    "academicYear": "2026/2027",
+    "number": 1,
+    "weekOne": "2026-08-31",
+    "totalWeeks": 12
+  },
+  "sync": {
+    "checkedAt": "2026-11-26T10:00:02+00:00",
+    "updatePending": false
+  }
+}
