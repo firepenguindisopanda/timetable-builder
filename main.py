@@ -60,7 +60,7 @@ from schemas import (
 from timetable_extractor import extract_timetable, observability
 
 import explore_router
-from timetable_extractor.database.terms import DEFAULT_TERM
+from timetable_extractor.database import terms as tm
 import static_version
 
 # --- Admin Auth ---
@@ -327,8 +327,13 @@ app.include_router(explore_router.api_router)
 
 @app.exception_handler(StarletteHTTPException)
 async def explorer_aware_http_exception(request: Request, exc: StarletteHTTPException):
-    """Render explorer errors as pages; everything else keeps the JSON default."""
-    if request.url.path.startswith("/explore"):
+    """
+    Render explorer errors as pages; everything else keeps the JSON default.
+
+    The builder too: its only 404 is an unknown `?term=`, and a student who
+    followed a stale link should land on a page, not a JSON body.
+    """
+    if request.url.path.startswith("/explore") or request.url.path == "/calendar":
         return explore_router.error_page(request, exc.status_code, str(exc.detail))
     return await http_exception_handler(request, exc)
 
@@ -349,7 +354,7 @@ def _page_context(request: Request, active: str) -> dict:
     is down or empty must cost them the banner, never the page.
     """
     try:
-        changes_banner = explore_router.changes_banner_context(DEFAULT_TERM)
+        changes_banner = explore_router.changes_banner_context(explore_router.default_term())
     except Exception:
         changes_banner = None
     return {
@@ -591,16 +596,42 @@ async def calendar_page(request: Request):
     """
     context = _page_context(request, "calendar")
     context["changes_banner"] = None
+
+    # One term per page (SEMESTERS-SPEC.md 7.4): switching term is a link to
+    # `/calendar?term=...`, and each term keeps its own saved timetable.
+    # Without `?term=` the page opens the default term, and the page's
+    # script moves a returning student on to the term they last used.
+    named = request.query_params.get("term")
+    term = explore_router.resolve_term(named)
+    context["term"] = tm.slug(term)
+    context["term_label"] = tm.label(term)
+    context["term_explicit"] = bool(named)
+    try:
+        context["terms"] = explore_router.term_switch(request, term, explicit=True)
+        context["term_stage"] = explore_router.term_stage(term)
+        held = explore_router.held_terms()
+        context["held_terms"] = [tm.slug(entry["term"]) for entry in held]
+        # Which term a timetable saved before terms belongs to, from the
+        # publication it was built on.
+        context["publication_terms"] = {
+            str(pid): tm.slug(t) for pid, t in explore_router.publication_terms().items()
+        }
+    except Exception:
+        context["terms"] = None
+        context["term_stage"] = None
+        context["held_terms"] = [tm.slug(term)]
+        context["publication_terms"] = {}
+
     # Dates for the teaching weeks. Like the banner, never worth the page:
     # without them the calendar shows the undated week it always did.
     try:
-        context["teaching_calendar"] = explore_router.teaching_calendar_context(DEFAULT_TERM)
+        context["teaching_calendar"] = explore_router.teaching_calendar_context(term)
     except Exception:
         context["teaching_calendar"] = None
     # The explorer's freshness line, so a student sees where the classes
     # came from and how recently, on the page they actually build from.
     try:
-        context["freshness"] = explore_router.freshness_context(DEFAULT_TERM)
+        context["freshness"] = explore_router.freshness_context(term)
     except Exception:
         context["freshness"] = None
     return templates.TemplateResponse(

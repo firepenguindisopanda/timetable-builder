@@ -15,7 +15,8 @@ A term is `(academic_year, semester)`, the key `weeks.TERMS` and the
 from __future__ import annotations
 
 import re
-from typing import Any
+from datetime import date
+from typing import Any, Iterable
 
 import psycopg
 
@@ -24,11 +25,11 @@ from timetable_extractor.database.weeks import TERMS
 #: (academic year, semester number), as `publications` files a publication.
 TermKey = tuple[str, int]
 
-#: The term a page shows when nothing chose one. Pinned to semester 1 until
-#: the builder can switch term (phase 3), so loading the inspection copy
-#: changes nothing a student sees. `latest_publication` in schema.sql is
-#: pinned to the same term and the two must move together.
-DEFAULT_TERM: TermKey = ("2026/2027", 1)
+#: Semester 1 2026/27, the only term before terms existed. A timetable saved
+#: then belongs to it, and it is the default of last resort when neither the
+#: warehouse nor `TERMS` names one. `latest_publication` and
+#: `current_sessions` in schema.sql stay pinned to it; nothing reads them.
+LEGACY_TERM: TermKey = ("2026/2027", 1)
 
 #: How many teaching weeks a term outside `TERMS` is given. Semester 1's
 #: count, which bounded every week before terms existed.
@@ -100,6 +101,23 @@ def label(term: TermKey, stage: str | None = None) -> str:
     return f"{text} (inspection copy)" if stage == "inspection" else text
 
 
+def choose_default(candidates: Iterable[TermKey], today: date) -> TermKey | None:
+    """
+    The term a page shows when nothing chose one (SEMESTERS-SPEC.md 7.1).
+
+    The earliest of `candidates` whose teaching has not ended, else the
+    newest. Semester 1 2026/27's teaching ended on 20 Nov 2026, so from the
+    next day students are advised for semester 2 and the site opens on it.
+    Exams are not in the teaching timetable, so they do not hold a term open.
+    None when there are no candidates.
+    """
+    known = sorted(set(candidates))
+    running = [t for t in known if t in TERMS and TERMS[t].teaching_ends >= today]
+    if running:
+        return running[0]
+    return known[-1] if known else None
+
+
 def held_terms(conn: psycopg.Connection) -> list[dict[str, Any]]:
     """
     Every term with a loaded publication, oldest first, with its current one.
@@ -127,13 +145,36 @@ def held_terms(conn: psycopg.Connection) -> list[dict[str, Any]]:
         ]
 
 
+def publication_terms(conn: psycopg.Connection) -> dict[int, TermKey]:
+    """
+    Every loaded publication's term, by id.
+
+    A saved timetable and a calendar subscription each carry the publication
+    they were built on and nothing else, so this is how they find their term:
+    a v3 timetable saved against publication 16 opens in semester 1, and a
+    feed made then keeps serving semester 1 after the default moves on.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, academic_year, semester FROM publications
+             WHERE load_revision > 0
+               AND academic_year IS NOT NULL AND semester IS NOT NULL
+             ORDER BY id
+            """
+        )
+        return {publication_id: (year, semester) for publication_id, year, semester in cur.fetchall()}
+
+
 __all__ = [
-    "DEFAULT_TERM",
     "FALLBACK_WEEKS",
     "IN_TERM",
+    "LEGACY_TERM",
     "TERM_PUBLICATION",
     "TermKey",
+    "choose_default",
     "held_terms",
+    "publication_terms",
     "in_term",
     "label",
     "params",

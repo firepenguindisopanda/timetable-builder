@@ -345,6 +345,32 @@ body.explore {
     text-decoration: none;
 }
 
+/* While the term shown is UWI's inspection copy. Amber, as the rail marks a
+   timetable that may be behind: read with care, not alarm. */
+.term-note {
+    background: color-mix(in srgb, var(--amber) 10%, var(--card));
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--text-sm);
+}
+
+.term-note-inner {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: var(--space-2) var(--space-6);
+    color: var(--ink-2);
+}
+
+.term-note-inner b { color: var(--ink); }
+
+/* The builder's switch sits under its title rather than in a band. */
+.term-switch--page {
+    border-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-2);
+}
+
 .rail-facts {
     color: var(--ink-2);
     display: flex;

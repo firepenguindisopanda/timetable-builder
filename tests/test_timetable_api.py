@@ -50,6 +50,10 @@ class FakeWarehouse:
             raise self.fail_with
         self.calls.append((fn.__name__, args))
 
+        # One term held: semester 1, the default.
+        if fn.__name__ == "held_terms":
+            return [{"term": ("2026/2027", 1), "publication_id": FIXTURE["publicationId"], "stage": "final",
+                     "published_at": None}]
         if fn.__name__ == "course_codes":
             return list(PUBLISHED_CODES)
         if fn.__name__ == "freshness":

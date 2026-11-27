@@ -16,6 +16,15 @@
 const STORAGE_KEY_V1 = 'celcat_timetable_data';
 const STORAGE_KEY_V2 = 'celcat_timetable_v2';
 const STORAGE_KEY_V3 = 'celcat_timetable_v3';
+//: One timetable per term: { version: 4, activeTerm, terms: { slug: <v3> } }.
+//: The v3 key is left as it was when a timetable moves here, so a page
+//: rolled back to v3 still finds the student's semester 1 timetable.
+const STORAGE_KEY_V4 = 'celcat_timetable_v4';
+
+//: The term a timetable saved before terms existed belongs to when the
+//: publication it was built on does not say: semester 1 2026/27, the only
+//: term there was (SEMESTERS-SPEC.md 7.4).
+const LEGACY_TERM = '2026-27-s1';
 
 /** How many undo steps are kept. Snapshots are small, but not free. */
 const MAX_HISTORY = 50;
@@ -1278,8 +1287,34 @@ function migrateV2toV3(v2Data) {
   };
 }
 
+/** A stored JSON value, or null when absent or unreadable. */
+function _parseStored(key, store) {
+  const raw = readStorageItem(key, store);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.warn(`Ignoring unreadable ${key}:`, e.message);
+    return null;
+  }
+}
+
+/** The newest timetable saved before terms, as v3, and which key held it. */
+function _readLegacyState(store) {
+  const v3 = _parseStored(STORAGE_KEY_V3, store);
+  if (v3 && v3.version === 3) return { saved: repairLostCourseKeys(v3), from: 'v3' };
+
+  const v2 = _parseStored(STORAGE_KEY_V2, store);
+  if (v2 && v2.version === 2) return { saved: migrateV2toV3(v2), from: 'v2' };
+
+  const v1 = _parseStored(STORAGE_KEY_V1, store);
+  if (v1) return { saved: migrateV2toV3(migrateV1toV2(v1)), from: 'v1' };
+
+  return null;
+}
+
 /**
- * The most recent saved timetable, upgraded to v3.
+ * The most recent timetable saved before terms, upgraded to v3.
  *
  * Storage is passed in so this can be exercised without a browser. The older
  * readers stay because a student with no network and a saved timetable has to
@@ -1288,28 +1323,69 @@ function migrateV2toV3(v2Data) {
 function readSavedState(storage) {
   const store = storage || browserStorage();
   if (!store) return null;
+  const legacy = _readLegacyState(store);
+  return legacy ? legacy.saved : null;
+}
 
-  const parse = key => {
-    const raw = readStorageItem(key, store);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      console.warn(`Ignoring unreadable ${key}:`, e.message);
-      return null;
+/**
+ * Every term's saved timetable, and the term the student last used.
+ *
+ * `{ activeTerm, terms: { "2026-27-s1": <v3> }, from }`, or null when nothing
+ * is saved. `from` names what was read: 'v4', or the older key a timetable
+ * was migrated from. A timetable saved before terms goes to the term of the
+ * publication it was built on, from `publicationTerms` ({"16":
+ * "2026-27-s1"}), so one saved against publication 16 opens as semester 1
+ * with nothing marked changed. With no publication it goes to semester 1,
+ * the only term there was, except a v1 payload: `/extract` writes v1, so that
+ * is a PDF just uploaded and belongs to `pageTerm`, the term the student is on.
+ */
+function readSavedTerms(storage, publicationTerms, pageTerm) {
+  const store = storage || browserStorage();
+  if (!store) return null;
+
+  const v4 = _parseStored(STORAGE_KEY_V4, store);
+  if (v4 && v4.version === 4 && v4.terms && typeof v4.terms === 'object') {
+    const terms = {};
+    for (const [term, saved] of Object.entries(v4.terms)) {
+      if (saved && saved.version === 3) terms[term] = repairLostCourseKeys(saved);
     }
-  };
+    return { activeTerm: v4.activeTerm || null, terms, from: 'v4' };
+  }
 
-  const v3 = parse(STORAGE_KEY_V3);
-  if (v3 && v3.version === 3) return repairLostCourseKeys(v3);
+  const legacy = _readLegacyState(store);
+  if (!legacy) return null;
+  const known = (publicationTerms || {})[String(legacy.saved.publicationId)];
+  const term = known || (legacy.from === 'v1' && pageTerm) || LEGACY_TERM;
+  return { activeTerm: term, terms: { [term]: legacy.saved }, from: legacy.from };
+}
 
-  const v2 = parse(STORAGE_KEY_V2);
-  if (v2 && v2.version === 2) return migrateV2toV3(v2);
+/**
+ * The term to open when the address names none: the one last used.
+ *
+ * Null for a PDF just uploaded (v1), which belongs wherever the student is,
+ * and when nothing is saved, so the page keeps the site's default term.
+ */
+function preferredTerm(storage, publicationTerms) {
+  const saved = readSavedTerms(storage, publicationTerms, null);
+  if (!saved || saved.from === 'v1') return null;
+  return saved.activeTerm;
+}
 
-  const v1 = parse(STORAGE_KEY_V1);
-  if (v1) return migrateV2toV3(migrateV1toV2(v1));
-
-  return null;
+/** Write one JSON value, and say whether it worked. */
+function _writeStored(key, value, storage) {
+  const store = storage || browserStorage();
+  if (!store) return { ok: false, error: 'This browser is not storing anything.' };
+  try {
+    store.setItem(key, JSON.stringify(value));
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e && e.name === 'QuotaExceededError'
+        ? 'There is no room left in this browser to save your timetable.'
+        : 'This browser would not save your timetable.',
+    };
+  }
 }
 
 //: The group-id and override prefix of a course whose key was lost.
@@ -1381,24 +1457,20 @@ function repairLostCourseKeys(saved) {
 }
 
 /**
- * Save, and say whether it worked.
+ * Save one term's timetable, keep the others, and say whether it worked.
+ *
+ * The term saved becomes the one last used. A timetable saved before terms is
+ * carried into v4 under its own term first, so saving semester 2 cannot lose
+ * the semester 1 timetable a student has not opened since.
  *
  * A full or disabled localStorage used to be swallowed into a console warning,
  * which meant a student could arrange a whole timetable and lose it without
  * ever being told (E14).
  */
-function writeSavedState(saved, storage) {
+function writeSavedTerm(term, saved, storage, publicationTerms) {
   const store = storage || browserStorage();
   if (!store) return { ok: false, error: 'This browser is not storing anything.' };
-  try {
-    store.setItem(STORAGE_KEY_V3, JSON.stringify(saved));
-    return { ok: true };
-  } catch (e) {
-    return {
-      ok: false,
-      error: e && e.name === 'QuotaExceededError'
-        ? 'There is no room left in this browser to save your timetable.'
-        : 'This browser would not save your timetable.',
-    };
-  }
+  const existing = readSavedTerms(store, publicationTerms, term);
+  const terms = { ...(existing ? existing.terms : {}), [term]: saved };
+  return _writeStored(STORAGE_KEY_V4, { version: 4, activeTerm: term, terms }, store);
 }

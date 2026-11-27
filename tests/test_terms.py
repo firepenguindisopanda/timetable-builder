@@ -10,6 +10,7 @@ they were given, and that nothing still reads the single-term views.
 from __future__ import annotations
 
 import re
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -57,14 +58,52 @@ def test_weeks_come_from_the_terms_dates():
     assert tm.total_weeks(("2030/2031", 1)) == tm.FALLBACK_WEEKS == 12
 
 
-def test_the_default_term_is_the_one_latest_publication_is_pinned_to():
-    """The two must move together in phase 3, or /changes and pages disagree."""
+def test_the_single_term_views_stay_semester_1s():
+    """
+    `latest_publication` is pinned to the legacy term and is not the default
+    any more. Nothing reads it (below), so it is left for ad-hoc SQL rather
+    than changed without a schema decision.
+    """
     sql = (ROOT / "timetable_extractor" / "database" / "schema.sql").read_text(encoding="utf-8")
     view = sql[sql.index("CREATE OR REPLACE VIEW latest_publication"):]
     view = view[: view.index(";")]
-    year, semester = tm.DEFAULT_TERM
+    year, semester = tm.LEGACY_TERM
     assert f"academic_year = '{year}' AND semester = {semester}" in view
-    assert tm.DEFAULT_TERM in TERMS
+    assert tm.LEGACY_TERM in TERMS
+
+
+# The default term (SEMESTERS-SPEC.md 7.1)
+
+
+@pytest.mark.parametrize(
+    ("today", "expected"),
+    [
+        (date(2026, 11, 10), S1),  # semester 1 still teaching
+        (date(2026, 11, 20), S1),  # its last teaching day
+        (date(2026, 11, 21), S2),  # the day after: students plan semester 2
+        (date(2026, 11, 27), S2),  # the day the inspection copy was loaded
+        (date(2027, 5, 1), S2),    # every term over: the newest
+    ],
+)
+def test_the_default_is_the_earliest_term_still_teaching(today, expected):
+    assert tm.choose_default([S1, S2], today) == expected
+
+
+def test_only_held_terms_are_candidates():
+    assert tm.choose_default([S1], date(2026, 11, 27)) == S1
+    assert tm.choose_default([], date(2026, 11, 27)) is None
+
+
+def test_an_undated_term_can_only_win_as_the_newest():
+    later = ("2027/2028", 1)
+    assert tm.choose_default([S1, S2, later], date(2026, 11, 27)) == S2
+    assert tm.choose_default([S1, S2, later], date(2027, 5, 1)) == later
+
+
+def test_publication_terms_names_only_loaded_publications():
+    conn = Connection([(16, "2026/2027", 1), (21, "2026/2027", 2)])
+    assert tm.publication_terms(conn) == {16: S1, 21: S2}
+    assert "load_revision > 0" in conn.statements[0][0]
 
 
 def test_the_filter_names_the_view_columns():

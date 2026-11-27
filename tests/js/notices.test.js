@@ -43,6 +43,13 @@ test('most urgent first, and never more than two', () => {
   );
 });
 
+test('the inspection copy is said once, after what moved and before the subscription', () => {
+  assert.deepStrictEqual(shown({ inspection: true }), ['inspection']);
+  assert.deepStrictEqual(shown({ inspection: true, subscription: true }), ['inspection', 'subscription']);
+  assert.deepStrictEqual(shown({ changes: true, inspection: true }), ['changes', 'inspection']);
+  assert.deepStrictEqual(shown({ republish: 'offer', storage: true, inspection: true }), ['storage', 'republish']);
+});
+
 test('an unknown notice is ignored rather than shown', () => {
   assert.deepStrictEqual(shown({ banner: true, storage: true }), ['storage']);
 });

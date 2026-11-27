@@ -24,14 +24,23 @@ const {
   migrateV1toV2,
   migrateV2toV3,
   readSavedState,
-  writeSavedState,
+  readSavedTerms,
+  preferredTerm,
+  writeSavedTerm,
 } = api.take(
   'TimetableState',
   'migrateV1toV2',
   'migrateV2toV3',
   'readSavedState',
-  'writeSavedState'
+  'readSavedTerms',
+  'preferredTerm',
+  'writeSavedTerm'
 );
+
+const S1 = '2026-27-s1';
+const S2 = '2026-27-s2';
+//: The page's map of publication to term, as main.py renders it.
+const PUBLICATION_TERMS = { 15: S1, 16: S1, 21: S2 };
 
 /** localStorage, near enough, and able to refuse. */
 function fakeStorage(initial) {
@@ -268,8 +277,8 @@ test('saving round trips', () => {
   state.placeMissing();
   const storage = fakeStorage();
 
-  assert.deepEqual(writeSavedState(state.toSaved(), storage), { ok: true });
-  const loaded = readSavedState(storage);
+  assert.deepEqual(writeSavedTerm(S1, state.toSaved(), storage), { ok: true });
+  const loaded = readSavedTerms(storage, PUBLICATION_TERMS).terms[S1];
 
   assert.equal(loaded.publicationId, 1);
   assert.deepEqual(loaded.placements, state.placements);
@@ -279,14 +288,14 @@ test('a full browser is reported rather than logged and forgotten', () => {
   const storage = fakeStorage();
   storage.full = true;
 
-  const result = writeSavedState({ version: 3 }, storage);
+  const result = writeSavedTerm(S1, { version: 3 }, storage);
 
   assert.equal(result.ok, false);
   assert.match(result.error, /no room left/);
 });
 
 test('a browser that stores nothing at all is reported too', () => {
-  const result = writeSavedState({ version: 3 }, null);
+  const result = writeSavedTerm(S1, { version: 3 }, null);
 
   assert.equal(result.ok, false);
   assert.ok(result.error);
@@ -449,7 +458,7 @@ test('storage that throws on read means no saved timetable, not a crash', () => 
 });
 
 test('storage that throws on write is reported, not thrown', () => {
-  const result = writeSavedState({ version: 3 }, refusingStorage());
+  const result = writeSavedTerm(S1, { version: 3 }, refusingStorage());
   assert.equal(result.ok, false);
   assert.ok(result.error);
 });
@@ -467,5 +476,98 @@ test('a localStorage global that throws when touched reads as no storage', () =>
   assert.equal(blocked.get('browserStorage')(), null);
   assert.equal(blocked.get('readSavedState')(), null);
   assert.equal(blocked.get('readStorageItem')('celcat_timetable_v3'), null);
-  assert.equal(blocked.get('writeSavedState')({ version: 3 }).ok, false);
+  assert.equal(blocked.get('writeSavedTerm')(S1, { version: 3 }).ok, false);
+});
+
+// One timetable per term (v4, SEMESTERS-SPEC.md 7.4)
+
+/** A saved v3 timetable built against `publicationId`. */
+function v3Against(publicationId) {
+  return { ...migrateV2toV3(v2Payload()), publicationId };
+}
+
+test('a v3 timetable saved against publication 16 becomes semester 1', () => {
+  const storage = fakeStorage({ celcat_timetable_v3: JSON.stringify(v3Against(16)) });
+
+  const saved = readSavedTerms(storage, PUBLICATION_TERMS, S2);
+
+  assert.equal(saved.activeTerm, S1);
+  assert.deepEqual(Object.keys(saved.terms), [S1]);
+  assert.equal(saved.terms[S1].publicationId, 16);
+  assert.equal(saved.terms[S1].placements.length, 2);
+  assert.equal(preferredTerm(storage, PUBLICATION_TERMS), S1);
+});
+
+test('a timetable with no publication is semester 1, the only term before terms', () => {
+  const storage = fakeStorage({ celcat_timetable_v2: JSON.stringify(v2Payload()) });
+
+  assert.equal(readSavedTerms(storage, PUBLICATION_TERMS, S2).activeTerm, S1);
+});
+
+test('a publication the page does not know falls back to semester 1', () => {
+  const storage = fakeStorage({ celcat_timetable_v3: JSON.stringify(v3Against(99)) });
+
+  assert.equal(readSavedTerms(storage, PUBLICATION_TERMS, S2).activeTerm, S1);
+});
+
+test('a PDF just uploaded goes to the term the student is on, and moves nobody', () => {
+  const storage = fakeStorage({ celcat_timetable_data: JSON.stringify(lawUploadV1()) });
+
+  const saved = readSavedTerms(storage, PUBLICATION_TERMS, S2);
+
+  assert.equal(saved.from, 'v1');
+  assert.deepEqual(Object.keys(saved.terms), [S2]);
+  assert.equal(preferredTerm(storage, PUBLICATION_TERMS), null);
+});
+
+test('saving semester 2 keeps the semester 1 timetable it was migrated beside', () => {
+  const storage = fakeStorage({ celcat_timetable_v3: JSON.stringify(v3Against(16)) });
+  const s2 = { ...v3Against(21), courses: [], courseKeys: [], placements: [] };
+
+  assert.deepEqual(writeSavedTerm(S2, s2, storage, PUBLICATION_TERMS), { ok: true });
+  const saved = readSavedTerms(storage, PUBLICATION_TERMS, S1);
+
+  assert.equal(saved.from, 'v4');
+  assert.equal(saved.activeTerm, S2);
+  assert.equal(saved.terms[S1].placements.length, 2);
+  assert.equal(saved.terms[S2].publicationId, 21);
+  // The v3 key is left as it was, for a page rolled back to v3.
+  assert.equal(JSON.parse(storage._raw.celcat_timetable_v3).publicationId, 16);
+});
+
+test('switching back leaves the other term untouched', () => {
+  const storage = fakeStorage();
+  const s1 = v3Against(16);
+  writeSavedTerm(S1, s1, storage, PUBLICATION_TERMS);
+  writeSavedTerm(S2, { ...v3Against(21), placements: [] }, storage, PUBLICATION_TERMS);
+  writeSavedTerm(S1, s1, storage, PUBLICATION_TERMS);
+
+  const saved = readSavedTerms(storage, PUBLICATION_TERMS, S1);
+  assert.equal(saved.activeTerm, S1);
+  assert.deepEqual(saved.terms[S1], s1);
+  assert.equal(saved.terms[S2].placements.length, 0);
+});
+
+test('v4 wins over the v3 it was migrated from', () => {
+  const storage = fakeStorage({ celcat_timetable_v3: JSON.stringify(v3Against(16)) });
+  writeSavedTerm(S2, v3Against(21), storage, PUBLICATION_TERMS);
+  storage._raw.celcat_timetable_v3 = JSON.stringify({ ...v3Against(16), placements: [] });
+
+  const saved = readSavedTerms(storage, PUBLICATION_TERMS, S1);
+  assert.equal(saved.terms[S1].placements.length, 2);
+  assert.equal(preferredTerm(storage, PUBLICATION_TERMS), S2);
+});
+
+test('nothing saved prefers no term, so the site default stands', () => {
+  assert.equal(readSavedTerms(fakeStorage(), PUBLICATION_TERMS, S2), null);
+  assert.equal(preferredTerm(fakeStorage(), PUBLICATION_TERMS), null);
+});
+
+test('an unreadable v4 falls back to the older timetable rather than losing it', () => {
+  const storage = fakeStorage({
+    celcat_timetable_v4: '{not json',
+    celcat_timetable_v3: JSON.stringify(v3Against(16)),
+  });
+
+  assert.equal(readSavedTerms(storage, PUBLICATION_TERMS, S2).terms[S1].publicationId, 16);
 });
