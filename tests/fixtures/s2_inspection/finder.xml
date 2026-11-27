@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="finderss.xsl"?>
+
+<finder>
+<option showfaculties="1">
+<subheading>Timetable Finder</subheading>
+<footer>Published 26-Nov-26 2:15:05 PM - University of the West Indies St. Augustine<br />Created by 
+<a href="http://www.celcat.com" target="_parent">CELCAT Web Publisher</a></footer>
+<dept>Department</dept>
+<faculty>Faculty</faculty>
+<refresh>Please wait whilst the Timetable Finder refreshes...</refresh>
+<loading>Please wait whilst the Timetable Finder loads...</loading>
+<resource>Resource</resource>
+<initial>Initial</initial>
+<select>Select...</select>
+<all>All</all>
+<help>Help</help>
+<nojavascript>JavaScript is not available or enabled in your browser, thus the selector above will not work. The links below may be used instead:</nojavascript></option>
+<type>
+<module>Course</module>
+<group>Group</group>
+<staff>Staff</staff>
+<room>Room</room>
+<student>Student</student>
+<equip>Equipment</equip>
+<team>Team</team>
+<course>Programme</course></type>
+<resource id="1249" type="module" typeid="601" order="1" dept="24" faculty="5081" link="m1249.pdf">
+<dept>Management Studies</dept>
+<faculty>Social Sciences</faculty>
+<name>ACCT 1002, Intro. to Financial Accounting</name>
+<initial id="41">A</initial></resource>
+<resource id="12211" type="module" typeid="601" order="1" dept="24" faculty="5081" link="m12211.pdf">
+<dept>Management Studies</dept>
+<faculty>Social Sciences</faculty>
+<name>MGMT 3095, Professional Ethics</name>
+<initial id="4d">M</initial></resource></finder>

@@ -119,7 +119,7 @@ def test_values(client, warehouse):
 
 
 def test_unknown_semester_has_no_week_one(client, warehouse):
-    """A semester missing from SEMESTER_TEACHING_START is not guessed at."""
+    """A semester missing from weeks.TERMS is not guessed at."""
     warehouse.semester = "Semester_1_TT2027_2028"
     semester = client.get(URL).json()["semester"]
     assert semester["academicYear"] == "2027/2028"
@@ -295,6 +295,9 @@ class PairCursor:
     def fetchall(self):
         return []
 
+    def fetchone(self):
+        return None
+
 
 class PairConnection:
     def __init__(self):
@@ -320,5 +323,6 @@ def test_changes_ignores_unloaded_publications(call):
     conn = PairConnection()
     assert call(conn) is None
     pair = conn.seen[0]
-    assert "FROM publications" in pair
-    assert "WHERE load_revision > 0" in pair
+    # Within the default term, through the view that skips unloaded
+    # publications (test_empty_publication.py pins its `load_revision > 0`).
+    assert "FROM latest_publication" in pair

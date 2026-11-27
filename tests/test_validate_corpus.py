@@ -169,3 +169,73 @@ class TestGate:
         result = report_input()
         result["empty"] = ["m1.pdf"]
         assert validate_corpus.report(result, 99.0) == 1
+
+
+INSPECTION = "Inspection_Sem_2_2026_2027"
+
+
+class TestTerm:
+    """
+    The four term findings (SEMESTERS-SPEC.md 8). A new term is exactly when
+    CELCAT's labels drift: the inspection copy's "Sem" gave no term at all.
+    """
+
+    def test_the_index_title_gives_the_term(self):
+        found = validate_corpus.check_term(
+            INSPECTION, {"m1.pdf": INSPECTION}, {"m1.pdf": [1, 13]}
+        )
+        assert found["term"]["academic_year"] == "2026/2027"
+        assert found["term"]["semester"] == 2
+        assert found["term"]["stage"] == "inspection"
+        assert found["term"]["teaching_weeks"] == 13
+        assert found["findings"] == {}
+
+    def test_without_an_index_title_the_headings_give_it(self):
+        found = validate_corpus.check_term(
+            None, {"m1.pdf": "Semester_1_TT2026_2027"}, {}
+        )
+        assert found["term"]["read_from"] == "the PDF headings"
+        assert found["findings"] == {}
+
+    def test_no_term_anywhere_is_term_unparsed(self):
+        found = validate_corpus.check_term("Timetable", {"m1.pdf": None}, {})
+        assert found["term"] is None
+        assert "term_unparsed" in found["findings"]
+
+    def test_a_pdf_from_another_term_is_term_mismatch(self):
+        found = validate_corpus.check_term(
+            INSPECTION,
+            {"m1.pdf": INSPECTION, "m2.pdf": "Semester_1_TT2026_2027"},
+            {},
+        )
+        assert [s["file"] for s in found["findings"]["term_mismatch"]] == ["m2.pdf"]
+
+    def test_a_term_with_no_dates_is_term_not_in_calendar(self):
+        label = "Semester_1_TT2027_2028"
+        found = validate_corpus.check_term(label, {"m1.pdf": label}, {})
+        assert "term_not_in_calendar" in found["findings"]
+
+    def test_a_week_past_the_terms_last_is_week_beyond_term(self):
+        label = "Semester_1_TT2026_2027"
+        found = validate_corpus.check_term(
+            label, {"m1.pdf": label, "m2.pdf": label}, {"m1.pdf": [12], "m2.pdf": [13]}
+        )
+        assert found["findings"]["week_beyond_term"] == [
+            {"file": "m2.pdf", "weeks": [13], "teaching_weeks": 12}
+        ]
+
+    def test_week_13_is_inside_semester_2(self):
+        found = validate_corpus.check_term(INSPECTION, {"m1.pdf": INSPECTION}, {"m1.pdf": [13]})
+        assert "week_beyond_term" not in found["findings"]
+
+    @pytest.mark.parametrize("finding", ["term_unparsed", "term_mismatch"])
+    def test_the_two_that_corrupt_a_load_fail_the_gate(self, finding):
+        result = report_input()
+        result["term"] = {"term": None, "findings": {finding: [{}]}}
+        assert validate_corpus.report(result, 99.0) == 1
+
+    @pytest.mark.parametrize("finding", ["term_not_in_calendar", "week_beyond_term"])
+    def test_the_two_to_judge_do_not_fail_it(self, finding):
+        result = report_input()
+        result["term"] = {"term": None, "findings": {finding: [{}]}}
+        assert validate_corpus.report(result, 99.0) == 0

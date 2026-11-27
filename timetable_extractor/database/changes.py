@@ -334,21 +334,57 @@ def _session_rows(conn: psycopg.Connection, publication_id: int) -> list[dict[st
 
 
 def previous_publication(conn: psycopg.Connection, publication_id: int) -> int | None:
-    """The publication immediately before this one, or None if it is the first."""
+    """
+    The loaded publication of the same term immediately before this one, or
+    None if it is the term's first.
+
+    Within the term and across sources: the final semester 2 timetable diffs
+    against the inspection copy, so students see what moved between the draft
+    and the timetable, and semester 1 is never diffed against semester 2,
+    which would read as every class changing. The diff and the past weeks a
+    load carries forward (`horizon.py`) both come from here. Unloaded
+    publications are skipped, as `/changes` skips them: a row whose sessions
+    were never written is not a timetable to compare with.
+    """
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id FROM publications
-             WHERE COALESCE(published_at, discovered_at) < (
-                       SELECT COALESCE(published_at, discovered_at)
-                         FROM publications WHERE id = %s)
-             ORDER BY COALESCE(published_at, discovered_at) DESC
+            SELECT p.id FROM publications p, publications this
+             WHERE this.id = %s
+               AND p.load_revision > 0
+               AND p.academic_year IS NOT DISTINCT FROM this.academic_year
+               AND p.semester IS NOT DISTINCT FROM this.semester
+               AND COALESCE(p.published_at, p.discovered_at)
+                   < COALESCE(this.published_at, this.discovered_at)
+             ORDER BY COALESCE(p.published_at, p.discovered_at) DESC
              LIMIT 1
             """,
             (publication_id,),
         )
         row = cur.fetchone()
     return row[0] if row else None
+
+
+def current_pair(conn: psycopg.Connection) -> list[tuple[int, Any]]:
+    """
+    The current publication and the one before it, newest first, as
+    (id, published_at). One entry when the term has a single publication,
+    none when nothing is loaded.
+
+    The current one is `latest_publication`, the default term's, so the pair
+    never spans two terms: loading the semester 2 inspection copy leaves
+    `/changes` comparing semester 1 with itself.
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, published_at FROM latest_publication")
+        current = cur.fetchone()
+        if current is None:
+            return []
+        previous = previous_publication(conn, current[0])
+        if previous is None:
+            return [tuple(current)]
+        cur.execute("SELECT id, published_at FROM publications WHERE id = %s", (previous,))
+        return [tuple(current), tuple(cur.fetchone())]
 
 
 def diff_publications(
@@ -566,15 +602,7 @@ def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
     Returns None when the warehouse holds a single publication, which is not an
     error: there is genuinely nothing to compare against, and the page says so.
     """
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT id, published_at FROM publications
-             WHERE load_revision > 0
-             ORDER BY COALESCE(published_at, discovered_at) DESC LIMIT 2
-            """
-        )
-        publications = cur.fetchall()
+    publications = current_pair(conn)
 
     if len(publications) < 2:
         return None
@@ -817,15 +845,7 @@ def changes_for_courses(
 
     Returns None when the warehouse holds a single publication.
     """
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT id, published_at FROM publications
-             WHERE load_revision > 0
-             ORDER BY COALESCE(published_at, discovered_at) DESC LIMIT 2
-            """
-        )
-        publications = cur.fetchall()
+    publications = current_pair(conn)
 
     if len(publications) < 2:
         return None

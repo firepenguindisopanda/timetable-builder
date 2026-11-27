@@ -2,6 +2,11 @@
 Constants used throughout the timetable extraction package.
 """
 
+from __future__ import annotations
+
+import urllib.parse
+from dataclasses import dataclass
+
 # Day names are rendered rotated/reversed in CELCAT PDFs
 REVERSED_DAYS: dict[str, str] = {
     "yadnoM": "Monday",
@@ -57,6 +62,73 @@ EXPECTED_TIMES: list[str] = [
 BASE_URL: str = "https://mysta.uwi.edu/timetable/"
 FINDER_XML: str = BASE_URL + "finder.xml"
 DELAY_SEC: float = 1.5  # polite delay between requests
+
+
+@dataclass(frozen=True)
+class Source:
+    """
+    One CELCAT web publication: an address with its own finder.xml.
+
+    On 26 Nov 2026 UWI published the semester 2 inspection copy at a second
+    address beside the live semester 1 timetable. The two share 595 PDF names
+    with different contents, so each source keeps its own folder, registry
+    and withdrawn folder. SEMESTERS-SPEC.md section 5.
+    """
+
+    #: Where its finder.xml, finder.html and PDFs are served from.
+    base_url: str
+    #: Course PDFs; staff and room PDFs go in its `staff/` and `rooms/`.
+    pdf_dir: str
+    #: The finder.xml `database.cli load` reads. finder.html is kept beside it.
+    registry: str
+    #: Where PDFs UWI withdrew are moved to; `sync pull` never deletes.
+    withdrawn_dir: str
+
+    @property
+    def finder_xml(self) -> str:
+        return self.base_url + "finder.xml"
+
+    @property
+    def finder_html(self) -> str:
+        return self.base_url + "finder.html"
+
+    @property
+    def link_prefix(self) -> str:
+        """
+        The path from the root address to this source's files.
+
+        Stored in front of a PDF's name in `pdf_files.pdf_link` and
+        `resources.pdf_link`, which are unique on that column. Empty for the
+        root source, so none of its rows changes; for the inspection copy,
+        "Inspection Copy/Sem2INSPECTIONCOPY/", so its m1249.pdf is a row of
+        its own instead of overwriting semester 1's.
+        """
+        if not self.base_url.startswith(BASE_URL):
+            raise ValueError(f"source outside {BASE_URL}: {self.base_url}")
+        return urllib.parse.unquote(self.base_url[len(BASE_URL):])
+
+
+#: The source a command reads when none is named. Its paths are the ones the
+#: corpus, registry and runbook used before there was more than one source.
+DEFAULT_SOURCE: str = "root"
+
+#: Every CELCAT publication the warehouse follows. Adding or retiring one is a
+#: code change and a runbook line: UWI chose the inspection copy's address for
+#: this term, and next year's will differ.
+SOURCES: dict[str, Source] = {
+    "root": Source(
+        base_url=BASE_URL,
+        pdf_dir="downloaded_pdfs",
+        registry="finder.xml",
+        withdrawn_dir="withdrawn_pdfs",
+    ),
+    "s2-inspection": Source(
+        base_url=BASE_URL + "Inspection%20Copy/Sem2INSPECTIONCOPY/",
+        pdf_dir="sources/s2-inspection/pdfs",
+        registry="sources/s2-inspection/finder.xml",
+        withdrawn_dir="sources/s2-inspection/withdrawn",
+    ),
+}
 
 # For blocks.py
 MAX_BLOCK_HEIGHT: int = 130

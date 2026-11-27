@@ -77,7 +77,10 @@ def extract_timetable(
 
             if meta["semester"] is None:
                 for w in words:
-                    if w["text"].startswith("Semester_") or w["text"].startswith("Summer_"):
+                    # "Inspection_Sem_2_2026_2027" heads UWI's draft for
+                    # checking; without it the semester 2 inspection copy
+                    # stored no semester at all.
+                    if w["text"].startswith(("Semester_", "Summer_", "Inspection_")):
                         meta["semester"] = w["text"]
                     if w["text"] == "timetable":
                         # "Course timetable - COMP XXXX, Course Name"
