@@ -20,6 +20,8 @@ from typing import Any, Iterable
 
 import psycopg
 
+from timetable_extractor.constants import DEFAULT_SOURCE
+
 # Course-code matching lives with the rest of the course-code handling. It is
 # re-exported below because the explorer and the timetable API both reach for
 # it through this module.
@@ -193,9 +195,14 @@ def freshness(conn: psycopg.Connection) -> dict[str, Any]:
             SELECT started_at AS checked_at, index_changed, publication_id,
                    pdfs_changed, note
               FROM sync_runs
+             WHERE source = %s
              ORDER BY started_at DESC
              LIMIT 1
-            """
+            """,
+            # The source students are served (semester 1 until the term
+            # switch): a change found in the inspection copy is not news
+            # about this timetable. SEMESTERS-SPEC.md 7.1.
+            (DEFAULT_SOURCE,),
         )
         last_check = (_rows(cur) or [{}])[0]
 

@@ -3,6 +3,7 @@ Command line interface to the timetable warehouse.
 
     uv run python -m timetable_extractor.database.cli init
     uv run python -m timetable_extractor.database.cli load
+    uv run python -m timetable_extractor.database.cli load --source s2-inspection
     uv run python -m timetable_extractor.database.cli stats
     uv run python -m timetable_extractor.database.cli course COMP2601
     uv run python -m timetable_extractor.database.cli free-rooms Monday 10:00 12:00
@@ -16,13 +17,14 @@ import argparse
 import re
 from pathlib import Path
 
+from timetable_extractor.constants import DEFAULT_SOURCE, SOURCES
 from timetable_extractor.database import queries
 from timetable_extractor.database.connection import (
     DatabaseNotConfigured,
     apply_schema,
     connect,
 )
-from timetable_extractor.database.loader import load_all
+from timetable_extractor.database.loader import UnknownTerm, load_all
 
 
 def _minutes(label: str) -> int:
@@ -69,16 +71,26 @@ def _load(args: argparse.Namespace) -> int:
     with connect() as conn:
         apply_schema(conn)
 
-    root = Path(args.pdf_dir)
-    stats = load_all(
-        connect,
-        finder_xml=Path(args.registry),
-        pdf_dirs=[root, root / "staff", root / "rooms"],
-        replace=args.replace,
-    )
+    source = SOURCES[args.source]
+    root = Path(args.pdf_dir or source.pdf_dir)
+    try:
+        stats = load_all(
+            connect,
+            finder_xml=Path(args.registry or source.registry),
+            pdf_dirs=[root, root / "staff", root / "rooms"],
+            replace=args.replace,
+            source=args.source,
+        )
+    except UnknownTerm as exc:
+        print(f"error: {exc}")
+        return 1
     print()
     print(f"Publication  : {stats.publication_id}"
           f"{'  (already known)' if stats.reused_publication else '  (new)'}")
+    print(f"Source       : {stats.source}")
+    if stats.term:
+        print(f"Term         : {stats.term.academic_year} semester {stats.term.semester}"
+              f"  ({stats.term.stage}, from {stats.term.read_from})")
     print(f"Published at : {stats.published_at}")
     print(f"Index        : {stats.resources} resources "
           f"({stats.courses} courses, {stats.staff} staff, {stats.rooms} rooms)")
@@ -89,8 +101,10 @@ def _load(args: argparse.Namespace) -> int:
         print(f"Weeks from   : W{stats.horizon}  "
               f"(past weeks carried onto {stats.weeks_carried} sessions)")
     print(f"Links        : {stats.staff_links} staff, {stats.source_links} sources")
-    print(f"Changes      : {stats.changes} vs the previous publication"
-          f"{'  (first publication, nothing to compare)' if not stats.changes else ''}")
+    if stats.previous:
+        print(f"Changes      : {stats.changes} vs publication {stats.previous}, the term's previous")
+    else:
+        print("Changes      : none  (the term's first publication, nothing to compare)")
     return 0
 
 
@@ -101,8 +115,14 @@ def main() -> int:
     sub.add_parser("init", help="create tables, indexes and views")
 
     load_parser = sub.add_parser("load", help="extract every PDF into the database")
-    load_parser.add_argument("--pdf-dir", default="downloaded_pdfs")
-    load_parser.add_argument("--registry", default="finder.xml")
+    load_parser.add_argument(
+        "--source",
+        choices=sorted(SOURCES),
+        default=DEFAULT_SOURCE,
+        help="which publication; its folder and registry are the defaults below",
+    )
+    load_parser.add_argument("--pdf-dir", help="override the source's PDF folder")
+    load_parser.add_argument("--registry", help="override the source's finder.xml")
     load_parser.add_argument(
         "--replace",
         action="store_true",

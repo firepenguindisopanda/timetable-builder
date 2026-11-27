@@ -62,6 +62,20 @@ COMMENT ON TABLE publications IS
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS load_revision INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS loaded_at     TIMESTAMPTZ;
 
+-- Which CELCAT publication this came from, which term it is, and whether it
+-- is UWI's draft for checking or the timetable. On 26 Nov 2026 UWI published
+-- the semester 2 inspection copy beside the live semester 1 timetable; read
+-- as "the newest publication", it would have replaced semester 1 for every
+-- student. `source` names an entry in constants.SOURCES; `semester` is the
+-- number, where sessions.semester is CELCAT's label; `stage` is 'inspection'
+-- or 'final' (weeks.publication_stage). Set by the loader from the index
+-- title; rows loaded before these existed are backfilled below, after
+-- `sessions`. SEMESTERS-SPEC.md 6.1.
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS source        TEXT;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS academic_year TEXT;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS semester      SMALLINT;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS stage         TEXT;
+
 CREATE TABLE IF NOT EXISTS sync_runs (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     started_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -81,6 +95,11 @@ COMMENT ON TABLE sync_runs IS
     'the server itself does not expose.';
 
 CREATE INDEX IF NOT EXISTS sync_runs_started_idx ON sync_runs (started_at DESC);
+
+-- Which source was checked. The site's "update pending" flag reads the newest
+-- check, so without it a change in the inspection copy would tell semester 1
+-- students their timetable is behind. Every row before this was root's.
+ALTER TABLE sync_runs ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'root';
 
 
 -- Organisational units
@@ -111,10 +130,27 @@ CREATE TABLE IF NOT EXISTS resources (
     -- Lets a resource that disappears from the index be spotted.
     first_seen_publication  BIGINT        REFERENCES publications(id) ON DELETE SET NULL,
     last_seen_publication   BIGINT        REFERENCES publications(id) ON DELETE SET NULL,
-    UNIQUE (kind, celcat_id)
+    source                  TEXT          NOT NULL DEFAULT 'root',
+    CONSTRAINT resources_source_kind_celcat_key UNIQUE (source, kind, celcat_id)
 );
 
 CREATE INDEX IF NOT EXISTS resources_kind_idx ON resources (kind);
+
+-- CELCAT ids repeat across sources: the inspection copy's module 1249 is not
+-- semester 1's. A warehouse made before sources existed has UNIQUE (kind,
+-- celcat_id) instead, which these replace. `pdf_link` needs no change: a
+-- source's files are stored under their path from the root address
+-- ("Inspection Copy/Sem2INSPECTIONCOPY/m1249.pdf"), and root's are unchanged.
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'root';
+ALTER TABLE resources DROP CONSTRAINT IF EXISTS resources_kind_celcat_id_key;
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'resources_source_kind_celcat_key'
+    ) THEN
+        ALTER TABLE resources ADD CONSTRAINT resources_source_kind_celcat_key
+            UNIQUE (source, kind, celcat_id);
+    END IF;
+END $$;
 
 
 -- Entities
@@ -301,6 +337,37 @@ UPDATE publications p
  WHERE p.load_revision = 0
    AND EXISTS (SELECT 1 FROM sessions s WHERE s.publication_id = p.id);
 
+-- Publications loaded before sources and terms existed all came from the root
+-- address and were the timetable, not a draft. Their term is the commonest
+-- semester label among their sessions, read with the pattern
+-- weeks._SEMESTER uses (test_term_backfill.py keeps the two the same). Only
+-- rows still unset are touched, so running the file again changes nothing,
+-- and the scan is limited to them so it costs nothing once they are filled.
+UPDATE publications SET source = 'root'  WHERE source IS NULL;
+UPDATE publications SET stage  = 'final' WHERE stage  IS NULL;
+UPDATE publications p
+   SET academic_year = t.parts[2] || '/' || t.parts[3],
+       semester = CASE upper(t.parts[1])
+                      WHEN 'I'   THEN 1
+                      WHEN 'II'  THEN 2
+                      WHEN 'III' THEN 3
+                      ELSE t.parts[1]::smallint
+                  END
+  FROM (
+      SELECT s.publication_id,
+             regexp_match(
+                 mode() WITHIN GROUP (ORDER BY s.semester),
+                 'Sem(?:ester)?[_\s]*(III|II|I|\d)[_\s]*(?:TT)?[_\s]*(\d{4})[_\s]*(\d{4})',
+                 'i'
+             ) AS parts
+        FROM sessions s
+       WHERE s.publication_id IN (SELECT id FROM publications WHERE academic_year IS NULL)
+       GROUP BY s.publication_id
+  ) t
+ WHERE p.id = t.publication_id
+   AND p.academic_year IS NULL
+   AND t.parts IS NOT NULL;
+
 
 -- Convenience views
 
@@ -313,10 +380,27 @@ UPDATE publications p
 -- was run again. loader.load_all now extracts before it writes anything, which
 -- shrinks that window to the final insert; this closes it wherever a load
 -- stops. The cost is an index lookup on sessions_publication_idx.
+--
+-- Since terms, "has sessions" is load_revision > 0, which write_sessions bumps
+-- in the transaction that commits them, and "newest" is per term: the
+-- semester 2 inspection copy is newer than every semester 1 publication and
+-- must not replace it. term_publication is each term's current publication.
+-- A final timetable outranks any inspection copy of the same term, whatever
+-- the dates; within a stage the newest wins, as before. SEMESTERS-SPEC.md 6.2.
+CREATE OR REPLACE VIEW term_publication AS
+    SELECT DISTINCT ON (academic_year, semester) *
+      FROM publications p
+     WHERE load_revision > 0
+     ORDER BY academic_year, semester,
+              (stage = 'final') DESC,
+              COALESCE(published_at, discovered_at) DESC;
+
+-- The default term's current publication, which current_sessions and every
+-- page read. Pinned to semester 1 2026/27 until the builder can switch term
+-- (phase 3), so loading the inspection copy changes nothing students see.
 CREATE OR REPLACE VIEW latest_publication AS
-    SELECT * FROM publications p
-     WHERE EXISTS (SELECT 1 FROM sessions s WHERE s.publication_id = p.id)
-     ORDER BY COALESCE(p.published_at, p.discovered_at) DESC LIMIT 1;
+    SELECT * FROM term_publication
+     WHERE academic_year = '2026/2027' AND semester = 1;
 
 -- The timetable as it currently stands, flattened for querying.
 CREATE OR REPLACE VIEW current_sessions AS
@@ -354,3 +438,48 @@ CREATE OR REPLACE VIEW current_sessions AS
     LEFT JOIN departments d ON d.id = c.department_id
     LEFT JOIN faculties   f ON f.id = c.faculty_id
     WHERE s.publication_id = (SELECT id FROM latest_publication);
+
+-- Every term's current timetable: current_sessions over each row of
+-- term_publication, with the term it belongs to. `semester` stays CELCAT's
+-- label, as in current_sessions; `term_semester` is the number. Nothing reads
+-- it yet: phase 2 points the queries at it with a term each. current_sessions
+-- keeps its own definition, so no student-facing query plan changes here.
+CREATE OR REPLACE VIEW term_sessions AS
+    SELECT
+        s.id,
+        c.code                      AS course_code,
+        c.title                     AS course_title,
+        d.name                      AS department,
+        f.name                      AS faculty,
+        s.day,
+        s.start_min,
+        s.end_min,
+        to_char(make_interval(mins => s.start_min), 'HH24:MI') AS start_time,
+        to_char(make_interval(mins => s.end_min),   'HH24:MI') AS end_time,
+        s.activity_type,
+        s.stream_label,
+        r.code                      AS room,
+        s.weeks_raw,
+        s.weeks,
+        s.week_count,
+        s.semester,
+        s.notes,
+        COALESCE(
+            (SELECT array_agg(st.name ORDER BY st.name)
+               FROM session_staff ss
+               JOIN staff st ON st.id = ss.staff_id
+              WHERE ss.session_id = s.id),
+            '{}'
+        )                           AS staff,
+        (SELECT count(*) FROM session_sources src WHERE src.session_id = s.id)
+                                    AS source_count,
+        tp.id                       AS publication_id,
+        tp.academic_year,
+        tp.semester                 AS term_semester,
+        tp.stage
+    FROM sessions s
+    JOIN term_publication tp ON tp.id = s.publication_id
+    JOIN courses  c ON c.id = s.course_id
+    LEFT JOIN rooms       r ON r.id = s.room_id
+    LEFT JOIN departments d ON d.id = c.department_id
+    LEFT JOIN faculties   f ON f.id = c.faculty_id;

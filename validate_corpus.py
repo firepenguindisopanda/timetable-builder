@@ -11,6 +11,7 @@ on the wrong row) rather than a crash.
 Usage:
     uv run python validate_corpus.py
     uv run python validate_corpus.py --pdf-dir downloaded_pdfs
+    uv run python validate_corpus.py --source s2-inspection --include-subdirs
     uv run python validate_corpus.py --json report.json     # machine-readable
     uv run python validate_corpus.py --fail-under 95        # CI gate
 
@@ -32,14 +33,16 @@ from pathlib import Path
 from typing import Any
 
 from timetable_extractor import extract_timetable
-from timetable_extractor.constants import FINDER_XML
+from timetable_extractor.constants import DEFAULT_SOURCE, SOURCES
 from timetable_extractor.database.courses import (
     build_code_index,
     clipped_subject,
     published_subjects,
     resolve_course_code,
 )
+from timetable_extractor.database.loader import finder_title, publication_term
 from timetable_extractor.database.records import split_courses
+from timetable_extractor.database.weeks import TERMS, expand_weeks, semester_key
 from timetable_extractor.observability import CORRUPTING_FINDINGS
 
 VALID_DAYS = {
@@ -53,11 +56,20 @@ REQUIRED_FIELDS = ("day", "start_time", "end_time")
 OPTIONAL_FIELDS = ("type", "course", "room", "weeks", "staff")
 
 
-def load_registry(path: Path) -> tuple[set[str], dict[str, str]]:
+#: Term findings that fail the gate. A corpus with no term cannot be loaded,
+#: and one whose PDFs disagree with their index about the term is two
+#: publications in one folder. `term_not_in_calendar` and `week_beyond_term`
+#: are read and judged: the first loads undated, the second may be a typo.
+FAILING_TERM_FINDINGS = ("term_unparsed", "term_mismatch")
+
+
+def load_registry(
+    path: Path, url: str = SOURCES[DEFAULT_SOURCE].finder_xml
+) -> tuple[set[str], dict[str, str]]:
     """Return (official room codes, {pdf link -> course name}) from finder.xml."""
     if not path.exists():
-        print(f"Fetching room/course registry: {FINDER_XML}")
-        with urllib.request.urlopen(FINDER_XML, timeout=30) as resp:
+        print(f"Fetching room/course registry: {url}")
+        with urllib.request.urlopen(url, timeout=30) as resp:
             path.write_bytes(resp.read())
 
     root = ET.parse(path).getroot()
@@ -113,10 +125,59 @@ def day_skew(days: Counter[str]) -> dict[str, Any]:
     }
 
 
-def validate(
-    pdf_dir: Path, registry: Path, include_subdirs: bool = False
+def check_term(
+    title: str | None, headings: dict[str, str | None], weeks: dict[str, list[int]]
 ) -> dict[str, Any]:
-    rooms, modules = load_registry(registry)
+    """
+    Which term the corpus is, and whether every PDF agrees.
+
+    `headings` is each PDF's semester heading and `weeks` the weeks its
+    classes print, both by filename. The term comes from the index title as
+    the loader reads it, or the PDFs' headings when there is no finder.html.
+    Pure, so each finding is tested without a PDF. SEMESTERS-SPEC.md 8.
+    """
+    term = publication_term(title, headings.values())
+    findings: dict[str, list[dict[str, Any]]] = {}
+    if term is None:
+        findings["term_unparsed"] = [{"title": title}]
+        return {"term": None, "findings": findings}
+
+    key = (term.academic_year, term.semester)
+    for name, heading in sorted(headings.items()):
+        if semester_key(heading) and semester_key(heading) != key:
+            findings.setdefault("term_mismatch", []).append(
+                {"file": name, "heading": heading, "term": term.label}
+            )
+    dates = TERMS.get(key)
+    if dates is None:
+        findings["term_not_in_calendar"] = [{"term": term.label}]
+    else:
+        for name, found in sorted(weeks.items()):
+            beyond = sorted(w for w in set(found) if w > dates.teaching_weeks)
+            if beyond:
+                findings.setdefault("week_beyond_term", []).append(
+                    {"file": name, "weeks": beyond, "teaching_weeks": dates.teaching_weeks}
+                )
+    return {
+        "term": {
+            "academic_year": term.academic_year,
+            "semester": term.semester,
+            "stage": term.stage,
+            "label": term.label,
+            "read_from": term.read_from,
+            "teaching_weeks": dates.teaching_weeks if dates else None,
+        },
+        "findings": findings,
+    }
+
+
+def validate(
+    pdf_dir: Path,
+    registry: Path,
+    include_subdirs: bool = False,
+    registry_url: str = SOURCES[DEFAULT_SOURCE].finder_xml,
+) -> dict[str, Any]:
+    rooms, modules = load_registry(registry, registry_url)
     # Staff and room PDFs live in subdirectories. They describe the same
     # classes from another angle, so a course code invented in one of them
     # corrupts the warehouse just as much - but they are off by default so the
@@ -145,6 +206,8 @@ def validate(
     # produces a full, plausible-looking extraction on the wrong day.
     findings: Counter[str] = Counter()
     finding_samples: dict[str, list[dict[str, Any]]] = {}
+    headings: dict[str, str | None] = {}
+    weeks_by_pdf: dict[str, list[int]] = {}
 
     # Every code a block names should be one the university actually
     # publishes. A code that resolves only after repair means extraction
@@ -182,7 +245,11 @@ def validate(
                     bucket.append({"file": pdf.name, **sample})
 
         semesters[result["semester"] or "(none)"] += 1
+        headings[pdf.name] = result["semester"]
         entries = result["entries"]
+        weeks_by_pdf[pdf.name] = [
+            week for e in entries for week in expand_weeks(e.get("weeks"))
+        ]
         stats["entries"] += len(entries)
         if not entries:
             empty.append(pdf.name)
@@ -257,7 +324,12 @@ def validate(
                     stats["repaired_course_code"] += 1
                     repaired_codes[f"{code}  ->  {resolved}"] += 1
 
+    page = registry.with_name("finder.html")
+    title = finder_title(page.read_text("utf-8", "replace")) if page.exists() else None
+    term = check_term(title, headings, weeks_by_pdf)
+
     return {
+        "term": term,
         "elapsed_sec": round(time.time() - started, 1),
         "pdf_count": len(pdfs),
         "stats": dict(stats),
@@ -339,7 +411,21 @@ def report(r: dict[str, Any], fail_under: float) -> int:
             print(f"   {finding:<26} {count:>6}{marker}")
         print()
 
+    term_check = r.get("term") or {"term": None, "findings": {}}
+    term = term_check["term"]
+    term_findings: dict[str, list] = term_check["findings"]
+    if term:
+        print(f"Term      : {term['academic_year']} semester {term['semester']}"
+              f" ({term['stage']}, from {term['read_from']}),"
+              f" {term['teaching_weeks'] or '?'} teaching weeks")
+    else:
+        print("Term      : none")
     print(f"Semesters : {r['semesters']}")
+    for finding, samples in sorted(term_findings.items()):
+        marker = "  <- fails the gate" if finding in FAILING_TERM_FINDINGS else ""
+        print(f"\n{finding}: {len(samples)}{marker}")
+        for sample in samples[:8]:
+            print(f"   {sample}")
     print(f"Days      : {r['days']}")
     print(f"Types     : {r['types']}")
 
@@ -396,6 +482,9 @@ def report(r: dict[str, Any], fail_under: float) -> int:
         count = findings.get(finding, 0)
         if count:
             failures.append(f"{count} x {finding}")
+    for finding in FAILING_TERM_FINDINGS:
+        if term_findings.get(finding):
+            failures.append(f"{len(term_findings[finding])} x {finding}")
     if skew["skewed"]:
         failures.append(
             f"{skew['busiest']} carries {skew['ratio']}x the "
@@ -425,11 +514,16 @@ def report(r: dict[str, Any], fail_under: float) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    parser.add_argument("--pdf-dir", default="downloaded_pdfs", help="Directory of timetable PDFs")
+    parser.add_argument(
+        "--source",
+        choices=sorted(SOURCES),
+        default=DEFAULT_SOURCE,
+        help="Which publication; its folder and registry are the defaults below",
+    )
+    parser.add_argument("--pdf-dir", help="Directory of timetable PDFs (default: the source's)")
     parser.add_argument(
         "--registry",
-        default="finder.xml",
-        help="Path to finder.xml (downloaded automatically if absent)",
+        help="Path to finder.xml (default: the source's; downloaded if absent)",
     )
     parser.add_argument(
         "--include-subdirs",
@@ -445,7 +539,13 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    result = validate(Path(args.pdf_dir), Path(args.registry), args.include_subdirs)
+    source = SOURCES[args.source]
+    result = validate(
+        Path(args.pdf_dir or source.pdf_dir),
+        Path(args.registry or source.registry),
+        args.include_subdirs,
+        registry_url=source.finder_xml,
+    )
     code = report(result, args.fail_under)
 
     if args.json:

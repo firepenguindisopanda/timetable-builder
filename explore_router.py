@@ -401,7 +401,7 @@ def teaching_calendar_context() -> dict[str, Any] | None:
 
     Week 1's Monday for the current publication's semester, and how many
     weeks there are. None when the warehouse is unreachable or the semester
-    is not in `SEMESTER_TEACHING_START`: the builder then shows an undated
+    is not in `weeks.TERMS`: the builder then shows an undated
     week, as it did before dates existed, rather than guessing one.
     """
     try:

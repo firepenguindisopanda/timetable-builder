@@ -9,6 +9,7 @@ classes that clash on the calendar actually collide in the same weeks.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import date
 from typing import Iterable
 
@@ -122,21 +123,59 @@ def render_weeks(weeks: Iterable[int]) -> str | None:
     return ", ".join(f"W{a}" if a == b else f"W{a}-W{b}" for a, b in runs)
 
 
-#: Monday of teaching week 1, by academic year and semester number. CELCAT
-#: publishes week numbers and never dates, so these come from UWI's academic
-#: calendar: Semester 1 2026/27 settled on 22 Sep 2026 (ICS-EXPORT-SPEC 3.3)
-#: and confirmed by the Inspection Copy title "31-Aug-26 - 16-Nov-26".
-#: A semester missing here is not guessed at; the calendar falls back to an
-#: undated week.
-SEMESTER_TEACHING_START: dict[tuple[str, int], date] = {
-    ("2026/2027", 1): date(2026, 8, 31),
-    ("2026/2027", 2): date(2027, 1, 18),
+@dataclass(frozen=True)
+class Term:
+    """What the site needs to know about one semester, from UWI's calendar."""
+
+    #: Monday of teaching week 1.
+    week_one: date
+    #: How many teaching weeks the semester has. Bounds week numbering for
+    #: the term, as `TOTAL_WEEKS` did for semester 1 alone.
+    teaching_weeks: int
+    #: The last teaching day.
+    teaching_ends: date
+    #: First and last day of the examination period.
+    exams: tuple[date, date]
+
+
+#: Each term's dates, by academic year and semester number. CELCAT publishes
+#: week numbers and never dates, so these are typed in from UWI's academic
+#: calendar (academiccalendar.pdf, revised July 2026) rather than parsed from
+#: it: one page that changes once a year, where a misread date would put every
+#: class on the wrong day. Semester 1 2026/27 was settled on 22 Sep 2026
+#: (ICS-EXPORT-SPEC 3.3) and confirmed by the Inspection Copy title
+#: "31-Aug-26 - 16-Nov-26"; its teaching began on Tue 1 Sep, but week 1 is the
+#: week of Mon 31 Aug. Semester 2 prints S2W1-S2W13, and the calendar agrees:
+#: 13 weeks. A term missing here is not guessed at; the calendar falls back
+#: to an undated week. SEMESTERS-SPEC.md section 4.
+TERMS: dict[tuple[str, int], Term] = {
+    ("2026/2027", 1): Term(
+        week_one=date(2026, 8, 31),
+        teaching_weeks=12,
+        teaching_ends=date(2026, 11, 20),
+        exams=(date(2026, 12, 1), date(2026, 12, 22)),
+    ),
+    ("2026/2027", 2): Term(
+        week_one=date(2027, 1, 18),
+        teaching_weeks=13,
+        teaching_ends=date(2027, 4, 16),
+        exams=(date(2027, 4, 26), date(2027, 5, 14)),
+    ),
 }
 
 #: "Semester_1_TT2026_2027", "Semester_I_2026_2027" and "Semester_I_2026_2027_"
 #: are the three spellings of one semester CELCAT used in four publications.
-_SEMESTER = re.compile(r"Semester[_\s]*(III|II|I|\d)[_\s]*(?:TT)?[_\s]*(\d{4})[_\s]*(\d{4})", re.I)
+#: The semester 2 inspection copy of 26 Nov 2026 added a fourth,
+#: "Inspection_Sem_2_2026_2027": with `Semester` required it gave no term, and
+#: the builder could not date a single week. The same pattern backfills
+#: publications' terms in schema.sql, so the two must not drift.
+_SEMESTER = re.compile(
+    r"Sem(?:ester)?[_\s]*(III|II|I|\d)[_\s]*(?:TT)?[_\s]*(\d{4})[_\s]*(\d{4})", re.I
+)
 _ROMAN = {"I": 1, "II": 2, "III": 3}
+
+#: A label CELCAT gives a draft published for checking.
+_INSPECTION = re.compile(r"^\s*Inspection", re.I)
 
 
 def semester_key(label: str | None) -> tuple[str, int] | None:
@@ -155,7 +194,19 @@ def semester_key(label: str | None) -> tuple[str, int] | None:
     return f"{first}/{second}", semester
 
 
+def publication_stage(label: str | None) -> str:
+    """
+    `inspection` for UWI's draft published for checking, `final` otherwise.
+
+    A final timetable outranks any inspection copy of the same term
+    (`term_publication` in schema.sql), so this decides which one students
+    are served once both exist.
+    """
+    return "inspection" if _INSPECTION.match(label or "") else "final"
+
+
 def teaching_start(label: str | None) -> date | None:
     """Monday of teaching week 1 for a semester label, or None when unknown."""
     key = semester_key(label)
-    return SEMESTER_TEACHING_START.get(key) if key else None
+    term = TERMS.get(key) if key else None
+    return term.week_one if term else None

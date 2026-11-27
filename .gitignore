@@ -26,5 +26,13 @@ docs/
 
 .env
 
-# Registry snapshot fetched by validate_corpus.py
+# Registry snapshot fetched by validate_corpus.py, and the finder.html sync
+# keeps beside it for the term. The test fixture's copies are tracked.
 finder.xml
+finder.html
+!tests/fixtures/**/finder.xml
+!tests/fixtures/**/finder.html
+
+# Every source other than root: its PDFs, registry and withdrawn files.
+# Corpus data, like downloaded_pdfs/.
+sources/

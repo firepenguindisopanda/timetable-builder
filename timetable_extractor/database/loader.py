@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import re
 import xml.etree.ElementTree as ET
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,7 @@ from typing import Any, Callable, Iterable
 
 import psycopg
 
+from timetable_extractor.constants import DEFAULT_SOURCE, SOURCES
 from timetable_extractor.database.changes import previous_publication, store_diff
 from timetable_extractor.database.courses import (
     build_code_index,
@@ -34,7 +36,11 @@ from timetable_extractor.database.records import (
     normalise_room_code,
     records_from_extraction,
 )
-from timetable_extractor.database.weeks import export_horizon
+from timetable_extractor.database.weeks import (
+    export_horizon,
+    publication_stage,
+    semester_key,
+)
 from timetable_extractor.extract import extract_timetable
 from timetable_extractor.observability import Diagnostics, get_logger
 
@@ -49,6 +55,85 @@ _PUBLISHED = re.compile(
 _KINDS = {"module": "course", "staff": "staff", "room": "room"}
 # PDF filename prefixes CELCAT uses per resource type.
 _PREFIX_KINDS = {"m": "course", "s": "staff", "r": "room"}
+
+#: "<title>Timetable Finder - Inspection_Sem_2_2026_2027</title>"
+_FINDER_TITLE = re.compile(r"<title>\s*Timetable Finder\s*-\s*([^<]*?)\s*</title>", re.I)
+
+
+class UnknownTerm(Exception):
+    """Raised before anything is written when no term can be read."""
+
+
+@dataclass(frozen=True)
+class PublicationTerm:
+    """The term and stage a publication is filed under, and where they came from."""
+
+    academic_year: str
+    semester: int
+    stage: str
+    label: str
+    #: "the index title" or "the PDF headings".
+    read_from: str
+
+
+def finder_title(html: str | None) -> str | None:
+    """The label a finder.html names its publication by, or None."""
+    match = _FINDER_TITLE.search(html or "")
+    return match.group(1) if match and match.group(1) else None
+
+
+def publication_term(
+    title: str | None, headings: Iterable[str | None]
+) -> PublicationTerm | None:
+    """
+    The term a publication belongs to, from its index title or else its PDFs.
+
+    The index title names it ("Inspection_Sem_2_2026_2027"), and the loader
+    files the publication under that so the semester 2 inspection copy never
+    becomes semester 1's newest publication. The root source's finder.html
+    was never kept before 27 Nov 2026, so without one the commonest heading
+    among the PDFs decides; every PDF repeats the label as its first line.
+    None when neither gives a term, and nothing should be loaded: a
+    publication with no term is never current for anyone.
+    """
+    if semester_key(title):
+        label, read_from = title, "the index title"
+    else:
+        parsed = Counter(h for h in headings if semester_key(h))
+        if not parsed:
+            return None
+        label, read_from = parsed.most_common(1)[0][0], "the PDF headings"
+    key = semester_key(label)
+    assert key is not None
+    return PublicationTerm(key[0], key[1], publication_stage(label), label, read_from)
+
+
+def own_resources(xml_bytes: bytes) -> tuple[dict[str, str], dict[str, str]]:
+    """
+    ({pdf link: course code}, {pdf link: room code}) for the registry being loaded.
+
+    `repair_clipped_codes` and `repair_clipped_rooms` give a block read from a
+    course's or room's own PDF to that course or room. These maps used to come
+    from `courses.resource_id`, but a course is one row across terms, so that
+    names whichever source loaded it last: once the inspection copy is
+    loaded, semester 1's m1249.pdf would be looked up under the inspection
+    copy's links and miss. The registry in hand is always the right one.
+    Codes are written the way `load_index` stores them.
+    """
+    own_course: dict[str, str] = {}
+    own_room: dict[str, str] = {}
+    for element in ET.fromstring(xml_bytes).findall("resource"):
+        kind = _KINDS.get(element.get("type") or "")
+        link = element.get("link") or ""
+        name = (element.findtext("name") or element.findtext("n") or "").strip()
+        if not link or not name:
+            continue
+        code = name.partition(",")[0]
+        if kind == "course":
+            own_course[link] = " ".join(code.upper().split())
+        elif kind == "room":
+            own_room[link] = normalise_room_code(code)
+    return own_course, own_room
 
 
 @dataclass
@@ -74,6 +159,12 @@ class LoadStats:
     horizon: int | None = None
     #: Sessions that took their past weeks back from the previous publication.
     weeks_carried: int = 0
+    #: Which entry of constants.SOURCES was loaded.
+    source: str = DEFAULT_SOURCE
+    #: The term and stage the publication is filed under.
+    term: PublicationTerm | None = None
+    #: The publication the diff and carried weeks came from, within the term.
+    previous: int | None = None
 
 
 def parse_published_at(xml_text: str) -> datetime | None:
@@ -109,45 +200,90 @@ def upsert_publication(
     http_last_modified: datetime | None = None,
     http_etag: str | None = None,
     resource_count: int = 0,
+    source: str = DEFAULT_SOURCE,
+    term: PublicationTerm | None = None,
 ) -> tuple[int, bool]:
     """
     Return (publication_id, reused). Identity is the XML's sha256, so loading
     the same index twice does not create a second publication.
+
+    A new row is filed under its source, term and stage. A reused one keeps
+    what it has and only fills what is missing, so a reload never moves a
+    publication to another term.
     """
     digest = hashlib.sha256(xml_bytes).hexdigest()
     published_at = parse_published_at(xml_bytes.decode("utf-8", "replace"))
+    year, semester, stage = (
+        (term.academic_year, term.semester, term.stage) if term else (None, None, None)
+    )
 
     with conn.cursor() as cur:
         cur.execute("SELECT id FROM publications WHERE xml_sha256 = %s", (digest,))
         row = cur.fetchone()
         if row:
+            cur.execute(
+                """
+                UPDATE publications
+                   SET source = COALESCE(source, %s),
+                       academic_year = COALESCE(academic_year, %s),
+                       semester = COALESCE(semester, %s),
+                       stage = COALESCE(stage, %s)
+                 WHERE id = %s
+                """,
+                (source, year, semester, stage, row[0]),
+            )
+            conn.commit()
             return row[0], True
 
         publication_id = _fetch_id(
             cur,
             """
             INSERT INTO publications
-                (published_at, http_last_modified, http_etag, xml_sha256, resource_count)
-            VALUES (%s, %s, %s, %s, %s)
+                (published_at, http_last_modified, http_etag, xml_sha256, resource_count,
+                 source, academic_year, semester, stage)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (published_at, http_last_modified, http_etag, digest, resource_count),
+            (
+                published_at, http_last_modified, http_etag, digest, resource_count,
+                source, year, semester, stage,
+            ),
         )
     conn.commit()
     return publication_id, False
 
 
+def _prefer(table: str, column: str, keep_existing: bool) -> str:
+    """`COALESCE` of the incoming and stored value, the preferred one first."""
+    new, old = f"EXCLUDED.{column}", f"{table}.{column}"
+    return f"COALESCE({old}, {new})" if keep_existing else f"COALESCE({new}, {old})"
+
+
 def load_index(
-    conn: psycopg.Connection, xml_bytes: bytes, publication_id: int
+    conn: psycopg.Connection,
+    xml_bytes: bytes,
+    publication_id: int,
+    *,
+    source: str = DEFAULT_SOURCE,
 ) -> dict[str, int]:
     """
     Load faculties, departments, resources and the course/staff/room entities.
 
     Returns counts. Re-running against the same index is a no-op apart from
     refreshing `last_seen_publication`.
+
+    Resources are stored under their source, with `pdf_link` as the path from
+    the root address (`Source.link_prefix`), so another source's m1249.pdf is
+    a row of its own. Courses, staff and rooms are one row across sources,
+    and a source other than the default one only fills what they lack: the
+    free rooms page counts a room as registered through `rooms.resource_id`
+    and the latest publication, so an inspection copy repointing it would
+    empty that page for semester 1.
     """
     root = ET.fromstring(xml_bytes)
     counts = {"resources": 0, "courses": 0, "staff": 0, "rooms": 0}
+    prefix = SOURCES[source].link_prefix
+    keep = source != DEFAULT_SOURCE
 
     faculty_ids: dict[str, int] = {}
     department_ids: dict[tuple[str, int | None], int] = {}
@@ -200,8 +336,8 @@ def load_index(
                 """
                 INSERT INTO resources
                     (celcat_id, kind, pdf_link, name, department_id, faculty_id,
-                     first_seen_publication, last_seen_publication)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                     first_seen_publication, last_seen_publication, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (pdf_link) DO UPDATE SET
                     name = EXCLUDED.name,
                     department_id = EXCLUDED.department_id,
@@ -212,12 +348,13 @@ def load_index(
                 (
                     element.get("id") or "",
                     kind,
-                    link,
+                    prefix + link,
                     name,
                     department_id,
                     faculty_id,
                     publication_id,
                     publication_id,
+                    source,
                 ),
             )
             counts["resources"] += 1
@@ -231,24 +368,24 @@ def load_index(
                     # students to search. `load_all` drops its sessions too.
                     continue
                 cur.execute(
-                    """
+                    f"""
                     INSERT INTO courses (code, title, department_id, faculty_id, resource_id)
                     VALUES (%s, %s, %s, %s, %s)
                     ON CONFLICT (code) DO UPDATE SET
-                        title = COALESCE(EXCLUDED.title, courses.title),
-                        department_id = COALESCE(EXCLUDED.department_id, courses.department_id),
-                        faculty_id = COALESCE(EXCLUDED.faculty_id, courses.faculty_id),
-                        resource_id = COALESCE(EXCLUDED.resource_id, courses.resource_id)
+                        title = {_prefer("courses", "title", keep)},
+                        department_id = {_prefer("courses", "department_id", keep)},
+                        faculty_id = {_prefer("courses", "faculty_id", keep)},
+                        resource_id = {_prefer("courses", "resource_id", keep)}
                     """,
                     (code, title.strip() or None, department_id, faculty_id, resource_id),
                 )
                 counts["courses"] += 1
             elif kind == "staff":
                 cur.execute(
-                    """
+                    f"""
                     INSERT INTO staff (name, resource_id) VALUES (%s, %s)
                     ON CONFLICT (name) DO UPDATE SET
-                        resource_id = COALESCE(EXCLUDED.resource_id, staff.resource_id)
+                        resource_id = {_prefer("staff", "resource_id", keep)}
                     """,
                     (name, resource_id),
                 )
@@ -257,11 +394,11 @@ def load_index(
                 # "TLC LT A1, Teaching and Learning Complex Lecture Theatre A 1"
                 code, _, full = name.partition(",")
                 cur.execute(
-                    """
+                    f"""
                     INSERT INTO rooms (code, name, resource_id) VALUES (%s, %s, %s)
                     ON CONFLICT (code) DO UPDATE SET
-                        name = COALESCE(EXCLUDED.name, rooms.name),
-                        resource_id = COALESCE(EXCLUDED.resource_id, rooms.resource_id)
+                        name = {_prefer("rooms", "name", keep)},
+                        resource_id = {_prefer("rooms", "resource_id", keep)}
                     """,
                     (normalise_room_code(code), full.strip() or None, resource_id),
                 )
@@ -529,12 +666,18 @@ def drop_orphaned_test_courses(conn: psycopg.Connection) -> int:
     return len(doomed)
 
 
-def register_pdfs(conn: psycopg.Connection, paths: list[Path]) -> dict[str, int]:
+def register_pdfs(
+    conn: psycopg.Connection, paths: list[Path], *, link_prefix: str = ""
+) -> dict[str, int]:
     """
     Record every local PDF's bytes in one batch, returning {filename: id}.
 
     `content_changed_at` only moves when the hash actually differs, so a
     re-load of unchanged files does not fake an update.
+
+    Stored under `link_prefix` + filename, the path from the root address, so
+    the inspection copy's m1249.pdf is not semester 1's; keyed in the result
+    by the bare filename, as `SessionRecord.sources` is.
     """
     if not paths:
         return {}
@@ -545,7 +688,7 @@ def register_pdfs(conn: psycopg.Connection, paths: list[Path]) -> dict[str, int]
         data = path.read_bytes()
         rows.append(
             (
-                path.name,
+                link_prefix + path.name,
                 kind_for_pdf(path.name),
                 hashlib.sha256(data).hexdigest(),
                 len(data),
@@ -576,7 +719,11 @@ def register_pdfs(conn: psycopg.Connection, paths: list[Path]) -> dict[str, int]
         registered = dict(cur.fetchall())
     conn.commit()
 
-    return {path.name: registered[path.name] for path in paths if path.name in registered}
+    return {
+        path.name: registered[link_prefix + path.name]
+        for path in paths
+        if link_prefix + path.name in registered
+    }
 
 
 def iter_pdfs(directories: Iterable[Path]) -> list[Path]:
@@ -745,6 +892,7 @@ def load_all(
     http_etag: str | None = None,
     progress: bool = True,
     replace: bool = False,
+    source: str = DEFAULT_SOURCE,
 ) -> LoadStats:
     """
     Extract every PDF and load one publication's worth of data.
@@ -773,6 +921,12 @@ def load_all(
     unexpectedly". Neon suspends idle compute after about five minutes. The
     connection is opened once the last PDF has been read, so the writes start
     on a fresh one.
+
+    The publication is filed under `source` and the term its index title
+    names (`publication_term`). That is decided once the PDFs are read and
+    before anything is written, and a corpus that names no term is refused
+    with `UnknownTerm`: a publication with no term is never current for
+    anyone, so loading it would only add sessions nobody can see.
     """
     xml_bytes = finder_xml.read_bytes()
     resource_count = len(ET.fromstring(xml_bytes).findall("resource"))
@@ -792,6 +946,8 @@ def load_all(
     read = failed = 0
     #: Each PDF's export horizon, keyed by filename as `SessionRecord.sources` is.
     horizons: dict[str, int | None] = {}
+    #: Each PDF's own semester heading, to read the term from without an index title.
+    headings: list[str | None] = []
     diagnostics = Diagnostics(source=finder_xml.name)
 
     for position, path in enumerate(paths, 1):
@@ -807,7 +963,26 @@ def load_all(
         horizons[path.name] = export_horizon(result.get("course_title"))
         if horizons[path.name] is None:
             diagnostics.add("export_horizon_missing", source=path.name)
+        headings.append(result.get("semester"))
         raw.extend(records_from_extraction(result, source=path.name))
+
+    page = finder_xml.with_name("finder.html")
+    title = finder_title(page.read_text("utf-8", "replace")) if page.exists() else None
+    term = publication_term(title, headings)
+    if term is None:
+        raise UnknownTerm(
+            f"no term in {page.name if page.exists() else 'a finder.html beside the registry'}"
+            f" or in the headings of {read} PDFs; nothing was written"
+        )
+    for heading in headings:
+        if semester_key(heading) and semester_key(heading) != semester_key(term.label):
+            diagnostics.add("term_mismatch", heading=heading, term=term.label)
+    if progress:
+        print(
+            f"  term: {term.academic_year} semester {term.semester} ({term.stage}),"
+            f" from {term.read_from}",
+            flush=True,
+        )
 
     with open_connection() as conn:
         publication_id, reused = upsert_publication(
@@ -816,11 +991,13 @@ def load_all(
             http_last_modified=http_last_modified,
             http_etag=http_etag,
             resource_count=resource_count,
+            source=source,
+            term=term,
         )
 
-        index_counts = load_index(conn, xml_bytes, publication_id)
+        index_counts = load_index(conn, xml_bytes, publication_id, source=source)
 
-        pdf_ids = register_pdfs(conn, paths)
+        pdf_ids = register_pdfs(conn, paths, link_prefix=SOURCES[source].link_prefix)
 
         # Snap course codes and staff spellings back onto the published index
         # before merging. A wrapped or junk-suffixed code would otherwise become
@@ -830,18 +1007,9 @@ def load_all(
             name_index = build_name_index([row[0] for row in cur.fetchall()])
             cur.execute("SELECT code FROM courses WHERE resource_id IS NOT NULL")
             code_index = build_code_index([row[0] for row in cur.fetchall()])
-            cur.execute(
-                "SELECT r.pdf_link, c.code FROM courses c"
-                " JOIN resources r ON r.id = c.resource_id"
-            )
-            own_course = {link: code for link, code in cur.fetchall()}
-            cur.execute(
-                "SELECT r.pdf_link, rm.code FROM rooms rm"
-                " JOIN resources r ON r.id = rm.resource_id"
-            )
-            own_room = {link: code for link, code in cur.fetchall()}
             cur.execute("SELECT code FROM rooms WHERE resource_id IS NOT NULL")
             registered_rooms = {row[0] for row in cur.fetchall()}
+        own_course, own_room = own_resources(xml_bytes)
 
         for record in raw:
             record.course_code = resolve_course_code(record.course_code, code_index)
@@ -935,4 +1103,7 @@ def load_all(
             changes=changes,
             horizon=horizon,
             weeks_carried=weeks_carried,
+            source=source,
+            term=term,
+            previous=previous,
         )

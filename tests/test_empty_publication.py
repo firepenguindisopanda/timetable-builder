@@ -109,7 +109,7 @@ def run_load(monkeypatch, corpus, log, *, extract=None):
 
     def fake_extract(path):
         log.append(("extract", Path(path).name))
-        return {"course_title": "COMP 1601 (Wks W3-W12)", "entries": []}
+        return {"course_title": "COMP 1601 (Wks W3-W12)", "semester": "Semester_1_TT2026_2027", "entries": []}
 
     monkeypatch.setattr(loader, "extract_timetable", extract or fake_extract)
     monkeypatch.setattr(loader, "records_from_extraction", lambda result, source: [])
@@ -119,11 +119,11 @@ def run_load(monkeypatch, corpus, log, *, extract=None):
         log.append(("upsert_publication", ""))
         return 9, False
 
-    def fake_index(conn, xml_bytes, publication_id):
+    def fake_index(conn, xml_bytes, publication_id, **kwargs):
         log.append(("load_index", ""))
         return {"resources": 2, "courses": 2, "staff": 0, "rooms": 0}
 
-    def fake_register(conn, paths):
+    def fake_register(conn, paths, **kwargs):
         log.append(("register_pdfs", ""))
         return {}
 
@@ -195,7 +195,7 @@ def test_a_dead_connection_fails_before_any_session_is_written(monkeypatch, corp
     finder, pdfs = corpus
     monkeypatch.setattr(loader, "extract_timetable", lambda path: (
         log.append(("extract", Path(path).name)) or
-        {"course_title": "COMP 1601 (Wks W3-W12)", "entries": []}
+        {"course_title": "COMP 1601 (Wks W3-W12)", "semester": "Semester_1_TT2026_2027", "entries": []}
     ))
     monkeypatch.setattr(loader, "records_from_extraction", lambda result, source: [])
     monkeypatch.setattr(loader, "merge_records", lambda raw: [])
@@ -298,13 +298,16 @@ def test_latest_publication_ignores_a_publication_with_no_sessions():
     two commits the newest publication is empty. Every student-facing query
     scopes to this view, and `/explore` caches for five minutes, so a single
     request landing in that gap serves an empty timetable well past it.
+
+    Since terms the check is `load_revision > 0`, which `write_sessions` bumps
+    in the transaction that commits the sessions, made once in
+    `term_publication` and inherited by `latest_publication`.
     """
-    body = view_body("latest_publication")
-    assert "sessions" in body, (
-        "latest_publication no longer checks for sessions, so a half-loaded "
-        "publication would become the live timetable"
+    assert "term_publication" in view_body("latest_publication")
+    assert "load_revision > 0" in view_body("term_publication"), (
+        "term_publication no longer checks the publication was loaded, so a "
+        "half-loaded publication would become the live timetable"
     )
-    assert "EXISTS" in body.upper()
 
 
 def test_current_sessions_still_reads_latest_publication():
