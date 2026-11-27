@@ -9,7 +9,9 @@ asked for. The warehouse is faked, as in test_changes_api.py.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import json
+import re
+from datetime import date, datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -40,6 +42,8 @@ class FakeWarehouse:
         self.calls.append((name, args))
         if name == "held_terms":
             return self.held
+        if name == "publication_terms":
+            return {16: S1, 21: S2}
         term = args[0]
         publication = 16 if term == S1 else 21
         if name == "freshness":
@@ -205,3 +209,103 @@ def test_an_unreachable_warehouse_does_not_turn_a_term_into_a_404(client, monkey
     monkeypatch.setattr(explore_router, "query", down)
     response = client.get("/explore/rooms", params={"term": "2026-27-s2"})
     assert response.status_code == 503
+
+
+# Once semester 1's teaching has ended (SEMESTERS-SPEC.md 7.1)
+
+NOV_27 = date(2026, 11, 27)
+
+
+@pytest.fixture
+def after_semester_1(monkeypatch):
+    monkeypatch.setattr(explore_router, "campus_today", lambda: NOV_27)
+
+
+def test_no_term_is_semester_2_once_semester_1_teaching_ends(client, warehouse, after_semester_1):
+    html = client.get("/explore/rooms").text
+    assert warehouse.terms_for("room_index") == [S2]
+    # Links follow the default, so they name no term...
+    assert 'href="/explore/room/FST%20C1"' in html
+    # ...and the switch names semester 1, which is no longer it.
+    switch = html.split('class="term-switch"', 1)[1].split("</nav>", 1)[0]
+    assert '<a href="/explore/rooms?term=2026-27-s1">Semester 1 2026/27</a>' in switch
+    assert 'href="/explore/rooms" aria-current="page"' in switch
+
+
+def test_the_default_is_chosen_from_the_terms_held(warehouse, after_semester_1):
+    assert explore_router.default_term() == S2
+    warehouse.held = warehouse.held[:1]
+    explore_router.clear_cache()
+    assert explore_router.default_term() == S1
+
+
+def test_an_unreachable_warehouse_still_has_a_dated_default(monkeypatch, after_semester_1):
+    def down(fn, *args):
+        raise explore_router.ExplorerUnavailable("down")
+
+    monkeypatch.setattr(explore_router, "query", down)
+    explore_router.clear_cache()
+    assert explore_router.default_term() == S2
+
+
+def test_the_explorer_says_once_that_semester_2_is_the_inspection_copy(client):
+    s2 = client.get("/explore/rooms", params={"term": "2026-27-s2"}).text
+    s1 = client.get("/explore/rooms").text
+    assert s2.count("is UWI's inspection copy.") == 1
+    assert "Semester 2 2026/27 is UWI's inspection copy." in s2
+    assert "inspection copy.</b>" not in s1
+
+
+# The builder, one term per page (SEMESTERS-SPEC.md 7.4)
+
+
+def _script_value(html, name):
+    """A value the page's script is handed, parsed rather than string-matched."""
+    match = re.search(r"const " + name + r" = (.*?);\s*$", html, re.M)
+    return json.loads(match.group(1))
+
+
+def test_the_builder_opens_the_default_term_and_may_move_a_returning_student(client, after_semester_1):
+    html = client.get("/calendar").text
+    assert _script_value(html, "pageTerm") == "2026-27-s2"
+    assert _script_value(html, "pageStage") == "inspection"
+    assert _script_value(html, "publicationTerms") == {"16": "2026-27-s1", "21": "2026-27-s2"}
+    assert _script_value(html, "heldTerms") == ["2026-27-s1", "2026-27-s2"]
+    assert "preferredTerm(undefined, publicationTerms)" in html
+
+
+def test_a_named_term_is_never_moved(client):
+    html = client.get("/calendar", params={"term": "2026-27-s1"}).text
+    assert _script_value(html, "pageTerm") == "2026-27-s1"
+    assert _script_value(html, "pageStage") == "final"
+    assert "preferredTerm(undefined, publicationTerms)" not in html
+
+
+def test_the_builders_switch_always_names_its_term(client):
+    """With no term named the page moves to the term last used, so a switch link must name one."""
+    html = client.get("/calendar", params={"term": "2026-27-s2"}).text
+    switch = html.split('class="term-switch term-switch--page"', 1)[1].split("</nav>", 1)[0]
+    assert '<a href="/calendar?term=2026-27-s1">Semester 1 2026/27</a>' in switch
+    assert ('<a href="/calendar?term=2026-27-s2" aria-current="page">'
+            "Semester 2 2026/27 (inspection copy)</a>") in switch
+
+
+def test_the_builder_reads_and_links_within_its_term(client):
+    html = client.get("/calendar", params={"term": "2026-27-s2"}).text
+    assert "Semester 2 2026/27 is UWI's inspection copy." in html
+    assert 'href="/explore/changes?from=calendar&amp;term=2026-27-s2"' in html
+    assert "writeSavedTerm(pageTerm" in html
+    for request in ("/explore/courses.json?' + termParam", "'&' + termParam"):
+        assert request in html
+
+
+def test_the_builder_is_dated_by_its_term(client):
+    html = client.get("/calendar", params={"term": "2026-27-s2"}).text
+    assert _script_value(html, "teaching") == {"weekOne": "2027-01-18", "totalWeeks": 13}
+
+
+def test_an_unknown_term_on_the_builder_is_a_404_page(client):
+    response = client.get("/calendar", params={"term": "2027-28-s1"})
+    assert response.status_code == 404
+    assert "text/html" in response.headers["content-type"]
+    assert "No timetable is loaded for Semester 1 2027/28." in response.text

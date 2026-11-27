@@ -57,6 +57,10 @@ class FakeWarehouse:
         self.changes = [moved()]
 
     def __call__(self, fn, *args):
+        # One term held: semester 1, the default.
+        if fn.__name__ == "held_terms":
+            return [{"term": ("2026/2027", 1), "publication_id": 2, "stage": "final",
+                     "published_at": None}]
         if fn.__name__ == "course_codes":
             return list(PUBLISHED_CODES)
         if fn.__name__ == "changes_for_courses":

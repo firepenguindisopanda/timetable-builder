@@ -319,6 +319,37 @@ def held_terms() -> list[dict[str, Any]]:
     return cached("terms", lambda: query(tm.held_terms))
 
 
+def publication_terms() -> dict[int, tm.TermKey]:
+    """Every loaded publication's term, by id (`terms.publication_terms`)."""
+    return cached("publication_terms", lambda: query(tm.publication_terms))
+
+
+def campus_today() -> date:
+    """Today on campus, which decides the default term. Tests replace it."""
+    return datetime.now(CAMPUS_TZ).date()
+
+
+def default_term() -> tm.TermKey:
+    """
+    The term served when none is named (`terms.choose_default`).
+
+    From the terms held, so a term in `TERMS` with nothing loaded is never
+    the default. With the warehouse unreachable it is chosen from `TERMS`
+    alone, which gives the same answer whenever every dated term is loaded,
+    rather than failing a page that would only report the outage anyway.
+    """
+    today = campus_today()
+    try:
+        held = [entry["term"] for entry in held_terms()]
+    except ExplorerUnavailable:
+        held = []
+    return (
+        tm.choose_default(held, today)
+        or tm.choose_default(TERMS, today)
+        or tm.LEGACY_TERM
+    )
+
+
 def resolve_term(value: str | None) -> tm.TermKey:
     """
     The term a `?term=` names, or the default term when it is absent.
@@ -327,18 +358,16 @@ def resolve_term(value: str | None) -> tm.TermKey:
     semester 2 that quietly showed semester 1 would look right and be wrong.
     """
     if not value:
-        return tm.DEFAULT_TERM
+        return default_term()
     term = tm.parse_slug(value)
     if term is None:
         raise HTTPException(
             status_code=404,
             detail=(
                 f"There is no term '{value}'. Terms are written like "
-                f"{tm.slug(tm.DEFAULT_TERM)}."
+                f"{tm.slug(tm.LEGACY_TERM)}."
             ),
         )
-    if term == tm.DEFAULT_TERM:
-        return term
     try:
         held = {entry["term"] for entry in held_terms()}
     except ExplorerUnavailable:
@@ -355,8 +384,8 @@ def term_param(
     term: str | None = Query(
         None,
         description=(
-            "Which term, like 2026-27-s2. Omit for the default term. An unknown "
-            "term is a 404."
+            "Which term, like 2026-27-s2. Omit for the default term: the "
+            "earliest whose teaching has not ended. An unknown term is a 404."
         ),
     ),
 ) -> tm.TermKey:
@@ -364,12 +393,22 @@ def term_param(
     return resolve_term(term)
 
 
-def term_query(term: tm.TermKey) -> str:
-    """The query string a link carries to stay in a term: empty for the default."""
-    return "" if term == tm.DEFAULT_TERM else f"?term={tm.slug(term)}"
+def term_query(term: tm.TermKey, explicit: bool = False) -> str:
+    """
+    The query string a link carries to stay in a term.
+
+    Empty for the default term, so explorer links follow the default when it
+    moves on. `explicit` always names it: the builder opens a student's last
+    term when none is named, so a link meant to change term has to say which.
+    """
+    if not explicit and term == default_term():
+        return ""
+    return f"?term={tm.slug(term)}"
 
 
-def term_switch(request: Request, term: tm.TermKey) -> list[dict[str, Any]] | None:
+def term_switch(
+    request: Request, term: tm.TermKey, explicit: bool = False
+) -> list[dict[str, Any]] | None:
     """
     The terms a page can switch between, each linking to this page in it.
 
@@ -387,11 +426,21 @@ def term_switch(request: Request, term: tm.TermKey) -> list[dict[str, Any]] | No
             "label": tm.label(entry["term"], entry["stage"]),
             # Re-encoded: the path arrives decoded, and a course page's holds
             # "FOUN 1001 (FULL & PART-TIME)".
-            "href": quote(request.url.path) + term_query(entry["term"]),
+            "href": quote(request.url.path) + term_query(entry["term"], explicit),
             "current": entry["term"] == term,
+            "slug": tm.slug(entry["term"]),
         }
         for entry in held
     ]
+
+
+def term_stage(term: tm.TermKey) -> str | None:
+    """`inspection` while the term's current publication is UWI's draft."""
+    try:
+        held = held_terms()
+    except ExplorerUnavailable:
+        return None
+    return next((entry["stage"] for entry in held if entry["term"] == term), None)
 
 
 # Shared page context
@@ -520,6 +569,8 @@ def page_context(
         "term": tm.slug(term),
         "term_q": term_query(term),
         "terms": term_switch(request, term),
+        "term_label": tm.label(term),
+        "term_stage": term_stage(term),
         "total_weeks": tm.total_weeks(term),
         "day_order": eq.DAY_ORDER,
         "freshness": freshness_context(term),
@@ -543,7 +594,7 @@ def error_page(request: Request, status_code: int, detail: str):
     }
     try:
         # The default term's shell: the error may be the term itself.
-        context = page_context(request, "explore", tm.DEFAULT_TERM)
+        context = page_context(request, "explore", default_term())
     except ExplorerUnavailable:
         # The provenance rail needs the database too; without it, drop the rail
         # rather than turning a 404 into a 500.
@@ -960,6 +1011,7 @@ async def timetable_publication(term: tm.TermKey = Depends(term_param)):
         return _unavailable_json("No timetable has been loaded yet.")
 
     dates = TERMS.get(term)
+    default = default_term()
     body = PublicationResponse(
         apiVersion=PUBLICATION_API_VERSION,
         term=tm.slug(term),
@@ -972,7 +1024,7 @@ async def timetable_publication(term: tm.TermKey = Depends(term_param)):
                 "number": entry["term"][1],
                 "stage": entry["stage"],
                 "publicationId": entry["publication_id"],
-                "default": entry["term"] == tm.DEFAULT_TERM,
+                "default": entry["term"] == default,
             }
             for entry in held
         ],
@@ -1256,9 +1308,13 @@ async def timetable_calendar(
             "Open your timetable and copy the subscription link again.",
         )
 
-    # The default term until the builder can switch term (phase 3), when the
-    # token's publication names its term. SEMESTERS-SPEC.md 7.3.
-    term = tm.DEFAULT_TERM
+    # The token's publication names its term, so a semester 1 subscription
+    # keeps serving semester 1 after the default moves on. A publication the
+    # warehouse does not hold gives the default term. SEMESTERS-SPEC.md 7.3.
+    try:
+        term = publication_terms().get(token.publication_id) or default_term()
+    except ExplorerUnavailable:
+        return _feed_error(503, "The timetable is not reachable right now.")
     teaching = teaching_calendar_context(term)
     if teaching is None:
         return _feed_error(503, "The timetable's dates are not available right now.")

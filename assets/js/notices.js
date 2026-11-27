@@ -13,8 +13,10 @@
 
 //: Most urgent first. A timetable that will not be saved outranks
 //: everything; then the offer to catch up with a republish; then what the
-//: last update changed; then a calendar subscription gone out of date.
-const NOTICE_ORDER = ['storage', 'republish', 'changes', 'subscription'];
+//: last update changed; then that the term shown is UWI's inspection copy,
+//: a draft whose classes may still move (SEMESTERS-SPEC.md 7.4); then a
+//: calendar subscription gone out of date.
+const NOTICE_ORDER = ['storage', 'republish', 'changes', 'inspection', 'subscription'];
 
 //: More than two notices pushed the grid, the thing a student came for, off
 //: a phone's first screen.

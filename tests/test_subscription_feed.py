@@ -52,6 +52,13 @@ class FakeWarehouse:
     def __call__(self, fn, *args):
         self.calls.append((fn.__name__, args))
         name = fn.__name__
+        # One term held: semester 1, the default.
+        if name == "held_terms":
+            return [{"term": ("2026/2027", 1), "publication_id": NEW_PUBLICATION, "stage": "final",
+                     "published_at": None}]
+        # Both publications are semester 1's, so the token's term is too.
+        if name == "publication_terms":
+            return {OLD_PUBLICATION: ("2026/2027", 1), NEW_PUBLICATION: ("2026/2027", 1)}
         if name == "course_codes":
             return list(FIXTURE["codes"])
         if name == "freshness":
@@ -246,3 +253,27 @@ def test_the_filter_is_installed_on_uvicorns_access_logger():
 
     access = logging.getLogger("uvicorn.access")
     assert any(isinstance(f, RedactPrivateQueries) for f in access.filters)
+
+
+# The token's term (SEMESTERS-SPEC.md 7.3)
+
+
+def test_a_semester_1_feed_keeps_semester_1_after_the_default_moves_on(client, warehouse, monkeypatch):
+    """The default became semester 2 on 21 Nov 2026; a subscription made before it did not."""
+    monkeypatch.setattr(explore_router, "default_term", lambda: ("2026/2027", 2))
+    lecture, lab = _lab_and_lecture()
+    response = client.get(URL, params={"t": _token(lecture, lab)})
+
+    assert response.status_code == 200
+    terms = {args[0] for name, args in warehouse.calls if name == "sessions_for_courses"}
+    assert terms == {("2026/2027", 1)}
+    calls = [name for name, _ in warehouse.calls]
+    assert "publication_terms" in calls
+
+
+def test_a_token_from_a_publication_the_warehouse_lost_is_served_the_default_term(client, warehouse):
+    lecture, lab = _lab_and_lecture()
+    client.get(URL, params={"t": _token(lecture, lab, publication=999)})
+
+    terms = {args[0] for name, args in warehouse.calls if name == "sessions_for_courses"}
+    assert terms == {("2026/2027", 1)}

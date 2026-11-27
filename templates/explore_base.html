@@ -42,6 +42,17 @@
    explore.js, so a reader without JavaScript sees it rather than missing it. #}
 {% if changes_banner and active != 'changes' %}{{ update_notice(changes_banner) }}{% endif %}
 
+{# Said once, under the switch, while the term shown is UWI's draft
+   (SEMESTERS-SPEC.md 7.4): a student planning from it should know its
+   classes may still move. #}
+{% if term_stage == 'inspection' %}
+<aside class="term-note" role="note">
+  <p class="term-note-inner"><b>{{ term_label }} is UWI's inspection copy.</b>
+    It is a draft published for checking, and classes may still move before the
+    final timetable.</p>
+</aside>
+{% endif %}
+
 {# explore.js reads the term's week count and keeps `?term=` on the links
    and the address it writes. #}
 <main id="main" data-total-weeks="{{ total_weeks or 12 }}" data-term="{{ term if term_q else '' }}">

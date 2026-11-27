@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import re
+from datetime import date
 from pathlib import Path
 
 from timetable_extractor.constants import DEFAULT_SOURCE, SOURCES
@@ -25,7 +26,8 @@ from timetable_extractor.database.connection import (
     connect,
 )
 from timetable_extractor.database.loader import UnknownTerm, load_all
-from timetable_extractor.database.terms import DEFAULT_TERM, TermKey, parse_slug, slug
+from timetable_extractor.database import terms as tm
+from timetable_extractor.database.terms import LEGACY_TERM, TermKey, parse_slug, slug
 
 
 def _minutes(label: str) -> int:
@@ -112,7 +114,7 @@ def _load(args: argparse.Namespace) -> int:
 def _term(value: str) -> TermKey:
     term = parse_slug(value)
     if term is None:
-        raise argparse.ArgumentTypeError(f"not a term like {slug(DEFAULT_TERM)}: {value!r}")
+        raise argparse.ArgumentTypeError(f"not a term like {slug(LEGACY_TERM)}: {value!r}")
     return term
 
 
@@ -120,13 +122,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.strip().split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # The read commands answer for one term, the default unless named.
+    # The read commands answer for one term, the site's default unless named.
     reads = argparse.ArgumentParser(add_help=False)
     reads.add_argument(
         "--term",
         type=_term,
-        default=DEFAULT_TERM,
-        help=f"which term, like 2026-27-s2 (default {slug(DEFAULT_TERM)})",
+        default=None,
+        help="which term, like 2026-27-s2 (default: the site's, the earliest "
+        "loaded term whose teaching has not ended)",
     )
 
     sub.add_parser("init", help="create tables, indexes and views")
@@ -183,6 +186,10 @@ def main() -> int:
                 apply_schema(conn)
                 print("Schema applied.")
                 return 0
+
+            if args.term is None:
+                held = [entry["term"] for entry in tm.held_terms(conn)]
+                args.term = tm.choose_default(held, date.today()) or LEGACY_TERM
 
             if args.command == "stats":
                 summary = queries.coverage_summary(conn, args.term)
