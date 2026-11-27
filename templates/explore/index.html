@@ -1,5 +1,5 @@
 {% extends "explore_base.html" %}
-{% import "explore/_macros.html" as ui %}
+{% import "explore/_macros.html" as ui with context %}
 {% block title %}Find your classes{% endblock %}
 
 {% block content %}
@@ -131,7 +131,7 @@
       <p>The course list is filtered in your browser. With JavaScript off you can
          still open a course directly, for example
          <code>/explore/course/COMP2601</code>, or browse
-         <a href="/explore/rooms">rooms</a> and <a href="/explore/staff">lecturers</a>.</p>
+         <a href="/explore/rooms{{ term_q }}">rooms</a> and <a href="/explore/staff{{ term_q }}">lecturers</a>.</p>
     </div>
   </noscript>
 </div>

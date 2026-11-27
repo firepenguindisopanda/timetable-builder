@@ -60,6 +60,7 @@ from schemas import (
 from timetable_extractor import extract_timetable, observability
 
 import explore_router
+from timetable_extractor.database.terms import DEFAULT_TERM
 import static_version
 
 # --- Admin Auth ---
@@ -348,7 +349,7 @@ def _page_context(request: Request, active: str) -> dict:
     is down or empty must cost them the banner, never the page.
     """
     try:
-        changes_banner = explore_router.changes_banner_context()
+        changes_banner = explore_router.changes_banner_context(DEFAULT_TERM)
     except Exception:
         changes_banner = None
     return {
@@ -593,13 +594,13 @@ async def calendar_page(request: Request):
     # Dates for the teaching weeks. Like the banner, never worth the page:
     # without them the calendar shows the undated week it always did.
     try:
-        context["teaching_calendar"] = explore_router.teaching_calendar_context()
+        context["teaching_calendar"] = explore_router.teaching_calendar_context(DEFAULT_TERM)
     except Exception:
         context["teaching_calendar"] = None
     # The explorer's freshness line, so a student sees where the classes
     # came from and how recently, on the page they actually build from.
     try:
-        context["freshness"] = explore_router.freshness_context()
+        context["freshness"] = explore_router.freshness_context(DEFAULT_TERM)
     except Exception:
         context["freshness"] = None
     return templates.TemplateResponse(

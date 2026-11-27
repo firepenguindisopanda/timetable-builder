@@ -28,6 +28,7 @@ import psycopg
 from psycopg.types.json import Json
 
 from timetable_extractor.database.records import DAY_ORDER
+from timetable_extractor.database.terms import TermKey, params
 from timetable_extractor.database.weeks import expand_weeks, render_weeks
 
 #: Rooms CELCAT publishes when it has not allocated one yet. A class going
@@ -365,18 +366,24 @@ def previous_publication(conn: psycopg.Connection, publication_id: int) -> int |
     return row[0] if row else None
 
 
-def current_pair(conn: psycopg.Connection) -> list[tuple[int, Any]]:
+def current_pair(conn: psycopg.Connection, term: TermKey) -> list[tuple[int, Any]]:
     """
-    The current publication and the one before it, newest first, as
+    The term's current publication and the one before it, newest first, as
     (id, published_at). One entry when the term has a single publication,
     none when nothing is loaded.
 
-    The current one is `latest_publication`, the default term's, so the pair
-    never spans two terms: loading the semester 2 inspection copy leaves
-    `/changes` comparing semester 1 with itself.
+    Both come from the one term, so the pair never spans two: loading the
+    semester 2 inspection copy leaves semester 1's `/changes` comparing
+    semester 1 with itself.
     """
     with conn.cursor() as cur:
-        cur.execute("SELECT id, published_at FROM latest_publication")
+        cur.execute(
+            """
+            SELECT id, published_at FROM term_publication
+             WHERE academic_year = %(year)s AND semester = %(semester)s
+            """,
+            params(term),
+        )
         current = cur.fetchone()
         if current is None:
             return []
@@ -595,14 +602,15 @@ def display_kind(
     return CLASS_MOVED
 
 
-def changes_for_page(conn: psycopg.Connection) -> dict[str, Any] | None:
+def changes_for_page(conn: psycopg.Connection, term: TermKey) -> dict[str, Any] | None:
     """
-    The stored diff between the current publication and the one before it.
+    The stored diff between the term's current publication and the one
+    before it.
 
     Returns None when the warehouse holds a single publication, which is not an
     error: there is genuinely nothing to compare against, and the page says so.
     """
-    publications = current_pair(conn)
+    publications = current_pair(conn, term)
 
     if len(publications) < 2:
         return None
@@ -767,9 +775,23 @@ def _api_entry(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _publication_exists(conn: psycopg.Connection, publication_id: int) -> bool:
+def _publication_in_term(
+    conn: psycopg.Connection, publication_id: int, term: TermKey
+) -> bool:
+    """
+    Whether the warehouse holds this publication, filed under this term.
+
+    A timetable saved in semester 1 asking about semester 2 would otherwise
+    be diffed across terms, and every class would read as changed.
+    """
     with conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM publications WHERE id = %s", (publication_id,))
+        cur.execute(
+            """
+            SELECT 1 FROM publications
+             WHERE id = %(id)s AND academic_year = %(year)s AND semester = %(semester)s
+            """,
+            params(term, id=publication_id),
+        )
         return cur.fetchone() is not None
 
 
@@ -834,7 +856,7 @@ def _live_changes_for(
 
 
 def changes_for_courses(
-    conn: psycopg.Connection, codes: list[str], since: int | None = None
+    conn: psycopg.Connection, term: TermKey, codes: list[str], since: int | None = None
 ) -> dict[str, Any] | None:
     """
     What changed for a set of courses since a given publication.
@@ -843,9 +865,10 @@ def changes_for_courses(
     Omitting it means "the previous publication", which is the right answer
     for someone who has not built one.
 
-    Returns None when the warehouse holds a single publication.
+    Returns None when the term holds a single publication. A `since` from
+    another term is answered like one the warehouse no longer holds.
     """
-    publications = current_pair(conn)
+    publications = current_pair(conn, term)
 
     if len(publications) < 2:
         return None
@@ -865,7 +888,7 @@ def changes_for_courses(
             "since_unavailable": False,
             "changes": [],
         }
-    elif _publication_exists(conn, since):
+    elif _publication_in_term(conn, since, term):
         from_id = since
     else:
         # Answering a different question silently would be worse than saying

@@ -317,6 +317,34 @@ body.explore {
 .status[data-status="unknown"]::before { background: var(--coral);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--coral) 20%, transparent); }
 
+/* The terms the warehouse holds, under the rail, once there is more than one.
+   The current term reads as text, the others as links. */
+.term-switch {
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--text-sm);
+}
+
+.term-switch-inner {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: var(--space-2) var(--space-6);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+}
+
+.term-switch a {
+    color: var(--teal);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.term-switch a[aria-current="page"] {
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
 .rail-facts {
     color: var(--ink-2);
     display: flex;

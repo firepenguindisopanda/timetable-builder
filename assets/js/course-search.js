@@ -13,8 +13,6 @@
  * typing costs no requests.
  */
 
-const SEARCH_TOTAL_WEEKS = 12;
-
 /**
  * One lowercased string per course, holding everything worth matching on.
  *
@@ -184,10 +182,15 @@ function parseCourseCodeList(text, courses) {
   return { codes: found, unknown };
 }
 
-/** The week numbers packed into a bitmask, where bit 0 is week 1. */
+/**
+ * The week numbers packed into a bitmask, where bit 0 is week 1.
+ *
+ * Read up to the mask's highest bit rather than a fixed 12, so semester 2's
+ * week 13 is not dropped. The server already bounds the mask by the term.
+ */
 function weeksFromMask(mask) {
   const weeks = [];
-  for (let w = 1; w <= SEARCH_TOTAL_WEEKS; w++) {
+  for (let w = 1; w <= 31 && (mask >>> (w - 1)) > 0; w++) {
     if ((mask >> (w - 1)) & 1) weeks.push(w);
   }
   return weeks;

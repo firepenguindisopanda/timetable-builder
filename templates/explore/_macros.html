@@ -76,7 +76,7 @@
 {# A course, room or lecturer chip that links to its own page. #}
 {% macro room_link(room) %}
   {%- if room -%}
-  <a class="link-teal" href="/explore/room/{{ room | urlpath }}">{{ room }}</a>
+  <a class="link-teal" href="/explore/room/{{ room | urlpath }}{{ term_q }}">{{ room }}</a>
   {%- else -%}
   <span class="muted">Not published</span>
   {%- endif -%}
@@ -85,7 +85,7 @@
 {% macro staff_links(names) %}
   {%- if names -%}
     {%- for name in names -%}
-    <a class="link-teal" href="/explore/staff/{{ name | urlpath }}">{{ name }}</a>{{ ", " if not loop.last }}
+    <a class="link-teal" href="/explore/staff/{{ name | urlpath }}{{ term_q }}">{{ name }}</a>{{ ", " if not loop.last }}
     {%- endfor -%}
   {%- else -%}
   <span class="muted">Not published</span>
@@ -128,7 +128,7 @@
           left: {{ block.left_pct }}%; width: {{ block.width_pct }}%;
         {%- endset -%}
         {%- if code_field %}
-        <a class="tt-block" style="{{ style }}" href="/explore/course/{{ s[code_field] | urlpath }}">
+        <a class="tt-block" style="{{ style }}" href="/explore/course/{{ s[code_field] | urlpath }}{{ term_q }}">
           <b>{{ s[code_field] }}</b>
           <span>{{ s.start_time }}-{{ s.end_time }}{% if s.activity_type %} &middot; {{ s.activity_type }}{% endif %}</span>
         </a>

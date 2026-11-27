@@ -62,7 +62,7 @@ class FakeWarehouse:
         if name == "current_semester":
             return "Semester_1_TT2026_2027"
         if name == "sessions_for_courses":
-            (codes,) = args
+            _term, codes = args
             return [copy.deepcopy(self.current[c]) for c in codes if c in self.current]
         if name == "publication_ids":
             return [OLD_PUBLICATION, NEW_PUBLICATION]
@@ -183,7 +183,7 @@ def test_head_is_answered(client):
 
 
 def test_unknown_semester_dates_are_a_503_not_guessed_dates(client, monkeypatch):
-    monkeypatch.setattr(explore_router, "teaching_calendar_context", lambda: None)
+    monkeypatch.setattr(explore_router, "teaching_calendar_context", lambda term: None)
     lecture, lab = _lab_and_lecture()
     assert client.get(URL, params={"t": _token(lecture, lab)}).status_code == 503
 
@@ -200,7 +200,7 @@ def test_an_unreachable_warehouse_is_a_503(client, monkeypatch):
     monkeypatch.setattr(explore_router, "query", down)
     monkeypatch.setattr(
         explore_router, "teaching_calendar_context",
-        lambda: {"weekOne": "2026-08-31", "totalWeeks": 12},
+        lambda term: {"weekOne": "2026-08-31", "totalWeeks": 12},
     )
     assert client.get(URL, params={"t": _token(lecture, lab)}).status_code == 503
 

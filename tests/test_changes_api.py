@@ -52,6 +52,7 @@ class FakeWarehouse:
 
     def __init__(self):
         self.asked: list[tuple] = []
+        self.terms: list[tuple] = []
         self.publications = 2
         self.changes = [moved()]
 
@@ -59,7 +60,8 @@ class FakeWarehouse:
         if fn.__name__ == "course_codes":
             return list(PUBLISHED_CODES)
         if fn.__name__ == "changes_for_courses":
-            codes, since = args
+            self.terms.append(args[0])
+            _, codes, since = args
             self.asked.append((tuple(codes), since))
             if self.publications < 2:
                 return None

@@ -75,6 +75,9 @@ def render(rows_before: list[dict], rows_after: list[dict], monkeypatch) -> str:
     def query(fn, *args):
         if fn.__name__ == "changes_for_page":
             return page
+        if fn.__name__ == "held_terms":
+            return [{"term": ("2026/2027", 1), "publication_id": 16,
+                     "stage": "final", "published_at": NOV_12}]
         if fn.__name__ == "freshness":
             return {"publication_id": 16, "published_at": NOV_12,
                     "imported_at": NOV_12, "checked_at": NOV_12,

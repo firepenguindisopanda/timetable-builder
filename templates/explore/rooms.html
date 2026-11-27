@@ -1,5 +1,5 @@
 {% extends "explore_base.html" %}
-{% import "explore/_macros.html" as ui %}
+{% import "explore/_macros.html" as ui with context %}
 
 {% block title %}Rooms{% endblock %}
 {% block description %}Every teaching room in use on the UWI St. Augustine timetable, with how heavily each one is booked.{% endblock %}
@@ -27,7 +27,7 @@
   <ul class="rows" id="list" aria-label="Rooms">
     {% for room in rooms %}
     <li data-search="{{ room.code | lower }}">
-      <a class="row" href="/explore/room/{{ room.code | urlpath }}">
+      <a class="row" href="/explore/room/{{ room.code | urlpath }}{{ term_q }}">
         <div>
           <div class="row-code">{{ room.hours_per_week }}h</div>
           <span class="row-days">{% for day in room.days %}{{ day[:3] }} {% endfor %}</span>

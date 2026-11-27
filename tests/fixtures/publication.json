@@ -1,5 +1,27 @@
 {
   "apiVersion": 1,
+  "term": "2026-27-s1",
+  "stage": "final",
+  "terms": [
+    {
+      "term": "2026-27-s1",
+      "label": "Semester 1 2026/27",
+      "academicYear": "2026/2027",
+      "number": 1,
+      "stage": "final",
+      "publicationId": 16,
+      "default": true
+    },
+    {
+      "term": "2026-27-s2",
+      "label": "Semester 2 2026/27 (inspection copy)",
+      "academicYear": "2026/2027",
+      "number": 2,
+      "stage": "inspection",
+      "publicationId": 21,
+      "default": false
+    }
+  ],
   "publication": {
     "id": 16,
     "revision": 4,

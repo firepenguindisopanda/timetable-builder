@@ -160,9 +160,15 @@ def test_what_cannot_be_read_falls_back_and_says_so(kwargs):
 class FakeWarehouse:
     def __init__(self):
         self.calls = []
+        self.args: list[tuple] = []
+        self.terms = [("2026/2027", 1)]
 
     def __call__(self, fn, *args):
         self.calls.append(fn.__name__)
+        self.args.append((fn.__name__, args))
+        if fn.__name__ == "held_terms":
+            return [{"term": term, "publication_id": 11 + i, "stage": "final",
+                     "published_at": None} for i, term in enumerate(self.terms)]
         if fn.__name__ == "free_rooms_page":
             return {
                 "rooms": ["ENG 105", "FST 114", "UWI Couva Teaching Facility - Lecture Room 5"],
@@ -181,7 +187,7 @@ class FakeWarehouse:
 def client(monkeypatch):
     fake = FakeWarehouse()
     monkeypatch.setattr(explore_router, "query", fake)
-    monkeypatch.setattr(explore_router, "changes_banner_context", lambda: None)
+    monkeypatch.setattr(explore_router, "changes_banner_context", lambda term: None)
     explore_router.clear_cache()
     with TestClient(main.app) as test_client:
         test_client.fake = fake

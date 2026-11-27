@@ -2,8 +2,9 @@
 Ready-made queries over the timetable warehouse.
 
 Each is a plain function returning rows, so they can back an API endpoint, a
-CLI, or ad-hoc analysis. They all read `current_sessions`, the view scoped to
-the most recent publication.
+CLI, or ad-hoc analysis. Each reads one term's current publication, named by
+the caller (`terms.py`); the CLI passes the default term unless `--term`
+names another.
 """
 
 from __future__ import annotations
@@ -13,10 +14,19 @@ from typing import Any
 import psycopg
 
 from timetable_extractor.database.courses import find_published_code
+from timetable_extractor.database.terms import (
+    IN_TERM,
+    TERM_PUBLICATION,
+    TermKey,
+    in_term,
+    params,
+)
 from timetable_extractor.database.weeks import expand_weeks
 
 
-def course_timetable(conn: psycopg.Connection, code: str) -> list[dict[str, Any]]:
+def course_timetable(
+    conn: psycopg.Connection, term: TermKey, code: str
+) -> list[dict[str, Any]]:
     """
     Every session for a course, in week order.
 
@@ -29,14 +39,14 @@ def course_timetable(conn: psycopg.Connection, code: str) -> list[dict[str, Any]
             return []
 
         cur.execute(
-            """
+            f"""
             SELECT day, start_time, end_time, activity_type, stream_label,
                    room, staff, weeks_raw, notes
-              FROM current_sessions
-             WHERE course_code = %s
+              FROM term_sessions
+             WHERE {IN_TERM} AND course_code = %(code)s
              ORDER BY day, start_min
             """,
-            (published,),
+            params(term, code=published),
         )
         return [
             dict(zip([c.name for c in cur.description], row)) for row in cur.fetchall()
@@ -44,7 +54,12 @@ def course_timetable(conn: psycopg.Connection, code: str) -> list[dict[str, Any]
 
 
 def free_rooms(
-    conn: psycopg.Connection, day: str, start_min: int, end_min: int, week: int | None = None
+    conn: psycopg.Connection,
+    term: TermKey,
+    day: str,
+    start_min: int,
+    end_min: int,
+    week: int | None = None,
 ) -> list[str]:
     """
     Rooms with nothing booked over a time range.
@@ -55,48 +70,52 @@ def free_rooms(
     """
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT r.code
               FROM rooms r
              WHERE NOT EXISTS (
                    SELECT 1
                      FROM sessions s
                     WHERE s.room_id = r.id
-                      AND s.publication_id = (SELECT id FROM latest_publication)
-                      AND s.day = %s::day_of_week
-                      AND s.start_min < %s
-                      AND s.end_min   > %s
-                      AND (%s::smallint IS NULL OR %s::smallint = ANY (s.weeks))
+                      AND s.publication_id = {TERM_PUBLICATION}
+                      AND s.day = %(day)s::day_of_week
+                      AND s.start_min < %(end)s
+                      AND s.end_min   > %(start)s
+                      AND (%(week)s::smallint IS NULL OR %(week)s::smallint = ANY (s.weeks))
              )
              ORDER BY r.code
             """,
-            (day, end_min, start_min, week, week),
+            params(term, day=day, start=start_min, end=end_min, week=week),
         )
         return [row[0] for row in cur.fetchall()]
 
 
-def room_occupancy(conn: psycopg.Connection, room_code: str) -> list[dict[str, Any]]:
+def room_occupancy(
+    conn: psycopg.Connection, term: TermKey, room_code: str
+) -> list[dict[str, Any]]:
     """What is booked in a room, across every course."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT day, start_time, end_time, course_code, activity_type, weeks_raw, staff
-              FROM current_sessions
-             WHERE room = %s
+              FROM term_sessions
+             WHERE {IN_TERM} AND room = %(room)s
              ORDER BY day, start_min
             """,
-            (room_code,),
+            params(term, room=room_code),
         )
         return [
             dict(zip([c.name for c in cur.description], row)) for row in cur.fetchall()
         ]
 
 
-def staff_load(conn: psycopg.Connection, limit: int = 20) -> list[dict[str, Any]]:
+def staff_load(
+    conn: psycopg.Connection, term: TermKey, limit: int = 20
+) -> list[dict[str, Any]]:
     """Contact hours per teacher, weighted by how many weeks each class runs."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT st.name,
                    count(*)                                        AS sessions,
                    count(DISTINCT s.course_id)                     AS courses,
@@ -106,19 +125,21 @@ def staff_load(conn: psycopg.Connection, limit: int = 20) -> list[dict[str, Any]
               FROM sessions s
               JOIN session_staff ss ON ss.session_id = s.id
               JOIN staff st         ON st.id = ss.staff_id
-             WHERE s.publication_id = (SELECT id FROM latest_publication)
+             WHERE s.publication_id = {TERM_PUBLICATION}
              GROUP BY st.name
              ORDER BY total_hours DESC
-             LIMIT %s
+             LIMIT %(limit)s
             """,
-            (limit,),
+            params(term, limit=limit),
         )
         return [
             dict(zip([c.name for c in cur.description], row)) for row in cur.fetchall()
         ]
 
 
-def clashes(conn: psycopg.Connection, codes: list[str]) -> list[dict[str, Any]]:
+def clashes(
+    conn: psycopg.Connection, term: TermKey, codes: list[str]
+) -> list[dict[str, Any]]:
     """
     Genuine clashes among a set of courses.
 
@@ -131,26 +152,28 @@ def clashes(conn: psycopg.Connection, codes: list[str]) -> list[dict[str, Any]]:
 
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT a.course_code, a.activity_type, a.stream_label, a.day,
                    a.start_time, a.end_time, a.room,
                    b.course_code, b.activity_type, b.stream_label,
                    b.start_time, b.end_time, b.room,
                    ARRAY(SELECT unnest(a.weeks) INTERSECT SELECT unnest(b.weeks)
                          ORDER BY 1) AS shared_weeks
-              FROM current_sessions a
-              JOIN current_sessions b
-                ON a.day = b.day
+              FROM term_sessions a
+              JOIN term_sessions b
+                ON a.publication_id = b.publication_id
+               AND a.day = b.day
                AND a.id < b.id
                AND a.course_code <> b.course_code
                AND a.start_min < b.end_min
                AND b.start_min < a.end_min
-             WHERE a.course_code = ANY(%s)
-               AND b.course_code = ANY(%s)
+             WHERE {in_term("a")}
+               AND a.course_code = ANY(%(codes)s)
+               AND b.course_code = ANY(%(codes)s)
                AND a.weeks && b.weeks
              ORDER BY a.day, a.start_min
             """,
-            ([c.upper() for c in codes], [c.upper() for c in codes]),
+            params(term, codes=[c.upper() for c in codes]),
         )
         columns = [
             "course_a", "type_a", "stream_a", "day", "start_a", "end_a", "room_a",
@@ -160,29 +183,30 @@ def clashes(conn: psycopg.Connection, codes: list[str]) -> list[dict[str, Any]]:
         return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-def busiest_hours(conn: psycopg.Connection) -> list[dict[str, Any]]:
+def busiest_hours(conn: psycopg.Connection, term: TermKey) -> list[dict[str, Any]]:
     """Sessions per weekday hour - where the timetable is most congested."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT day, start_min / 60 AS hour, count(*) AS sessions
               FROM sessions
-             WHERE publication_id = (SELECT id FROM latest_publication)
+             WHERE publication_id = {TERM_PUBLICATION}
              GROUP BY day, hour
              ORDER BY sessions DESC
              LIMIT 15
-            """
+            """,
+            params(term),
         )
         return [
             dict(zip([c.name for c in cur.description], row)) for row in cur.fetchall()
         ]
 
 
-def coverage_summary(conn: psycopg.Connection) -> dict[str, Any]:
-    """Row counts and field coverage for the current publication."""
+def coverage_summary(conn: psycopg.Connection, term: TermKey) -> dict[str, Any]:
+    """Row counts and field coverage for the term's current publication."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT count(*)                                              AS sessions,
                    count(DISTINCT course_id)                             AS courses,
                    count(room_id)                                        AS with_room,
@@ -190,20 +214,22 @@ def coverage_summary(conn: psycopg.Connection) -> dict[str, Any]:
                    count(*) FILTER (WHERE notes IS NOT NULL)             AS with_notes,
                    count(*) FILTER (WHERE cardinality(weeks) > 0)        AS with_weeks
               FROM sessions
-             WHERE publication_id = (SELECT id FROM latest_publication)
-            """
+             WHERE publication_id = {TERM_PUBLICATION}
+            """,
+            params(term),
         )
         row = cur.fetchone()
         summary = dict(zip([c.name for c in cur.description], row or ()))
 
         cur.execute(
-            """
+            f"""
             SELECT count(DISTINCT session_id)
               FROM session_staff
              WHERE session_id IN (
                    SELECT id FROM sessions
-                    WHERE publication_id = (SELECT id FROM latest_publication))
-            """
+                    WHERE publication_id = {TERM_PUBLICATION})
+            """,
+            params(term),
         )
         summary["with_staff"] = (cur.fetchone() or [0])[0]
 

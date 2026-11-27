@@ -244,6 +244,12 @@ test('a bitmask unpacks to the weeks it stands for', () => {
   assert.deepEqual(weeksFromMask(0xfff), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 });
 
+test('semester 2 week 13 is read, not dropped at a fixed 12', () => {
+  // S2W1-S2W13 (SEMESTERS-SPEC.md 4): the server packs week 13 as bit 12.
+  assert.deepEqual(weeksFromMask(0x1fff), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  assert.equal(weekMaskLabel(1 << 12), 'Runs in week 13');
+});
+
 test('a course with no weeks recorded says so rather than showing nothing', () => {
   assert.equal(weekMaskLabel(0), 'No teaching weeks recorded');
 });
