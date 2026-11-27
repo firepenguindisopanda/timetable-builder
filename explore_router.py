@@ -34,7 +34,8 @@ from timetable_extractor.database import changes as cq
 from timetable_extractor.database import explore_queries as eq
 from timetable_extractor.database import free_rooms as fr
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
-from timetable_extractor.database.weeks import teaching_start
+from schemas import PublicationResponse
+from timetable_extractor.database.weeks import semester_key, teaching_start
 from timetable_extractor.observability import correlation_id, get_logger
 
 router = APIRouter(prefix="/explore", tags=["explore"])
@@ -800,6 +801,69 @@ def _split_codes(raw: str) -> list[str]:
     course into three unrecognised fragments.
     """
     return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+#: Bumped only for a breaking change to `/publication`: a field removed,
+#: renamed or retyped. Adding a field is not breaking.
+PUBLICATION_API_VERSION = 1
+
+
+def _unavailable_json(detail: str) -> JSONResponse:
+    return JSONResponse(
+        {"status": "unavailable", "detail": detail},
+        status_code=503,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@api_router.get(
+    "/publication",
+    response_model=PublicationResponse,
+    responses={503: {"description": "No timetable loaded, or the database is unreachable."}},
+)
+async def timetable_publication():
+    """
+    Which publication is current, and which load of it.
+
+    For clients that keep their own copy of the timetable: `(id, revision)`
+    names the data, and a `--replace` reload bumps the revision under the same
+    id. Read from the database on every request, never from the page cache,
+    so a reload shows on the next call.
+    """
+    try:
+        current = query(eq.publication_identity)
+        # Only the week-one lookup's input, so a cached label cannot make the
+        # id or the revision wrong.
+        label = cached("semester", lambda: query(eq.current_semester))
+    except ExplorerUnavailable:
+        return _unavailable_json("The timetable database is unavailable.")
+    if current is None:
+        return _unavailable_json("No timetable has been loaded yet.")
+
+    key = semester_key(label)
+    start = teaching_start(label)
+    body = PublicationResponse(
+        apiVersion=PUBLICATION_API_VERSION,
+        publication={
+            "id": current["publication_id"],
+            "revision": current["revision"],
+            "publishedAt": _iso(current["published_at"]),
+            "loadedAt": _iso(current["loaded_at"]),
+            "resourceCount": current["resource_count"],
+        },
+        semester={
+            "label": label,
+            "academicYear": key[0] if key else None,
+            "number": key[1] if key else None,
+            "weekOne": start.isoformat() if start else None,
+            "totalWeeks": eq.TOTAL_WEEKS,
+        },
+        sync={
+            "checkedAt": _iso(current["checked_at"]),
+            "updatePending": current["update_pending"],
+        },
+    )
+    return JSONResponse(body.model_dump(), headers={"Cache-Control": "no-store"})
 
 
 @api_router.get("/sessions")

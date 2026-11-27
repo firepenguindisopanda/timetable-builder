@@ -70,6 +70,48 @@ class ExtractResponse(BaseModel):
     )
 
 
+class PublicationInfo(BaseModel):
+    """The current publication and which load of it is being served."""
+
+    id: int
+    revision: int = Field(
+        description="Starts at 1 and rises by 1 each time the sessions are rewritten."
+    )
+    publishedAt: str | None = Field(description="When UWI published it, ISO 8601.")
+    loadedAt: str | None = Field(description="When this revision was written, ISO 8601.")
+    resourceCount: int
+
+
+class SemesterInfo(BaseModel):
+    """The semester the current publication is filed under."""
+
+    label: str | None
+    academicYear: str | None
+    number: int | None
+    weekOne: str | None = Field(
+        description="Monday of teaching week 1, or null when the semester's dates are not known."
+    )
+    totalWeeks: int
+
+
+class SyncInfo(BaseModel):
+    """When UWI was last asked about a republish, and whether one is waiting."""
+
+    checkedAt: str | None
+    updatePending: bool
+
+
+class PublicationResponse(BaseModel):
+    """`GET /api/timetable/publication`. See PUBLICATION-ENDPOINT-SPEC.md."""
+
+    apiVersion: int = Field(
+        description="Changes only when a field is removed, renamed or retyped."
+    )
+    publication: PublicationInfo
+    semester: SemesterInfo
+    sync: SyncInfo
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
     version: str

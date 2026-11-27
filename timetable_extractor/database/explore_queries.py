@@ -229,6 +229,39 @@ def freshness(conn: psycopg.Connection) -> dict[str, Any]:
     }
 
 
+def publication_identity(conn: psycopg.Connection) -> dict[str, Any] | None:
+    """
+    Which publication is current, and which load of it.
+
+    For `/api/timetable/publication`. A client keeping its own copy treats
+    (publication_id, revision) as the identity of the data: `--replace`
+    rewrites the sessions under the same id and bumps the revision.
+
+    None when no publication has sessions yet. Read uncached by the route, so
+    it reuses `freshness` for the sync fields rather than a second reading of
+    "update pending".
+    """
+    fresh = freshness(conn)
+    publication_id = fresh["publication_id"]
+    if publication_id is None:
+        return None
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT load_revision, loaded_at FROM publications WHERE id = %s",
+            (publication_id,),
+        )
+        revision, loaded_at = cur.fetchone() or (None, None)
+    return {
+        "publication_id": publication_id,
+        "revision": revision,
+        "published_at": fresh["published_at"],
+        "loaded_at": loaded_at,
+        "resource_count": fresh["resource_count"],
+        "checked_at": fresh["checked_at"],
+        "update_pending": fresh["update_pending"],
+    }
+
+
 def overview(conn: psycopg.Connection) -> dict[str, Any]:
     """Headline counts for the current publication."""
     with conn.cursor() as cur:

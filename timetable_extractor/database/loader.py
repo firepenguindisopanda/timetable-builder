@@ -722,6 +722,16 @@ def write_sessions(
                 source_rows,
             )
 
+        # In this transaction, not after it: a reader then sees the old
+        # sessions with the old revision or the new with the new, never a mix.
+        # The `--replace` path's DELETE is uncommitted until here as well.
+        cur.execute(
+            "UPDATE publications SET load_revision = load_revision + 1, loaded_at = now() "
+            "WHERE id = %s RETURNING load_revision",
+            (publication_id,),
+        )
+        cur.fetchone()
+
     conn.commit()
     return written, len(staff_rows), len(source_rows)
 
@@ -892,9 +902,14 @@ def load_all(
         drop_orphaned_test_courses(conn)
 
         with conn.cursor() as cur:
-            cur.execute("SELECT published_at FROM publications WHERE id = %s", (publication_id,))
+            cur.execute(
+                "SELECT published_at, load_revision FROM publications WHERE id = %s",
+                (publication_id,),
+            )
             row = cur.fetchone()
             published_at = row[0] if row else None
+        if progress and row:
+            print(f"  load revision: {row[1]}", flush=True)
 
         # What this republish changed, computed now rather than on every page view.
         # A `--replace` reload rewrites the sessions the stored diff was derived
