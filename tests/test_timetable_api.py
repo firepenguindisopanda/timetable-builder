@@ -55,7 +55,7 @@ class FakeWarehouse:
         if fn.__name__ == "freshness":
             return {"publication_id": FIXTURE["publicationId"]}
         if fn.__name__ == "sessions_for_courses":
-            (codes,) = args
+            _term, codes = args
             return [COURSES[code] for code in codes if code in COURSES]
 
         # The ops endpoint shares this router's pool, and the sessions route
@@ -272,7 +272,7 @@ def test_courses_already_fetched_are_not_fetched_again(client, warehouse):
 
     second = warehouse.calls_to("sessions_for_courses")[1]
 
-    assert second[1] == (["FOUN 1101"],)
+    assert second[1] == (("2026/2027", 1), ["FOUN 1101"])
 
 
 def test_the_course_list_is_read_once_not_once_per_request(client, warehouse):

@@ -23,7 +23,7 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 import psycopg
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.templating import Jinja2Templates
 
@@ -33,9 +33,10 @@ from timetable_extractor import subscription as sub
 from timetable_extractor.database import changes as cq
 from timetable_extractor.database import explore_queries as eq
 from timetable_extractor.database import free_rooms as fr
+from timetable_extractor.database import terms as tm
 from timetable_extractor.database.connection import DatabaseNotConfigured, database_url
 from schemas import PublicationResponse
-from timetable_extractor.database.weeks import semester_key, teaching_start
+from timetable_extractor.database.weeks import TERMS
 from timetable_extractor.observability import correlation_id, get_logger
 
 router = APIRouter(prefix="/explore", tags=["explore"])
@@ -302,6 +303,97 @@ def clear_cache() -> None:
     logger.info("explore.cache_cleared", extra={"event": "explore.cache_cleared"})
 
 
+# Terms
+#
+# Every page and API route answers for one term, `?term=2026-27-s2`, and the
+# default term when none is named. SEMESTERS-SPEC.md section 7.
+
+
+def term_key(name: str, term: tm.TermKey) -> str:
+    """A cache key for one term's answer: "courses:2026-27-s2"."""
+    return f"{name}:{tm.slug(term)}"
+
+
+def held_terms() -> list[dict[str, Any]]:
+    """Every term with a loaded publication, cached like the pages' queries."""
+    return cached("terms", lambda: query(tm.held_terms))
+
+
+def resolve_term(value: str | None) -> tm.TermKey:
+    """
+    The term a `?term=` names, or the default term when it is absent.
+
+    An unknown term is a 404, never the default term in its place: a link to
+    semester 2 that quietly showed semester 1 would look right and be wrong.
+    """
+    if not value:
+        return tm.DEFAULT_TERM
+    term = tm.parse_slug(value)
+    if term is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"There is no term '{value}'. Terms are written like "
+                f"{tm.slug(tm.DEFAULT_TERM)}."
+            ),
+        )
+    if term == tm.DEFAULT_TERM:
+        return term
+    try:
+        held = {entry["term"] for entry in held_terms()}
+    except ExplorerUnavailable:
+        # The page will say the warehouse is down; a 404 would blame the link.
+        return term
+    if term not in held:
+        raise HTTPException(
+            status_code=404, detail=f"No timetable is loaded for {tm.label(term)}."
+        )
+    return term
+
+
+def term_param(
+    term: str | None = Query(
+        None,
+        description=(
+            "Which term, like 2026-27-s2. Omit for the default term. An unknown "
+            "term is a 404."
+        ),
+    ),
+) -> tm.TermKey:
+    """`?term=` for any route, resolved by `resolve_term`."""
+    return resolve_term(term)
+
+
+def term_query(term: tm.TermKey) -> str:
+    """The query string a link carries to stay in a term: empty for the default."""
+    return "" if term == tm.DEFAULT_TERM else f"?term={tm.slug(term)}"
+
+
+def term_switch(request: Request, term: tm.TermKey) -> list[dict[str, Any]] | None:
+    """
+    The terms a page can switch between, each linking to this page in it.
+
+    None while only one term is held, and when the warehouse is unreachable:
+    a switch with one choice is not a switch.
+    """
+    try:
+        held = held_terms()
+    except ExplorerUnavailable:
+        return None
+    if len(held) < 2:
+        return None
+    return [
+        {
+            "label": tm.label(entry["term"], entry["stage"]),
+            # Re-encoded: the path arrives decoded, and a course page's holds
+            # "FOUN 1001 (FULL & PART-TIME)".
+            "href": quote(request.url.path) + term_query(entry["term"]),
+            "current": entry["term"] == term,
+        }
+        for entry in held
+    ]
+
+
 # Shared page context
 
 
@@ -309,15 +401,15 @@ def _iso(value: Any) -> str | None:
     return value.isoformat() if hasattr(value, "isoformat") else None
 
 
-def freshness_context() -> dict[str, Any]:
+def freshness_context(term: tm.TermKey) -> dict[str, Any]:
     """
-    The provenance banner every explorer page carries.
+    The provenance banner every explorer page carries, for the term shown.
 
     Timestamps go to the template as ISO strings and are rendered relative in
     the browser, so a student in Trinidad sees local time rather than the
     server's.
     """
-    data = cached("freshness", lambda: query(eq.freshness))
+    data = cached(term_key("freshness", term), lambda: query(eq.freshness, term))
     checked_at = data.get("checked_at")
 
     age_hours = None
@@ -354,10 +446,11 @@ def freshness_context() -> dict[str, Any]:
         "resource_count": data.get("resource_count", 0),
         "check_count": data.get("check_count", 0),
         "publication_count": data.get("publication_count", 0),
+        "stage": data.get("stage"),
     }
 
 
-def changes_banner_context() -> dict[str, Any] | None:
+def changes_banner_context(term: tm.TermKey) -> dict[str, Any] | None:
     """
     The one-line summary that sits under the provenance rail.
 
@@ -371,7 +464,7 @@ def changes_banner_context() -> dict[str, Any] | None:
     that changed nothing.
     """
     try:
-        data = cached("changes", lambda: query(cq.changes_for_page))
+        data = cached(term_key("changes", term), lambda: query(cq.changes_for_page, term))
     except ExplorerUnavailable:
         # The rail above already reports the warehouse being unreachable.
         # Repeating it here would say the same thing twice.
@@ -395,34 +488,42 @@ def changes_banner_context() -> dict[str, Any] | None:
     }
 
 
-def teaching_calendar_context() -> dict[str, Any] | None:
+def teaching_calendar_context(term: tm.TermKey) -> dict[str, Any] | None:
     """
     What the timetable builder needs to put dates on teaching weeks.
 
-    Week 1's Monday for the current publication's semester, and how many
-    weeks there are. None when the warehouse is unreachable or the semester
-    is not in `weeks.TERMS`: the builder then shows an undated
-    week, as it did before dates existed, rather than guessing one.
+    Week 1's Monday for the term, and how many weeks it has, from
+    `weeks.TERMS`. None when the term is not there: the builder then shows
+    an undated week, as it did before dates existed, rather than guessing
+    one. Read from the term itself now that a page names one; it used to be
+    read from the current publication's semester label.
     """
-    try:
-        label = cached("semester", lambda: query(eq.current_semester))
-    except ExplorerUnavailable:
+    dates = TERMS.get(term)
+    if dates is None:
         return None
-    start = teaching_start(label)
-    if start is None:
-        return None
-    return {"weekOne": start.isoformat(), "totalWeeks": eq.TOTAL_WEEKS}
+    return {"weekOne": dates.week_one.isoformat(), "totalWeeks": dates.teaching_weeks}
 
 
-def page_context(request: Request, active: str, **extra: Any) -> dict[str, Any]:
-    """Base template context shared by every explorer page."""
+def page_context(
+    request: Request, active: str, term: tm.TermKey, **extra: Any
+) -> dict[str, Any]:
+    """
+    Base template context shared by every explorer page.
+
+    `term_q` is appended to every explorer link so a reader stays in the
+    term they chose; it is empty in the default term, so those links are
+    unchanged.
+    """
     context = {
         "request": request,
         "active": active,
-        "total_weeks": eq.TOTAL_WEEKS,
+        "term": tm.slug(term),
+        "term_q": term_query(term),
+        "terms": term_switch(request, term),
+        "total_weeks": tm.total_weeks(term),
         "day_order": eq.DAY_ORDER,
-        "freshness": freshness_context(),
-        "changes_banner": changes_banner_context(),
+        "freshness": freshness_context(term),
+        "changes_banner": changes_banner_context(term),
         "unavailable": None,
     }
     context.update(extra)
@@ -441,7 +542,8 @@ def error_page(request: Request, status_code: int, detail: str):
         503: "The timetable is not available right now",
     }
     try:
-        context = page_context(request, "explore")
+        # The default term's shell: the error may be the term itself.
+        context = page_context(request, "explore", tm.DEFAULT_TERM)
     except ExplorerUnavailable:
         # The provenance rail needs the database too; without it, drop the rail
         # rather than turning a 404 into a 500.
@@ -488,12 +590,12 @@ def _unavailable(request: Request, active: str, message: str):
 
 
 @router.get("", include_in_schema=False)
-async def explore_index(request: Request):
+async def explore_index(request: Request, term: tm.TermKey = Depends(term_param)):
     """Landing page: campus heat, search, and the full course list."""
     try:
-        stats = cached("overview", lambda: query(eq.overview))
-        heat = cached("heat", lambda: query(eq.campus_heat))
-        courses = cached("courses", lambda: query(eq.course_index))
+        stats = cached(term_key("overview", term), lambda: query(eq.overview, term))
+        heat = cached(term_key("heat", term), lambda: query(eq.campus_heat, term))
+        courses = cached(term_key("courses", term), lambda: query(eq.course_index, term))
     except ExplorerUnavailable as exc:
         return _unavailable(request, "explore", str(exc))
 
@@ -506,6 +608,7 @@ async def explore_index(request: Request):
         context=page_context(
             request,
             "explore",
+            term,
             stats=stats,
             heat=heat,
             course_count=len(courses),
@@ -516,10 +619,10 @@ async def explore_index(request: Request):
 
 
 @router.get("/courses.json", include_in_schema=False)
-async def courses_json():
+async def courses_json(term: tm.TermKey = Depends(term_param)):
     """The whole course index, for client-side search and filtering."""
     try:
-        courses = cached("courses", lambda: query(eq.course_index))
+        courses = cached(term_key("courses", term), lambda: query(eq.course_index, term))
     except ExplorerUnavailable as exc:
         return JSONResponse({"error": str(exc)}, status_code=503)
 
@@ -530,7 +633,7 @@ async def courses_json():
 
 
 @router.get("/ops.json", tags=["ops"])
-async def ops_health():
+async def ops_health(term: tm.TermKey = Depends(term_param)):
     """
     Machine-readable data health, for monitoring rather than for students.
 
@@ -539,9 +642,11 @@ async def ops_health():
     symptom a student would feel (classes on the wrong day), not a cause.
     """
     try:
-        fresh = freshness_context()
-        days = cached("day_distribution", lambda: query(eq.day_distribution))
-        stats = cached("overview", lambda: query(eq.overview))
+        fresh = freshness_context(term)
+        days = cached(
+            term_key("day_distribution", term), lambda: query(eq.day_distribution, term)
+        )
+        stats = cached(term_key("overview", term), lambda: query(eq.overview, term))
     except ExplorerUnavailable as exc:
         return JSONResponse(
             {"status": "unavailable", "detail": str(exc)}, status_code=503
@@ -573,10 +678,12 @@ async def ops_health():
 
 
 @router.get("/course/{code:path}", include_in_schema=False)
-async def course_page(request: Request, code: str):
+async def course_page(
+    request: Request, code: str, term: tm.TermKey = Depends(term_param)
+):
     """One course: its week pattern, its grid, and every session."""
     try:
-        course = query(eq.course_detail, code)
+        course = query(eq.course_detail, term, code)
     except ExplorerUnavailable as exc:
         return _unavailable(request, "explore", str(exc))
 
@@ -589,12 +696,12 @@ async def course_page(request: Request, code: str):
     return templates.TemplateResponse(
         request=request,
         name="explore/course.html",
-        context=page_context(request, "explore", course=course),
+        context=page_context(request, "explore", term, course=course),
     )
 
 
 @router.get("/changes", include_in_schema=False)
-async def changes_page(request: Request):
+async def changes_page(request: Request, term: tm.TermKey = Depends(term_param)):
     """
     What the last republish changed.
 
@@ -603,7 +710,7 @@ async def changes_page(request: Request):
     rather than here - see CHANGES-FEED-SPEC.md section 4.5.
     """
     try:
-        changes = cached("changes", lambda: query(cq.changes_for_page))
+        changes = cached(term_key("changes", term), lambda: query(cq.changes_for_page, term))
     except ExplorerUnavailable as exc:
         return _unavailable(request, "changes", str(exc))
 
@@ -613,6 +720,7 @@ async def changes_page(request: Request):
         context=page_context(
             request,
             "changes",
+            term,
             changes=changes,
             # An explicit parameter, not the referrer: the referrer is empty on
             # a hard refresh and absent under some privacy settings, so the
@@ -623,17 +731,17 @@ async def changes_page(request: Request):
 
 
 @router.get("/rooms", include_in_schema=False)
-async def rooms_page(request: Request):
+async def rooms_page(request: Request, term: tm.TermKey = Depends(term_param)):
     """Every room with something booked in it."""
     try:
-        rooms = cached("rooms", lambda: query(eq.room_index))
+        rooms = cached(term_key("rooms", term), lambda: query(eq.room_index, term))
     except ExplorerUnavailable as exc:
         return _unavailable(request, "rooms", str(exc))
 
     return templates.TemplateResponse(
         request=request,
         name="explore/rooms.html",
-        context=page_context(request, "rooms", rooms=rooms),
+        context=page_context(request, "rooms", term, rooms=rooms),
     )
 
 
@@ -654,6 +762,7 @@ async def free_rooms_page(
     start: str | None = None,
     end: str | None = None,
     week: str | None = None,
+    term: tm.TermKey = Depends(term_param),
 ):
     """
     Rooms with nothing timetabled in a window, for studying between classes.
@@ -662,17 +771,18 @@ async def free_rooms_page(
     caveats, because "not timetabled" is all the data can say: a room can be
     locked, booked outside CELCAT, or someone's lab (UX plan 3.4).
     """
-    teaching = teaching_calendar_context()
+    teaching = teaching_calendar_context(term)
     week_one = date.fromisoformat(teaching["weekOne"]) if teaching else None
-    default = fr.default_window(datetime.now(CAMPUS_TZ), week_one, eq.TOTAL_WEEKS)
-    window, refused = fr.window_from(default, eq.TOTAL_WEEKS, day, start, end, week)
+    weeks_in_term = tm.total_weeks(term)
+    default = fr.default_window(datetime.now(CAMPUS_TZ), week_one, weeks_in_term)
+    window, refused = fr.window_from(default, weeks_in_term, day, start, end, week)
 
     try:
-        # Keyed by day and week only, so the cache holds at most 7 x 12
-        # entries however many windows students ask about.
+        # Keyed by term, day and week only, so the cache holds at most 7 x 13
+        # entries a term however many windows students ask about.
         data = cached(
-            f"free_rooms:{window.day}:{window.week}",
-            lambda: query(fr.free_rooms_page, window.day, window.week),
+            term_key(f"free_rooms:{window.day}:{window.week}", term),
+            lambda: query(fr.free_rooms_page, term, window.day, window.week),
         )
     except ExplorerUnavailable as exc:
         return _unavailable(request, "free-rooms", str(exc))
@@ -707,6 +817,7 @@ async def free_rooms_page(
         context=page_context(
             request,
             "free-rooms",
+            term,
             window=window,
             refused=refused,
             start_label=_clock(window.start_min),
@@ -715,7 +826,7 @@ async def free_rooms_page(
             end_value=f"{window.end_min // 60:02d}:{window.end_min % 60:02d}",
             date_label=date_label,
             days=fr.DAYS,
-            weeks=range(1, eq.TOTAL_WEEKS + 1),
+            weeks=range(1, weeks_in_term + 1),
             groups=groups,
             free_count=len(free),
             on_campus_count=sum(1 for r in free if r.on_campus),
@@ -725,10 +836,12 @@ async def free_rooms_page(
 
 
 @router.get("/room/{code:path}", include_in_schema=False)
-async def room_page(request: Request, code: str):
+async def room_page(
+    request: Request, code: str, term: tm.TermKey = Depends(term_param)
+):
     """One room's week."""
     try:
-        room = query(eq.room_detail, code)
+        room = query(eq.room_detail, term, code)
     except ExplorerUnavailable as exc:
         return _unavailable(request, "rooms", str(exc))
 
@@ -738,30 +851,32 @@ async def room_page(request: Request, code: str):
     return templates.TemplateResponse(
         request=request,
         name="explore/room.html",
-        context=page_context(request, "rooms", room=room),
+        context=page_context(request, "rooms", term, room=room),
     )
 
 
 @router.get("/staff", include_in_schema=False)
-async def staff_page(request: Request):
+async def staff_page(request: Request, term: tm.TermKey = Depends(term_param)):
     """Every lecturer with a class this semester."""
     try:
-        people = cached("staff", lambda: query(eq.staff_index))
+        people = cached(term_key("staff", term), lambda: query(eq.staff_index, term))
     except ExplorerUnavailable as exc:
         return _unavailable(request, "staff", str(exc))
 
     return templates.TemplateResponse(
         request=request,
         name="explore/staff_index.html",
-        context=page_context(request, "staff", people=people),
+        context=page_context(request, "staff", term, people=people),
     )
 
 
 @router.get("/staff/{name:path}", include_in_schema=False)
-async def staff_detail_page(request: Request, name: str):
+async def staff_detail_page(
+    request: Request, name: str, term: tm.TermKey = Depends(term_param)
+):
     """One lecturer's teaching week."""
     try:
-        person = query(eq.staff_detail, name)
+        person = query(eq.staff_detail, term, name)
     except ExplorerUnavailable as exc:
         return _unavailable(request, "staff", str(exc))
 
@@ -771,7 +886,7 @@ async def staff_detail_page(request: Request, name: str):
     return templates.TemplateResponse(
         request=request,
         name="explore/staff.html",
-        context=page_context(request, "staff", person=person),
+        context=page_context(request, "staff", term, person=person),
     )
 
 
@@ -821,29 +936,46 @@ def _unavailable_json(detail: str) -> JSONResponse:
     response_model=PublicationResponse,
     responses={503: {"description": "No timetable loaded, or the database is unreachable."}},
 )
-async def timetable_publication():
+async def timetable_publication(term: tm.TermKey = Depends(term_param)):
     """
-    Which publication is current, and which load of it.
+    Which publication is current for a term, and which load of it.
 
     For clients that keep their own copy of the timetable: `(id, revision)`
     names the data, and a `--replace` reload bumps the revision under the same
     id. Read from the database on every request, never from the page cache,
     so a reload shows on the next call.
+
+    `terms` lists every term held, so a client can offer a switch; the
+    fields added for terms leave `apiVersion` at 1.
     """
     try:
-        current = query(eq.publication_identity)
-        # Only the week-one lookup's input, so a cached label cannot make the
-        # id or the revision wrong.
-        label = cached("semester", lambda: query(eq.current_semester))
+        current = query(eq.publication_identity, term)
+        # The label is shown, not used: the term itself dates the weeks, so
+        # a cached label cannot make the id, the revision or the dates wrong.
+        label = cached(term_key("semester", term), lambda: query(eq.current_semester, term))
+        held = held_terms()
     except ExplorerUnavailable:
         return _unavailable_json("The timetable database is unavailable.")
     if current is None:
         return _unavailable_json("No timetable has been loaded yet.")
 
-    key = semester_key(label)
-    start = teaching_start(label)
+    dates = TERMS.get(term)
     body = PublicationResponse(
         apiVersion=PUBLICATION_API_VERSION,
+        term=tm.slug(term),
+        stage=current["stage"],
+        terms=[
+            {
+                "term": tm.slug(entry["term"]),
+                "label": tm.label(entry["term"], entry["stage"]),
+                "academicYear": entry["term"][0],
+                "number": entry["term"][1],
+                "stage": entry["stage"],
+                "publicationId": entry["publication_id"],
+                "default": entry["term"] == tm.DEFAULT_TERM,
+            }
+            for entry in held
+        ],
         publication={
             "id": current["publication_id"],
             "revision": current["revision"],
@@ -853,10 +985,10 @@ async def timetable_publication():
         },
         semester={
             "label": label,
-            "academicYear": key[0] if key else None,
-            "number": key[1] if key else None,
-            "weekOne": start.isoformat() if start else None,
-            "totalWeeks": eq.TOTAL_WEEKS,
+            "academicYear": term[0],
+            "number": term[1],
+            "weekOne": dates.week_one.isoformat() if dates else None,
+            "totalWeeks": tm.total_weeks(term),
         },
         sync={
             "checkedAt": _iso(current["checked_at"]),
@@ -876,9 +1008,10 @@ async def timetable_sessions(
         ),
         examples=["COMP 1601,COMP 2601"],
     ),
+    term: tm.TermKey = Depends(term_param),
 ):
     """
-    Sessions for a set of courses, shaped for the timetable builder.
+    Sessions for a set of courses in a term, shaped for the timetable builder.
 
     Unrecognised codes are reported in `notFound` rather than failing the
     request, because a list pasted off a registration screenshot is expected to
@@ -901,9 +1034,10 @@ async def timetable_sessions(
 
     try:
         index = cached(
-            "code_index", lambda: eq.build_code_index(query(eq.course_codes))
+            term_key("code_index", term),
+            lambda: eq.build_code_index(query(eq.course_codes, term)),
         )
-        freshness = cached("freshness", lambda: query(eq.freshness))
+        freshness = cached(term_key("freshness", term), lambda: query(eq.freshness, term))
         publication_id = freshness.get("publication_id")
         # The builder prints this on a student's timetable. The id alone is a
         # serial number and says nothing on paper; the date says how old the
@@ -926,15 +1060,15 @@ async def timetable_sessions(
         courses: dict[str, Any] = {}
         misses = []
         for code in resolved:
-            hit = cache_get(f"sessions:{code}", stat="sessions")
+            hit = cache_get(term_key(f"sessions:{code}", term), stat="sessions")
             if hit is MISSING:
                 misses.append(code)
             else:
                 courses[code] = hit
 
         if misses:
-            for course in query(eq.sessions_for_courses, misses):
-                cache_put(f"sessions:{course['code']}", course)
+            for course in query(eq.sessions_for_courses, term, misses):
+                cache_put(term_key(f"sessions:{course['code']}", term), course)
                 courses[course["code"]] = course
     except ExplorerUnavailable as exc:
         return JSONResponse({"error": str(exc)}, status_code=503)
@@ -943,6 +1077,9 @@ async def timetable_sessions(
         {
             "publicationId": publication_id,
             "publishedAt": published_at,
+            "term": tm.slug(term),
+            # "inspection" while the term's timetable is UWI's draft.
+            "stage": freshness.get("stage"),
             "courses": [courses[code] for code in resolved if code in courses],
             "notFound": not_found,
         },
@@ -969,6 +1106,7 @@ async def timetable_changes(
             "for someone who has not built one."
         ),
     ),
+    term: tm.TermKey = Depends(term_param),
 ):
     """
     What changed for a set of courses, for the timetable builder.
@@ -999,7 +1137,8 @@ async def timetable_changes(
 
     try:
         index = cached(
-            "code_index", lambda: eq.build_code_index(query(eq.course_codes))
+            term_key("code_index", term),
+            lambda: eq.build_code_index(query(eq.course_codes, term)),
         )
 
         resolved: dict[str, str] = {}
@@ -1020,7 +1159,7 @@ async def timetable_changes(
         # Not cached per code set: the key would be unbounded in the number of
         # distinct course combinations, and the stored path is an indexed read.
         # The browser is told to hold the answer for five minutes instead.
-        result = query(cq.changes_for_courses, asked, since) if asked else None
+        result = query(cq.changes_for_courses, term, asked, since) if asked else None
     except ExplorerUnavailable as exc:
         return JSONResponse({"error": str(exc)}, status_code=503)
 
@@ -1117,15 +1256,19 @@ async def timetable_calendar(
             "Open your timetable and copy the subscription link again.",
         )
 
-    teaching = teaching_calendar_context()
+    # The default term until the builder can switch term (phase 3), when the
+    # token's publication names its term. SEMESTERS-SPEC.md 7.3.
+    term = tm.DEFAULT_TERM
+    teaching = teaching_calendar_context(term)
     if teaching is None:
         return _feed_error(503, "The timetable's dates are not available right now.")
 
     try:
         index = cached(
-            "code_index", lambda: eq.build_code_index(query(eq.course_codes))
+            term_key("code_index", term),
+            lambda: eq.build_code_index(query(eq.course_codes, term)),
         )
-        freshness = cached("freshness", lambda: query(eq.freshness))
+        freshness = cached(term_key("freshness", term), lambda: query(eq.freshness, term))
         publication_id = freshness.get("publication_id")
 
         published = {
@@ -1135,14 +1278,14 @@ async def timetable_calendar(
         current: dict[str, Any] = {}
         misses = []
         for code in {p for p in published.values() if p}:
-            hit = cache_get(f"sessions:{code}", stat="sessions")
+            hit = cache_get(term_key(f"sessions:{code}", term), stat="sessions")
             if hit is MISSING:
                 misses.append(code)
             else:
                 current[code] = hit
         if misses:
-            for course in query(eq.sessions_for_courses, sorted(misses)):
-                cache_put(f"sessions:{course['code']}", course)
+            for course in query(eq.sessions_for_courses, term, sorted(misses)):
+                cache_put(term_key(f"sessions:{course['code']}", term), course)
                 current[course["code"]] = course
         by_token_code = {
             code: current[p] for code, p in published.items() if p and p in current

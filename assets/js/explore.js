@@ -17,7 +17,16 @@
 
   var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
               'Friday', 'Saturday', 'Sunday'];
-  var TOTAL_WEEKS = 12;
+  // The page's term: its week count (13 in semester 2) and, outside the
+  // default term, its slug, which links and the address keep. 12 when the
+  // page does not say, the count before terms existed.
+  var main = document.getElementById('main');
+  var TOTAL_WEEKS = parseInt(main && main.getAttribute('data-total-weeks'), 10) || 12;
+  var TERM = (main && main.getAttribute('data-term')) || '';
+
+  function termQuery() {
+    return TERM ? '?term=' + encodeURIComponent(TERM) : '';
+  }
   var PAGE_SIZE = 50;
 
   // time
@@ -264,7 +273,7 @@
     var meta = [course.faculty, course.department].filter(Boolean).join(' · ');
 
     return '<li><a class="row" href="/explore/course/'
-      + encodeURIComponent(course.code) + '">'
+      + encodeURIComponent(course.code) + termQuery() + '">'
       + '<div>'
         + '<div class="row-code">' + escapeHtml(course.code) + '</div>'
         + weekMeter(course.weeks)
@@ -336,6 +345,7 @@
 
   function syncUrl() {
     var params = new URLSearchParams();
+    if (TERM) { params.set('term', TERM); }
     if (state.q) { params.set('q', state.q); }
     if (state.faculty) { params.set('faculty', state.faculty); }
     if (state.day) { params.set('day', state.day); }
@@ -465,7 +475,7 @@
   wireTooltipDismiss();
   els.count.textContent = 'Loading courses…';
 
-  fetch('/explore/courses.json')
+  fetch('/explore/courses.json' + termQuery())
     .then(function (response) {
       if (!response.ok) { throw new Error('HTTP ' + response.status); }
       return response.json();

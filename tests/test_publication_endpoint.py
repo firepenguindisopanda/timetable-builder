@@ -45,22 +45,37 @@ def identity(**overrides):
         "resource_count": 1617,
         "checked_at": NOV_26,
         "update_pending": False,
+        "stage": "final",
     }
     row.update(overrides)
     return row
 
 
+S1 = ("2026/2027", 1)
+S2 = ("2026/2027", 2)
+
+
+def held(term, publication_id, stage):
+    return {"term": term, "publication_id": publication_id, "stage": stage,
+            "published_at": NOV_12}
+
+
 class FakeWarehouse:
-    """Answers the two queries the route makes, and counts them."""
+    """Answers the queries the route makes, and counts them."""
 
     def __init__(self):
         self.identity = identity()
         self.semester = "Semester_1_TT2026_2027"
+        self.held = [held(S1, 16, "final")]
         self.calls: list[str] = []
+        self.terms: list[tuple] = []
 
     def __call__(self, fn, *args):
         self.calls.append(fn.__name__)
+        if fn.__name__ == "held_terms":
+            return self.held
         if fn.__name__ == "publication_identity":
+            self.terms.append(args[0])
             return self.identity
         if fn.__name__ == "current_semester":
             return self.semester
@@ -119,24 +134,69 @@ def test_values(client, warehouse):
 
 
 def test_unknown_semester_has_no_week_one(client, warehouse):
-    """A semester missing from weeks.TERMS is not guessed at."""
+    """A held term missing from weeks.TERMS is not guessed at."""
+    warehouse.held.append(held(("2027/2028", 1), 30, "final"))
     warehouse.semester = "Semester_1_TT2027_2028"
-    semester = client.get(URL).json()["semester"]
+    semester = client.get(URL, params={"term": "2027-28-s1"}).json()["semester"]
     assert semester["academicYear"] == "2027/2028"
     assert semester["number"] == 1
     assert semester["weekOne"] is None
+    assert semester["totalWeeks"] == 12
 
 
 def test_unparseable_semester_label(client, warehouse):
+    """The term dates the weeks, so a missing label costs only the label."""
     warehouse.semester = None
     semester = client.get(URL).json()["semester"]
     assert semester == {
         "label": None,
-        "academicYear": None,
-        "number": None,
-        "weekOne": None,
+        "academicYear": "2026/2027",
+        "number": 1,
+        "weekOne": "2026-08-31",
         "totalWeeks": 12,
     }
+
+
+# --- terms (SEMESTERS-SPEC.md 7.3) ---
+
+
+def test_the_default_term_is_answered_and_named(client, warehouse):
+    body = client.get(URL).json()
+    assert warehouse.terms == [S1]
+    assert body["term"] == "2026-27-s1"
+    assert body["stage"] == "final"
+
+
+def test_every_held_term_is_listed(client, warehouse):
+    warehouse.held.append(held(S2, 21, "inspection"))
+    terms = client.get(URL).json()["terms"]
+    assert terms == [
+        {"term": "2026-27-s1", "label": "Semester 1 2026/27", "academicYear": "2026/2027",
+         "number": 1, "stage": "final", "publicationId": 16, "default": True},
+        {"term": "2026-27-s2", "label": "Semester 2 2026/27 (inspection copy)",
+         "academicYear": "2026/2027", "number": 2, "stage": "inspection",
+         "publicationId": 21, "default": False},
+    ]
+
+
+def test_a_named_term_is_answered_with_its_own_weeks(client, warehouse):
+    warehouse.held.append(held(S2, 21, "inspection"))
+    warehouse.identity = identity(publication_id=21, revision=1, stage="inspection")
+    warehouse.semester = "Inspection_Sem_2_2026_2027"
+    body = client.get(URL, params={"term": "2026-27-s2"}).json()
+    assert warehouse.terms == [S2]
+    assert body["term"] == "2026-27-s2"
+    assert body["stage"] == "inspection"
+    assert body["publication"]["id"] == 21
+    assert body["semester"]["weekOne"] == "2027-01-18"
+    assert body["semester"]["totalWeeks"] == 13
+
+
+@pytest.mark.parametrize("term", ["2027-28-s1", "semester2", "2026-28-s1"])
+def test_an_unknown_term_is_a_404_not_the_default(client, warehouse, term):
+    response = client.get(URL, params={"term": term})
+    assert response.status_code == 404
+    assert "publication_identity" not in warehouse.calls
 
 
 def test_never_checked(client, warehouse):
@@ -310,8 +370,8 @@ class PairConnection:
 @pytest.mark.parametrize(
     "call",
     [
-        lambda conn: changes.changes_for_page(conn),
-        lambda conn: changes.changes_for_courses(conn, ["COMP 1601"]),
+        lambda conn: changes.changes_for_page(conn, ("2026/2027", 1)),
+        lambda conn: changes.changes_for_courses(conn, ("2026/2027", 1), ["COMP 1601"]),
     ],
     ids=["page", "api"],
 )
@@ -323,6 +383,6 @@ def test_changes_ignores_unloaded_publications(call):
     conn = PairConnection()
     assert call(conn) is None
     pair = conn.seen[0]
-    # Within the default term, through the view that skips unloaded
+    # Within the term asked for, through the view that skips unloaded
     # publications (test_empty_publication.py pins its `load_revision > 0`).
-    assert "FROM latest_publication" in pair
+    assert "FROM term_publication" in pair

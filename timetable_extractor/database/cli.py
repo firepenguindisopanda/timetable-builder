@@ -25,6 +25,7 @@ from timetable_extractor.database.connection import (
     connect,
 )
 from timetable_extractor.database.loader import UnknownTerm, load_all
+from timetable_extractor.database.terms import DEFAULT_TERM, TermKey, parse_slug, slug
 
 
 def _minutes(label: str) -> int:
@@ -108,9 +109,25 @@ def _load(args: argparse.Namespace) -> int:
     return 0
 
 
+def _term(value: str) -> TermKey:
+    term = parse_slug(value)
+    if term is None:
+        raise argparse.ArgumentTypeError(f"not a term like {slug(DEFAULT_TERM)}: {value!r}")
+    return term
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.strip().split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
+
+    # The read commands answer for one term, the default unless named.
+    reads = argparse.ArgumentParser(add_help=False)
+    reads.add_argument(
+        "--term",
+        type=_term,
+        default=DEFAULT_TERM,
+        help=f"which term, like 2026-27-s2 (default {slug(DEFAULT_TERM)})",
+    )
 
     sub.add_parser("init", help="create tables, indexes and views")
 
@@ -133,27 +150,27 @@ def main() -> int:
         ),
     )
 
-    sub.add_parser("stats", help="row counts and field coverage")
+    sub.add_parser("stats", help="row counts and field coverage", parents=[reads])
 
-    course_parser = sub.add_parser("course", help="show one course's timetable")
+    course_parser = sub.add_parser("course", help="show one course's timetable", parents=[reads])
     course_parser.add_argument("code", nargs="+")
 
-    free_parser = sub.add_parser("free-rooms", help="rooms free over a time range")
+    free_parser = sub.add_parser("free-rooms", help="rooms free over a time range", parents=[reads])
     free_parser.add_argument("day")
     free_parser.add_argument("start", type=_minutes)
     free_parser.add_argument("end", type=_minutes)
     free_parser.add_argument("--week", type=int, help="restrict to one teaching week")
 
-    room_parser = sub.add_parser("room", help="what is booked in a room")
+    room_parser = sub.add_parser("room", help="what is booked in a room", parents=[reads])
     room_parser.add_argument("code", nargs="+")
 
-    clash_parser = sub.add_parser("clashes", help="real clashes among a course set")
+    clash_parser = sub.add_parser("clashes", help="real clashes among a course set", parents=[reads])
     clash_parser.add_argument("codes", nargs="+")
 
-    staff_parser = sub.add_parser("staff-load", help="teaching hours per staff member")
+    staff_parser = sub.add_parser("staff-load", help="teaching hours per staff member", parents=[reads])
     staff_parser.add_argument("--limit", type=int, default=20)
 
-    sub.add_parser("busiest", help="most congested weekday hours")
+    sub.add_parser("busiest", help="most congested weekday hours", parents=[reads])
 
     args = parser.parse_args()
 
@@ -168,7 +185,7 @@ def main() -> int:
                 return 0
 
             if args.command == "stats":
-                summary = queries.coverage_summary(conn)
+                summary = queries.coverage_summary(conn, args.term)
                 total = summary.get("sessions") or 1
                 print(f"Sessions                  : {summary.get('sessions')}")
                 print(f"Distinct courses          : {summary.get('courses')}")
@@ -188,12 +205,12 @@ def main() -> int:
                 code = " ".join(args.code)
                 if " " not in code:  # accept COMP2601 as well as "COMP 2601"
                     code = re.sub(r"^([A-Za-z]+)\s*(\d.*)$", r"\1 \2", code)
-                _print_table(queries.course_timetable(conn, code))
+                _print_table(queries.course_timetable(conn, args.term, code))
                 return 0
 
             if args.command == "free-rooms":
                 rooms = queries.free_rooms(
-                    conn, args.day.capitalize(), args.start, args.end, args.week
+                    conn, args.term, args.day.capitalize(), args.start, args.end, args.week
                 )
                 print(f"{len(rooms)} room(s) free:")
                 for room in rooms:
@@ -201,11 +218,11 @@ def main() -> int:
                 return 0
 
             if args.command == "room":
-                _print_table(queries.room_occupancy(conn, " ".join(args.code)))
+                _print_table(queries.room_occupancy(conn, args.term, " ".join(args.code)))
                 return 0
 
             if args.command == "clashes":
-                found = queries.clashes(conn, args.codes)
+                found = queries.clashes(conn, args.term, args.codes)
                 if not found:
                     print("No clashes.")
                     return 0
@@ -220,10 +237,10 @@ def main() -> int:
                 return 0
 
             if args.command == "staff-load":
-                _print_table(queries.staff_load(conn, args.limit))
+                _print_table(queries.staff_load(conn, args.term, args.limit))
                 return 0
 
-            _print_table(queries.busiest_hours(conn))
+            _print_table(queries.busiest_hours(conn, args.term))
             return 0
 
     except DatabaseNotConfigured as exc:

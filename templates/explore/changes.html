@@ -175,7 +175,7 @@
         <article class="card chg chg--course_added"
                  data-search="{{ (entry.course_code ~ ' ' ~ (entry.course_title or '')) | lower }}">
           <div class="chg-head">
-            <a class="detail-code link-teal" href="/explore/course/{{ entry.course_code | urlpath }}">{{ entry.course_code }}</a>
+            <a class="detail-code link-teal" href="/explore/course/{{ entry.course_code | urlpath }}{{ term_q }}">{{ entry.course_code }}</a>
             <span class="chg-kind">new course</span>
           </div>
           {% if entry.course_title %}<p class="chg-title">{{ entry.course_title }}</p>{% endif %}

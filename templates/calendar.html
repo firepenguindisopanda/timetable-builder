@@ -1707,7 +1707,7 @@
 
     function weekMeterHtml(mask) {
         let out = `<span class="wk-meter" role="img" aria-label="${escapeHtml(weekMaskLabel(mask))}">`;
-        for (let w = 1; w <= 12; w++) {
+        for (let w = 1; w <= (totalWeeks || 12); w++) {
             out += (mask >> (w - 1)) & 1 ? '<i class="on"></i>' : '<i></i>';
         }
         return out + '</span>';

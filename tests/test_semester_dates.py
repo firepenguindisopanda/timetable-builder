@@ -118,12 +118,20 @@ def test_the_calendar_is_handed_week_one_and_the_week_count(monkeypatch):
     assert _teaching(body) == {"weekOne": "2026-08-31", "totalWeeks": eq.TOTAL_WEEKS}
 
 
-def test_an_unknown_semester_leaves_the_calendar_undated(monkeypatch):
-    body = _calendar_with(monkeypatch, "Semester_3_TT2026_2027")
-    assert _teaching(body) is None
+def test_an_unknown_term_leaves_the_calendar_undated():
+    """A term missing from TERMS is not given guessed dates."""
+    assert explore_router.teaching_calendar_context(("2027/2028", 1)) is None
+
+
+def test_semester_2_is_dated_with_its_own_weeks():
+    assert explore_router.teaching_calendar_context(("2026/2027", 2)) == {
+        "weekOne": "2027-01-18",
+        "totalWeeks": 13,
+    }
 
 
 def test_an_unreachable_warehouse_still_serves_the_calendar(monkeypatch):
+    """The term dates the weeks, so the warehouse being down costs no dates."""
     body = _calendar_with(monkeypatch, explore_router.ExplorerUnavailable("down"))
-    assert _teaching(body) is None
+    assert _teaching(body) == {"weekOne": "2026-08-31", "totalWeeks": 12}
     assert 'id="calendarWrapper"' in body

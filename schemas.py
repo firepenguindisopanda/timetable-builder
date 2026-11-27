@@ -101,11 +101,32 @@ class SyncInfo(BaseModel):
     updatePending: bool
 
 
+class TermInfo(BaseModel):
+    """One term the warehouse holds a timetable for."""
+
+    term: str = Field(description="The term as `?term=` takes it, like 2026-27-s2.")
+    label: str = Field(description='"Semester 2 2026/27 (inspection copy)".')
+    academicYear: str
+    number: int
+    stage: str | None = Field(
+        description="`inspection` for UWI's draft published for checking, else `final`."
+    )
+    publicationId: int
+    default: bool = Field(description="True for the term served when none is named.")
+
+
 class PublicationResponse(BaseModel):
     """`GET /api/timetable/publication`. See PUBLICATION-ENDPOINT-SPEC.md."""
 
     apiVersion: int = Field(
         description="Changes only when a field is removed, renamed or retyped."
+    )
+    term: str = Field(description="The term answered for, like 2026-27-s1.")
+    stage: str | None = Field(
+        description="`inspection` while the term's timetable is UWI's draft, else `final`."
+    )
+    terms: list[TermInfo] = Field(
+        description="Every term held, oldest first, so a client can offer a switch."
     )
     publication: PublicationInfo
     semester: SemesterInfo

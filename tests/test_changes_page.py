@@ -101,6 +101,10 @@ class FakeWarehouse:
         # banner that sits on all of them.
         if fn.__name__ == "room_index":
             return []
+        # One term held, so no page offers a term switch.
+        if fn.__name__ == "held_terms":
+            return [{"term": ("2026/2027", 1), "publication_id": 2,
+                     "stage": "final", "published_at": AUGUST_14}]
         if fn.__name__ == "freshness":
             return {"publication_id": 2, "published_at": AUGUST_14,
                     "imported_at": AUGUST_14, "checked_at": AUGUST_14,

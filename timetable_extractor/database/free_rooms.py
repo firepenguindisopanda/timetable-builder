@@ -30,6 +30,7 @@ from typing import Any, Iterable
 import psycopg
 
 from timetable_extractor.database.changes import is_placeholder_room
+from timetable_extractor.database.terms import IN_TERM, TERM_PUBLICATION, TermKey, params
 
 #: Buildings by the start of a room code, longest first so "UWI Couva" wins
 #: over a bare "UWI". The short codes mirror `MY_WEEK_BUILDINGS` in
@@ -130,52 +131,70 @@ def group_by_building(free: Iterable[FreeRoom]) -> list[tuple[str, list[FreeRoom
     return sorted(groups.items(), key=order)
 
 
-def study_rooms(conn: psycopg.Connection) -> list[str]:
+def _collapsed(code: str) -> str:
+    return " ".join(code.split())
+
+
+def study_rooms(conn: psycopg.Connection, term: TermKey) -> list[str]:
     """
-    Registry rooms with at least one class this publication, codes as the
+    Registry rooms with at least one class in the term, codes as the
     bookings spell them.
+
+    The registry is the term's own: room resources its current publication's
+    index listed, matched by name. It used to be `rooms.resource_id`, but a
+    room is one row across terms and keeps the resource of whichever source
+    loaded it first, so semester 2's registry reached only the 14 rooms new
+    in it (27 Nov 2026). A room resource's name is its code, then a comma and
+    its full name, as `load_index` splits it.
     """
     with conn.cursor() as cur:
         cur.execute(
-            """
-            SELECT DISTINCT cs.room
-              FROM current_sessions cs
-             WHERE cs.room IS NOT NULL
-               AND regexp_replace(cs.room, '\\s+', ' ', 'g') IN (
-                   SELECT regexp_replace(r.code, '\\s+', ' ', 'g')
-                     FROM rooms r
-                     JOIN resources res ON res.id = r.resource_id
-                    WHERE res.kind = 'room'
-                      AND res.last_seen_publication = (SELECT id FROM latest_publication)
-               )
-            """
+            f"""
+            SELECT name FROM resources
+             WHERE kind = 'room' AND last_seen_publication = {TERM_PUBLICATION}
+            """,
+            params(term),
         )
-        return [row[0] for row in cur.fetchall() if is_study_space(row[0])]
+        registry = {_collapsed(name.partition(",")[0]) for (name,) in cur.fetchall()}
+        cur.execute(
+            f"""
+            SELECT DISTINCT room FROM term_sessions
+             WHERE {IN_TERM} AND room IS NOT NULL
+             ORDER BY room
+            """,
+            params(term),
+        )
+        booked = [row[0] for row in cur.fetchall()]
+    return [room for room in booked if _collapsed(room) in registry and is_study_space(room)]
 
 
 def day_bookings(
-    conn: psycopg.Connection, day: str, week: int
+    conn: psycopg.Connection, term: TermKey, day: str, week: int
 ) -> list[tuple[str, int, int]]:
-    """Every booking on one day of one teaching week, room by room."""
+    """Every booking on one day of one teaching week of the term, room by room."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT room, start_min, end_min
-              FROM current_sessions
-             WHERE room IS NOT NULL
-               AND day = %s::day_of_week
-               AND %s::smallint = ANY (weeks)
+              FROM term_sessions
+             WHERE {IN_TERM}
+               AND room IS NOT NULL
+               AND day = %(day)s::day_of_week
+               AND %(week)s::smallint = ANY (weeks)
             """,
-            (day, week),
+            params(term, day=day, week=week),
         )
         return [(row[0], row[1], row[2]) for row in cur.fetchall()]
 
 
 def free_rooms_page(
-    conn: psycopg.Connection, day: str, week: int
+    conn: psycopg.Connection, term: TermKey, day: str, week: int
 ) -> dict[str, Any]:
     """What the page needs for one day and week; the window is applied later."""
-    return {"rooms": study_rooms(conn), "bookings": day_bookings(conn, day, week)}
+    return {
+        "rooms": study_rooms(conn, term),
+        "bookings": day_bookings(conn, term, day, week),
+    }
 
 
 # The window asked about

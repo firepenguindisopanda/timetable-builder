@@ -241,10 +241,12 @@ def test_the_previous_publication_is_looked_for_inside_the_term():
     assert params == (17,)
 
 
-def test_the_changes_pair_is_the_default_terms():
+def test_the_changes_pair_is_the_named_terms():
     conn = Connection(one=None)
-    assert changes.current_pair(conn) == []
-    assert conn.statements[0][0] == "SELECT id, published_at FROM latest_publication"
+    assert changes.current_pair(conn, ("2026/2027", 2)) == []
+    sql, params = conn.statements[0]
+    assert "FROM term_publication" in sql
+    assert params == {"year": "2026/2027", "semester": 2}
 
 
 # Nothing is written without a term

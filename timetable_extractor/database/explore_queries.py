@@ -1,14 +1,14 @@
 """
 Read-only queries backing the public timetable explorer.
 
-Everything here reads `current_sessions` (the latest publication) and never
-writes. The explorer is the student-facing view of the warehouse, so these
+Everything here reads one term's current publication, named by the caller
+(`terms.py`), and never writes. The explorer is the student-facing view of the warehouse, so these
 queries are shaped for display rather than analysis: they pre-join names,
-pre-format times, and collapse the 12 teaching weeks into a bitmask that the
-front end can render as a week meter without shipping 12 booleans per row.
+pre-format times, and collapse a term's teaching weeks into a bitmask that
+the front end can render as a week meter without shipping a boolean per week.
 
 On the week bitmask: `weeks` in the database is SMALLINT[] holding week numbers
-1-12. On the wire that becomes a single integer where bit 0 is week 1, so
+1-12 (1-13 in semester 2). On the wire that becomes a single integer where bit 0 is week 1, so
 "W1-W7, W9-W12" is 0b111101111111. It keeps the course index payload small and
 makes "does this run in week 8" a bit test in JavaScript.
 """
@@ -21,6 +21,14 @@ from typing import Any, Iterable
 import psycopg
 
 from timetable_extractor.constants import DEFAULT_SOURCE
+from timetable_extractor.database.terms import (
+    IN_TERM,
+    TERM_PUBLICATION,
+    in_term,
+    TermKey,
+    params,
+    total_weeks,
+)
 
 # Course-code matching lives with the rest of the course-code handling. It is
 # re-exported below because the explorer and the timetable API both reach for
@@ -32,7 +40,9 @@ from timetable_extractor.database.courses import (
     resolve_published_code,
 )
 
-# The teaching semester CELCAT publishes: weeks 1 through 12.
+#: Semester 1's teaching weeks, the bound before terms existed. A term's own
+#: count is `terms.total_weeks(term)`; this stays for `explore.js`'s literal
+#: and the callers that predate terms. CLAUDE.md, "TOTAL_WEEKS is 12".
 TOTAL_WEEKS = 12
 
 # Declaration order of the day_of_week enum, so Monday sorts first.
@@ -52,13 +62,18 @@ DAY_START_HOUR = 8
 DAY_END_HOUR = 20
 
 
-def weeks_to_mask(weeks: list[int] | None) -> int:
-    """Pack week numbers into a bitmask; bit 0 is week 1."""
+def weeks_to_mask(weeks: list[int] | None, weeks_in_term: int = TOTAL_WEEKS) -> int:
+    """
+    Pack week numbers into a bitmask; bit 0 is week 1.
+
+    Bounded by the term's weeks, so semester 2's week 13 is bit 12 and not
+    dropped as noise, as it was when every term had 12.
+    """
     if not weeks:
         return 0
     mask = 0
     for week in weeks:
-        if 1 <= week <= TOTAL_WEEKS:
+        if 1 <= week <= weeks_in_term:
             mask |= 1 << (week - 1)
     return mask
 
@@ -144,15 +159,17 @@ def week_layout(sessions: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def course_codes(conn: psycopg.Connection) -> list[str]:
-    """Every course code in the current publication, as published."""
+def course_codes(conn: psycopg.Connection, term: TermKey) -> list[str]:
+    """Every course code in the term's current publication, as published."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT DISTINCT course_code
-              FROM current_sessions
+              FROM term_sessions
+             WHERE {IN_TERM}
              ORDER BY course_code
-            """
+            """,
+            params(term),
         )
         return [row[0] for row in cur.fetchall()]
 
@@ -166,7 +183,7 @@ def _rows(cur: psycopg.Cursor) -> list[dict[str, Any]]:
 # Provenance
 
 
-def freshness(conn: psycopg.Connection) -> dict[str, Any]:
+def freshness(conn: psycopg.Connection, term: TermKey) -> dict[str, Any]:
     """
     Everything needed to tell a student whether the timetable is current.
 
@@ -179,14 +196,19 @@ def freshness(conn: psycopg.Connection) -> dict[str, Any]:
     A page that shows only the first cannot distinguish "UWI has not changed
     it" from "we stopped looking three weeks ago", which is exactly the failure
     a freshness indicator exists to prevent.
+
+    For the term's current publication, and the checks of the source it came
+    from: a change found in the inspection copy is not news about semester 1.
     """
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT id, published_at, http_last_modified,
-                   discovered_at AS imported_at, resource_count
-              FROM latest_publication
-            """
+                   discovered_at AS imported_at, resource_count, source, stage
+              FROM term_publication
+             WHERE academic_year = %(year)s AND semester = %(semester)s
+            """,
+            params(term),
         )
         publication = (_rows(cur) or [{}])[0]
 
@@ -199,10 +221,9 @@ def freshness(conn: psycopg.Connection) -> dict[str, Any]:
              ORDER BY started_at DESC
              LIMIT 1
             """,
-            # The source students are served (semester 1 until the term
-            # switch): a change found in the inspection copy is not news
-            # about this timetable. SEMESTERS-SPEC.md 7.1.
-            (DEFAULT_SOURCE,),
+            # The source this term's timetable comes from. Before sources
+            # existed every check was root's. SEMESTERS-SPEC.md 7.1.
+            (publication.get("source") or DEFAULT_SOURCE,),
         )
         last_check = (_rows(cur) or [{}])[0]
 
@@ -233,10 +254,11 @@ def freshness(conn: psycopg.Connection) -> dict[str, Any]:
         "update_pending": update_pending,
         "check_count": check_count,
         "publication_count": publication_count,
+        "stage": publication.get("stage"),
     }
 
 
-def publication_identity(conn: psycopg.Connection) -> dict[str, Any] | None:
+def publication_identity(conn: psycopg.Connection, term: TermKey) -> dict[str, Any] | None:
     """
     Which publication is current, and which load of it.
 
@@ -248,16 +270,16 @@ def publication_identity(conn: psycopg.Connection) -> dict[str, Any] | None:
     it reuses `freshness` for the sync fields rather than a second reading of
     "update pending".
     """
-    fresh = freshness(conn)
+    fresh = freshness(conn, term)
     publication_id = fresh["publication_id"]
     if publication_id is None:
         return None
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT load_revision, loaded_at FROM publications WHERE id = %s",
+            "SELECT load_revision, loaded_at, stage FROM publications WHERE id = %s",
             (publication_id,),
         )
-        revision, loaded_at = cur.fetchone() or (None, None)
+        revision, loaded_at, stage = cur.fetchone() or (None, None, None)
     return {
         "publication_id": publication_id,
         "revision": revision,
@@ -266,14 +288,15 @@ def publication_identity(conn: psycopg.Connection) -> dict[str, Any] | None:
         "resource_count": fresh["resource_count"],
         "checked_at": fresh["checked_at"],
         "update_pending": fresh["update_pending"],
+        "stage": stage,
     }
 
 
-def overview(conn: psycopg.Connection) -> dict[str, Any]:
-    """Headline counts for the current publication."""
+def overview(conn: psycopg.Connection, term: TermKey) -> dict[str, Any]:
+    """Headline counts for the term's current publication."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT count(*)                                    AS sessions,
                    count(DISTINCT course_code)                 AS courses,
                    count(DISTINCT room)  FILTER (WHERE room IS NOT NULL)
@@ -282,19 +305,22 @@ def overview(conn: psycopg.Connection) -> dict[str, Any]:
                                                                AS faculties,
                    count(DISTINCT department) FILTER (WHERE department IS NOT NULL)
                                                                AS departments
-              FROM current_sessions
-            """
+              FROM term_sessions
+             WHERE {IN_TERM}
+            """,
+            params(term),
         )
         stats = (_rows(cur) or [{}])[0]
 
         cur.execute(
-            """
+            f"""
             SELECT count(DISTINCT st.name)
               FROM session_staff ss
               JOIN staff st ON st.id = ss.staff_id
               JOIN sessions s ON s.id = ss.session_id
-             WHERE s.publication_id = (SELECT id FROM latest_publication)
-            """
+             WHERE s.publication_id = {TERM_PUBLICATION}
+            """,
+            params(term),
         )
         stats["staff"] = (cur.fetchone() or [0])[0]
 
@@ -302,16 +328,17 @@ def overview(conn: psycopg.Connection) -> dict[str, Any]:
         # course, room and staff timetables is what makes this dataset richer
         # than any single view of it, so it is worth surfacing.
         cur.execute(
-            """
+            f"""
             SELECT count(*) FROM (
                 SELECT ss.session_id
                   FROM session_sources ss
                   JOIN sessions s ON s.id = ss.session_id
-                 WHERE s.publication_id = (SELECT id FROM latest_publication)
+                 WHERE s.publication_id = {TERM_PUBLICATION}
                  GROUP BY ss.session_id
                 HAVING count(*) > 1
             ) t
-            """
+            """,
+            params(term),
         )
         stats["cross_confirmed"] = (cur.fetchone() or [0])[0]
 
@@ -325,7 +352,7 @@ def overview(conn: psycopg.Connection) -> dict[str, Any]:
 DAY_SKEW_THRESHOLD = 1.8
 
 
-def day_distribution(conn: psycopg.Connection) -> dict[str, Any]:
+def day_distribution(conn: psycopg.Connection, term: TermKey) -> dict[str, Any]:
     """
     Classes per weekday, with a skew check.
 
@@ -336,12 +363,14 @@ def day_distribution(conn: psycopg.Connection) -> dict[str, Any]:
     """
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT day::text AS day, count(*) AS sessions
-              FROM current_sessions
+              FROM term_sessions
+             WHERE {IN_TERM}
              GROUP BY day
              ORDER BY day
-            """
+            """,
+            params(term),
         )
         counts = {r["day"]: r["sessions"] for r in _rows(cur)}
 
@@ -387,7 +416,9 @@ def _heat_class_key(row: dict[str, Any]) -> tuple:
     )
 
 
-def heat_matrix(rows: Iterable[dict[str, Any]]) -> dict[tuple[str, int], int]:
+def heat_matrix(
+    rows: Iterable[dict[str, Any]], weeks_in_term: int = TOTAL_WEEKS
+) -> dict[tuple[str, int], int]:
     """
     Distinct classes on campus per (day, hour) in a typical teaching week.
 
@@ -403,7 +434,8 @@ def heat_matrix(rows: Iterable[dict[str, Any]]) -> dict[tuple[str, int], int]:
     rounded half up. The median needs no list of exam-like types: a one-off
     runs in one week and falls out, and two labs alternating weeks fill one
     slot every week. A class counts in every hour it overlaps, within
-    DAY_START_HOUR to DAY_END_HOUR.
+    DAY_START_HOUR to DAY_END_HOUR. The median runs over the term's own
+    weeks, 13 in semester 2.
     """
     classes: dict[tuple, dict[str, Any]] = {}
     for row in rows:
@@ -412,7 +444,7 @@ def heat_matrix(rows: Iterable[dict[str, Any]]) -> dict[tuple[str, int], int]:
             continue
         classes.setdefault(_heat_class_key(row), row)
 
-    weeks = range(1, TOTAL_WEEKS + 1)
+    weeks = range(1, weeks_in_term + 1)
     per_week: dict[int, dict[tuple[str, int], int]] = {w: {} for w in weeks}
     for cls in classes.values():
         first = max(cls["start_min"] // 60, DAY_START_HOUR)
@@ -464,27 +496,28 @@ def heat_grid(matrix: dict[tuple[str, int], int]) -> dict[str, Any]:
     return {"days": DAY_ORDER, "hours": hours, "rows": rows, "peak": peak}
 
 
-def campus_heat(conn: psycopg.Connection) -> dict[str, Any]:
+def campus_heat(conn: psycopg.Connection, term: TermKey) -> dict[str, Any]:
     """Classes on campus per weekday hour in a typical week (`heat_matrix`)."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT s.id, s.day::text AS day, s.start_min, s.end_min,
                    s.activity_type, s.stream_label, s.weeks_raw, s.weeks,
                    s.raw_text, r.code AS room
               FROM sessions s
               LEFT JOIN rooms r ON r.id = s.room_id
-             WHERE s.publication_id = (SELECT id FROM latest_publication)
-            """
+             WHERE s.publication_id = {TERM_PUBLICATION}
+            """,
+            params(term),
         )
         rows = _rows(cur)
-    return heat_grid(heat_matrix(rows))
+    return heat_grid(heat_matrix(rows, total_weeks(term)))
 
 
 # Course index and detail
 
 
-def course_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
+def course_index(conn: psycopg.Connection, term: TermKey) -> list[dict[str, Any]]:
     """
     Every course with the aggregates the explorer filters and searches on.
 
@@ -493,7 +526,7 @@ def course_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
     trip. Rooms and staff are included so one search box can match a course
     code, a room, or a lecturer's name.
     """
-    publication = "(SELECT id FROM latest_publication)"
+    publication = TERM_PUBLICATION
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -543,20 +576,30 @@ def course_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
               LEFT JOIN faculties f   ON f.id = c.faculty_id
              GROUP BY c.id, c.code, c.title, f.name, d.name
              ORDER BY c.code
-            """
+            """,
+            params(term),
         )
         courses = _rows(cur)
 
+    weeks_in_term = total_weeks(term)
     for course in courses:
-        course["weeks"] = weeks_to_mask(course.pop("weeks"))
+        course["weeks"] = weeks_to_mask(course.pop("weeks"), weeks_in_term)
         # Keep days in timetable order rather than the arbitrary order
         # array_agg(DISTINCT ...) produces.
         course["days"] = [d for d in DAY_ORDER if d in (course["days"] or [])]
     return courses
 
 
-def course_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
-    """A course, its sessions, and who teaches them."""
+def course_detail(
+    conn: psycopg.Connection, term: TermKey, code: str
+) -> dict[str, Any] | None:
+    """
+    A course, its sessions in the term, and who teaches them.
+
+    Found across terms, since a course is one row whichever term listed it,
+    so a semester 1 course opened in semester 2 shows with no classes rather
+    than as a mistyped code.
+    """
     with conn.cursor() as cur:
         # Resolved rather than normalised: normalising alone 404s "WW101" and
         # "FOUN 1001 (FULL & PART-TIME)", which are published courses. The
@@ -585,25 +628,26 @@ def course_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
         code = course["code"]
 
         cur.execute(
-            """
+            f"""
             SELECT id, day::text AS day, start_time, end_time,
                    start_min, end_min, activity_type, stream_label,
                    room, staff, weeks, weeks_raw, notes, source_count
-              FROM current_sessions
-             WHERE course_code = %s
+              FROM term_sessions
+             WHERE {IN_TERM} AND course_code = %(code)s
              ORDER BY day, start_min, end_min
             """,
-            (code,),
+            params(term, code=code),
         )
         sessions = _rows(cur)
 
+    weeks_in_term = total_weeks(term)
     for session in sessions:
-        session["weeks_mask"] = weeks_to_mask(session["weeks"])
+        session["weeks_mask"] = weeks_to_mask(session["weeks"], weeks_in_term)
         session["staff"] = list(session["staff"] or [])
 
     course["sessions"] = sessions
     course["weeks_mask"] = weeks_to_mask(
-        sorted({w for s in sessions for w in (s["weeks"] or [])})
+        sorted({w for s in sessions for w in (s["weeks"] or [])}), weeks_in_term
     )
     course["rooms"] = sorted({s["room"] for s in sessions if s["room"]})
     course["staff"] = sorted({name for s in sessions for name in s["staff"]})
@@ -613,9 +657,9 @@ def course_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
     return course
 
 
-def current_semester(conn: psycopg.Connection) -> str | None:
+def current_semester(conn: psycopg.Connection, term: TermKey) -> str | None:
     """
-    The semester label the current publication is filed under.
+    The semester label the term's current publication is filed under.
 
     The most common one, not the first: one PDF in a corpus of 1,631 has
     carried no label (PHPP 0301's Inspection Copy, 30 Sep 2026), and a
@@ -623,21 +667,22 @@ def current_semester(conn: psycopg.Connection) -> str | None:
     """
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT semester
-              FROM current_sessions
-             WHERE semester IS NOT NULL
+              FROM term_sessions
+             WHERE {IN_TERM} AND semester IS NOT NULL
              GROUP BY semester
              ORDER BY count(*) DESC, semester
              LIMIT 1
-            """
+            """,
+            params(term),
         )
         row = cur.fetchone()
     return row[0] if row else None
 
 
 def sessions_for_courses(
-    conn: psycopg.Connection, codes: list[str]
+    conn: psycopg.Connection, term: TermKey, codes: list[str]
 ) -> list[dict[str, Any]]:
     """
     Sessions for many courses at once, shaped for the timetable builder.
@@ -673,7 +718,7 @@ def sessions_for_courses(
         courses = _rows(cur)
 
         cur.execute(
-            """
+            f"""
             SELECT cs.id            AS "sessionId",
                    cs.course_code,
                    cs.activity_type AS type,
@@ -693,15 +738,16 @@ def sessions_for_courses(
                    -- Only to tell one block's rooms apart from parallel
                    -- classes; merge_block_rooms drops it before returning.
                    s.raw_text       AS "rawText"
-              FROM current_sessions cs
+              FROM term_sessions cs
               JOIN sessions s ON s.id = cs.id
-             WHERE cs.course_code = ANY(%s)
+             WHERE {in_term("cs")}
+               AND cs.course_code = ANY(%(codes)s)
              -- Qualified so it sorts on the day_of_week enum and lands Monday
              -- first. A bare "day" would bind to the ::text output column
              -- instead and order the week alphabetically, starting on Friday.
              ORDER BY cs.course_code, cs.day, cs.start_min, cs.end_min, cs.id
             """,
-            (codes,),
+            params(term, codes=codes),
         )
         rows = _rows(cur)
 
@@ -846,21 +892,22 @@ def merge_block_rooms(sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
 # Rooms
 
 
-def room_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
+def room_index(conn: psycopg.Connection, term: TermKey) -> list[dict[str, Any]]:
     """Every room that has something booked in it, with how heavily it is used."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT room                                AS code,
                    count(*)                            AS sessions,
                    count(DISTINCT course_code)         AS courses,
                    array_agg(DISTINCT day::text)       AS days,
                    round(sum((end_min - start_min) / 60.0), 1) AS hours_per_week
-              FROM current_sessions
-             WHERE room IS NOT NULL
+              FROM term_sessions
+             WHERE {IN_TERM} AND room IS NOT NULL
              GROUP BY room
              ORDER BY room
-            """
+            """,
+            params(term),
         )
         rooms = _rows(cur)
 
@@ -869,28 +916,31 @@ def room_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
     return rooms
 
 
-def room_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
-    """What is booked in a room, across every course that uses it."""
+def room_detail(
+    conn: psycopg.Connection, term: TermKey, code: str
+) -> dict[str, Any] | None:
+    """What is booked in a room in the term, across every course that uses it."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT id, course_code, course_title, day::text AS day,
                    start_time, end_time, start_min, end_min,
                    activity_type, stream_label, staff, weeks, weeks_raw,
                    faculty, source_count
-              FROM current_sessions
-             WHERE room = %s
+              FROM term_sessions
+             WHERE {IN_TERM} AND room = %(code)s
              ORDER BY day, start_min
             """,
-            (code,),
+            params(term, code=code),
         )
         sessions = _rows(cur)
 
     if not sessions:
         return None
 
+    weeks_in_term = total_weeks(term)
     for session in sessions:
-        session["weeks_mask"] = weeks_to_mask(session["weeks"])
+        session["weeks_mask"] = weeks_to_mask(session["weeks"], weeks_in_term)
         session["staff"] = list(session["staff"] or [])
 
     return {
@@ -901,7 +951,7 @@ def room_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
             sum((s["end_min"] - s["start_min"]) / 60 for s in sessions), 1
         ),
         "weeks_mask": weeks_to_mask(
-            sorted({w for s in sessions for w in (s["weeks"] or [])})
+            sorted({w for s in sessions for w in (s["weeks"] or [])}), weeks_in_term
         ),
     }
 
@@ -909,7 +959,7 @@ def room_detail(conn: psycopg.Connection, code: str) -> dict[str, Any] | None:
 # Staff
 
 
-def staff_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
+def staff_index(conn: psycopg.Connection, term: TermKey) -> list[dict[str, Any]]:
     """
     Every member of staff with a class this semester.
 
@@ -919,7 +969,7 @@ def staff_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
     """
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT st.name,
                    count(*)                                   AS sessions,
                    count(DISTINCT c.code)                     AS courses,
@@ -932,10 +982,11 @@ def staff_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
               JOIN staff st         ON st.id = ss.staff_id
               JOIN courses c        ON c.id = s.course_id
               LEFT JOIN faculties f ON f.id = c.faculty_id
-             WHERE s.publication_id = (SELECT id FROM latest_publication)
+             WHERE s.publication_id = {TERM_PUBLICATION}
              GROUP BY st.name
              ORDER BY st.name
-            """
+            """,
+            params(term),
         )
         people = _rows(cur)
 
@@ -944,30 +995,34 @@ def staff_index(conn: psycopg.Connection) -> list[dict[str, Any]]:
     return people
 
 
-def staff_detail(conn: psycopg.Connection, name: str) -> dict[str, Any] | None:
-    """One lecturer's teaching week."""
+def staff_detail(
+    conn: psycopg.Connection, term: TermKey, name: str
+) -> dict[str, Any] | None:
+    """One lecturer's teaching week in the term."""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT cs.id, cs.course_code, cs.course_title, cs.day::text AS day,
                    cs.start_time, cs.end_time, cs.start_min, cs.end_min,
                    cs.activity_type, cs.stream_label, cs.room, cs.weeks,
                    cs.weeks_raw, cs.faculty, cs.source_count
-              FROM current_sessions cs
+              FROM term_sessions cs
               JOIN session_staff ss ON ss.session_id = cs.id
               JOIN staff st         ON st.id = ss.staff_id
-             WHERE st.name = %s
+             WHERE {in_term("cs")}
+               AND st.name = %(name)s
              ORDER BY cs.day, cs.start_min
             """,
-            (name,),
+            params(term, name=name),
         )
         sessions = _rows(cur)
 
     if not sessions:
         return None
 
+    weeks_in_term = total_weeks(term)
     for session in sessions:
-        session["weeks_mask"] = weeks_to_mask(session["weeks"])
+        session["weeks_mask"] = weeks_to_mask(session["weeks"], weeks_in_term)
 
     return {
         "name": name,
@@ -978,7 +1033,7 @@ def staff_detail(conn: psycopg.Connection, name: str) -> dict[str, Any] | None:
             sum((s["end_min"] - s["start_min"]) / 60 for s in sessions), 1
         ),
         "weeks_mask": weeks_to_mask(
-            sorted({w for s in sessions for w in (s["weeks"] or [])})
+            sorted({w for s in sessions for w in (s["weeks"] or [])}), weeks_in_term
         ),
     }
 

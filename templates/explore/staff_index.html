@@ -1,5 +1,5 @@
 {% extends "explore_base.html" %}
-{% import "explore/_macros.html" as ui %}
+{% import "explore/_macros.html" as ui with context %}
 
 {% block title %}Lecturers{% endblock %}
 {% block description %}Lecturers timetabled to teach this semester at UWI St. Augustine, with their weekly contact hours.{% endblock %}
@@ -28,7 +28,7 @@
   <ul class="rows" id="list" aria-label="Lecturers">
     {% for person in people %}
     <li data-search="{{ (person.name ~ ' ' ~ (person.faculties | join(' '))) | lower }}">
-      <a class="row" href="/explore/staff/{{ person.name | urlpath }}">
+      <a class="row" href="/explore/staff/{{ person.name | urlpath }}{{ term_q }}">
         <div>
           <div class="row-code">{{ person.hours_per_week }}h</div>
           <span class="row-days">{% for day in person.days %}{{ day[:3] }} {% endfor %}</span>

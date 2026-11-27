@@ -18,6 +18,7 @@
 
   <form class="filters free-form" method="get" action="/explore/free-rooms"
         aria-label="Choose a time">
+    {% if term_q %}<input type="hidden" name="term" value="{{ term }}">{% endif %}
     <div class="filters-inner">
       <label>Day
         <select name="day">
@@ -62,7 +63,7 @@
     <ul class="rows">
       {% for room in group.rooms %}
       <li>
-        <a class="row free-row" href="/explore/room/{{ room.code | urlpath }}">
+        <a class="row free-row" href="/explore/room/{{ room.code | urlpath }}{{ term_q }}">
           <div class="row-title">{{ room.code }}</div>
           <div class="row-right">{{ room.until }}</div>
         </a>

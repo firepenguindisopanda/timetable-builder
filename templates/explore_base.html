@@ -21,16 +21,30 @@
 <body class="explore">
 <a class="skip-link" href="#main">Skip to content</a>
 
-{{ site_header(active) }}
+{{ site_header(active, term_q) }}
 
 {{ freshness_rail(freshness) }}
+
+{# Which term the page reads, once the warehouse holds more than one.
+   Each choice is this page in that term. SEMESTERS-SPEC.md 7.3. #}
+{% if terms %}
+<nav class="term-switch" aria-label="Term">
+  <div class="term-switch-inner">
+    {% for t in terms %}
+    <a href="{{ t.href }}"{% if t.current %} aria-current="page"{% endif %}>{{ t.label }}</a>
+    {% endfor %}
+  </div>
+</nav>
+{% endif %}
 
 {# Suppressed on the changes page itself, where it would announce the page the
    reader is already on. Rendered visible: a dismissed banner is hidden by
    explore.js, so a reader without JavaScript sees it rather than missing it. #}
 {% if changes_banner and active != 'changes' %}{{ update_notice(changes_banner) }}{% endif %}
 
-<main id="main">
+{# explore.js reads the term's week count and keeps `?term=` on the links
+   and the address it writes. #}
+<main id="main" data-total-weeks="{{ total_weeks or 12 }}" data-term="{{ term if term_q else '' }}">
 {% block content %}{% endblock %}
 </main>
 
